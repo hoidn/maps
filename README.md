@@ -34,6 +34,8 @@ The scripts write intermediates and the two HTML files into `pipeline/`. Copy th
 - `docs/PITFALLS.md` — the things that went wrong and how they were caught, so they are not repeated
 - `docs/ADAPTING.md` — checklist for pointing the pipeline at a different area
 - `docs/HIGH_RES.md` — plan and size arithmetic for 10 ft contours from the USGS 1 m lidar tiles (`pipeline/fetch_dem_1m.py` lists and fetches them)
+- `docs/STRATEGY.md` — where this has value versus Gaia/NatGeo, monetisation options, market-size estimates, differentiators, the generator idea
+- `docs/AUTOMATION.md` — what is automatic today, how the visual check was really done, and the roadmap to a no-touch generator (label placement is the gate)
 
 ## Layout
 

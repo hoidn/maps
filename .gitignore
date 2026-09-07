@@ -1,0 +1,12 @@
+# raw and intermediate data (regenerate with pipeline/run_all.sh)
+*.tif
+*.npy
+osm.json
+osm2.json
+terrain.json
+terrain_hi.json
+terrain_*.jpg
+*.png
+!docs/*.png
+__pycache__/
+server.log

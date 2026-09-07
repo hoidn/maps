@@ -4,3 +4,6 @@ scikit-image>=0.24
 Pillow>=10
 tifffile>=2024.5
 requests>=2.31
+
+# optional, for the 1 m lidar path (docs/HIGH_RES.md)
+# rasterio>=1.3

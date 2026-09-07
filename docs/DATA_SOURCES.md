@@ -28,6 +28,21 @@
   of every one of these once the extent bug was fixed.
 - **Fetched**: 2026-09-06.
 
+### Finer terrain: 3DEP 1 m lidar DEMs
+
+Not used by the current maps, but available over the whole frame and catalogued in
+`pipeline/tiles_1m.json` (33 tiles, 4.8 GB, six projects; the 2019 Grand Canyon NP flight is the
+one covering the inner canyon). Found through The National Map access API:
+
+```
+https://tnmaccess.nationalmap.gov/api/v1/products?datasets=Digital Elevation Model (DEM) 1 meter&bbox=...
+```
+
+`pipeline/fetch_dem_1m.py` lists and downloads them. Tiles are UTM 12N GeoTIFFs and need
+reprojection to the sheet frame (GDAL or rasterio). See `HIGH_RES.md` for the plan and the size
+arithmetic. The 3DEP ImageServer used by `fetch_dem.py` also serves this lidar data for a small
+enough bbox, which is the cheap path for a single high-resolution inset.
+
 ## Vector data: OpenStreetMap
 
 - **Service**: Overpass API, `https://overpass-api.de/api/interpreter` (fallback

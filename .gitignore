@@ -10,3 +10,4 @@ terrain_*.jpg
 !docs/*.png
 __pycache__/
 server.log
+dem_1m/

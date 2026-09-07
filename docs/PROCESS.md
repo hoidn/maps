@@ -133,7 +133,13 @@ For the interactive page append `#v=490,468,6` to the URL to screenshot a zoomed
 the PNG into regions with Pillow and look for label collisions, wrong offsets, garbled
 characters and misplaced trail names; fix them in the `place()`/`trail_label` calls and rebuild.
 
-## 5. Publish
+## 5. Optional: finer terrain
+
+`fetch_dem_1m.py` queries The National Map for 1 m lidar tiles over the frame and downloads
+them with `--download`. They are not part of `run_all.sh`; the tiled build they need is
+described in `HIGH_RES.md`.
+
+## 6. Publish
 
 The HTML files were published as Claude Code artifacts (private pages). Any static host works;
 the page has no server dependency. Keep the two files under separate names so the static sheet

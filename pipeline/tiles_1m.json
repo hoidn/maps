@@ -1,0 +1,398 @@
+[
+ {
+  "title": "USGS 1 Meter 12 x38y399 AZ_CentralCoconino_B22",
+  "url": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/AZ_CentralCoconino_B22/TIFF/USGS_1M_12_x38y399_AZ_CentralCoconino_B22.tif",
+  "bytes": 96413774,
+  "published": "2024-06-14",
+  "bbox": {
+   "minX": -112.33220168199995,
+   "maxX": -112.21981927299998,
+   "minY": 35.95702294300003,
+   "maxY": 36.04834004700007
+  }
+ },
+ {
+  "title": "USGS 1 Meter 12 x38y399 AZ_GrandCanyonNP_2019_B19",
+  "url": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/AZ_GrandCanyonNP_2019_B19/TIFF/USGS_1M_12_x38y399_AZ_GrandCanyonNP_2019_B19.tif",
+  "bytes": 16834131,
+  "published": "2023-04-27",
+  "bbox": {
+   "minX": -112.33220168199995,
+   "maxX": -112.21981927299998,
+   "minY": 35.95702294300003,
+   "maxY": 36.04834004700007
+  }
+ },
+ {
+  "title": "USGS 1 Meter 12 x38y399 AZ_NorthCentral_B23",
+  "url": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/AZ_NorthCentral_B23/TIFF/USGS_1M_12_x38y399_AZ_NorthCentral_B23.tif",
+  "bytes": 131960801,
+  "published": "2026-05-15",
+  "bbox": {
+   "minX": -112.33220168199995,
+   "maxX": -112.21981927299998,
+   "minY": 35.95702294300003,
+   "maxY": 36.04834004700007
+  }
+ },
+ {
+  "title": "USGS 1 Meter 12 x38y400 AZ_GrandCanyonNP_2019_B19",
+  "url": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/AZ_GrandCanyonNP_2019_B19/TIFF/USGS_1M_12_x38y400_AZ_GrandCanyonNP_2019_B19.tif",
+  "bytes": 107363230,
+  "published": "2023-04-27",
+  "bbox": {
+   "minX": -112.333723927,
+   "maxX": -112.22120858699998,
+   "minY": 36.04715794100008,
+   "maxY": 36.13847752100003
+  }
+ },
+ {
+  "title": "USGS 1 Meter 12 x38y400 AZ_NorthCentral_B23",
+  "url": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/AZ_NorthCentral_B23/TIFF/USGS_1M_12_x38y400_AZ_NorthCentral_B23.tif",
+  "bytes": 56254970,
+  "published": "2026-05-15",
+  "bbox": {
+   "minX": -112.333723927,
+   "maxX": -112.22120858699998,
+   "minY": 36.04715794100008,
+   "maxY": 36.13847752100003
+  }
+ },
+ {
+  "title": "USGS 1 Meter 12 x38y401 AZ_GrandCanyonNP_2019_B19",
+  "url": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/AZ_GrandCanyonNP_2019_B19/TIFF/USGS_1M_12_x38y401_AZ_GrandCanyonNP_2019_B19.tif",
+  "bytes": 52940869,
+  "published": "2023-04-27",
+  "bbox": {
+   "minX": -112.33525294799995,
+   "maxX": -112.22260408599999,
+   "minY": 36.13729152500008,
+   "maxY": 36.228613589000076
+  }
+ },
+ {
+  "title": "USGS 1 Meter 12 x38y402 AZ_GrandCanyonNP_2019_B19",
+  "url": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/AZ_GrandCanyonNP_2019_B19/TIFF/USGS_1M_12_x38y402_AZ_GrandCanyonNP_2019_B19.tif",
+  "bytes": 104793774,
+  "published": "2023-04-27",
+  "bbox": {
+   "minX": -112.33678877599999,
+   "maxX": -112.22400579699996,
+   "minY": 36.22742369500003,
+   "maxY": 36.31874824800008
+  }
+ },
+ {
+  "title": "USGS 1 Meter 12 x39y399 AZ_GrandCanyonNP_2019_B19",
+  "url": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/AZ_GrandCanyonNP_2019_B19/TIFF/USGS_1M_12_x39y399_AZ_GrandCanyonNP_2019_B19.tif",
+  "bytes": 90449733,
+  "published": "2023-04-27",
+  "bbox": {
+   "minX": -112.22120858699998,
+   "maxX": -112.10894620599998,
+   "minY": 35.95820116900006,
+   "maxY": 36.04941942600004
+  }
+ },
+ {
+  "title": "USGS 1 Meter 12 x39y399 AZ_NorthCentral_B23",
+  "url": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/AZ_NorthCentral_B23/TIFF/USGS_1M_12_x39y399_AZ_NorthCentral_B23.tif",
+  "bytes": 164328902,
+  "published": "2026-05-15",
+  "bbox": {
+   "minX": -112.22120858699998,
+   "maxX": -112.10894620599998,
+   "minY": 35.95820116900006,
+   "maxY": 36.04941942600004
+  }
+ },
+ {
+  "title": "USGS 1 Meter 12 x39y400 AZ_GrandCanyonNP_2019_B19",
+  "url": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/AZ_GrandCanyonNP_2019_B19/TIFF/USGS_1M_12_x39y400_AZ_GrandCanyonNP_2019_B19.tif",
+  "bytes": 107186344,
+  "published": "2023-04-27",
+  "bbox": {
+   "minX": -112.22260408599999,
+   "maxX": -112.11020930799998,
+   "minY": 36.04834004700007,
+   "maxY": 36.13956045100008
+  }
+ },
+ {
+  "title": "USGS 1 Meter 12 x39y401 AZ_GrandCanyonNP_2019_B19",
+  "url": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/AZ_GrandCanyonNP_2019_B19/TIFF/USGS_1M_12_x39y401_AZ_GrandCanyonNP_2019_B19.tif",
+  "bytes": 159444002,
+  "published": "2023-04-27",
+  "bbox": {
+   "minX": -112.22400579699996,
+   "maxX": -112.11147803199998,
+   "minY": 36.13847752100003,
+   "maxY": 36.229700078000064
+  }
+ },
+ {
+  "title": "USGS 1 Meter 12 x39y402 AZ_GrandCanyonNP_2019_B19",
+  "url": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/AZ_GrandCanyonNP_2019_B19/TIFF/USGS_1M_12_x39y402_AZ_GrandCanyonNP_2019_B19.tif",
+  "bytes": 257331311,
+  "published": "2023-04-27",
+  "bbox": {
+   "minX": -112.225413748,
+   "maxX": -112.11275240499998,
+   "minY": 36.228613589000076,
+   "maxY": 36.319838305000076
+  }
+ },
+ {
+  "title": "USGS 1 Meter 12 x40y399 AZ_GrandCanyonNP_2019_B19",
+  "url": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/AZ_GrandCanyonNP_2019_B19/TIFF/USGS_1M_12_x40y399_AZ_GrandCanyonNP_2019_B19.tif",
+  "bytes": 204204320,
+  "published": "2023-04-27",
+  "bbox": {
+   "minX": -112.11020930799998,
+   "maxX": -111.99806754199994,
+   "minY": 35.95927700400006,
+   "maxY": 36.050396059000036
+  }
+ },
+ {
+  "title": "USGS 1 Meter 12 x40y399 AZ_NorthCentral_B23",
+  "url": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/AZ_NorthCentral_B23/TIFF/USGS_1M_12_x40y399_AZ_NorthCentral_B23.tif",
+  "bytes": 69637116,
+  "published": "2026-05-15",
+  "bbox": {
+   "minX": -112.11020930799998,
+   "maxX": -111.99806754199994,
+   "minY": 35.95927700400006,
+   "maxY": 36.050396059000036
+  }
+ },
+ {
+  "title": "USGS 1 Meter 12 x40y400 AZ_GrandCanyonNP_2019_B19",
+  "url": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/AZ_GrandCanyonNP_2019_B19/TIFF/USGS_1M_12_x40y400_AZ_GrandCanyonNP_2019_B19.tif",
+  "bytes": 328774898,
+  "published": "2023-04-27",
+  "bbox": {
+   "minX": -112.11147803199998,
+   "maxX": -111.99920440599999,
+   "minY": 36.04941942600004,
+   "maxY": 36.14054029700003
+  }
+ },
+ {
+  "title": "USGS 1 Meter 12 x40y401 AZ_GrandCanyonNP_2019_B19",
+  "url": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/AZ_GrandCanyonNP_2019_B19/TIFF/USGS_1M_12_x40y401_AZ_GrandCanyonNP_2019_B19.tif",
+  "bytes": 326679456,
+  "published": "2023-04-27",
+  "bbox": {
+   "minX": -112.11275240499998,
+   "maxX": -112.00034633099995,
+   "minY": 36.13956045100008,
+   "maxY": 36.23068314500006
+  }
+ },
+ {
+  "title": "USGS 1 Meter 12 x40y402 AZ_GrandCanyonNP_2019_B19",
+  "url": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/AZ_GrandCanyonNP_2019_B19/TIFF/USGS_1M_12_x40y402_AZ_GrandCanyonNP_2019_B19.tif",
+  "bytes": 248971755,
+  "published": "2023-04-27",
+  "bbox": {
+   "minX": -112.11403245099996,
+   "maxX": -112.00149333899998,
+   "minY": 36.229700078000064,
+   "maxY": 36.32082460000004
+  }
+ },
+ {
+  "title": "USGS 1 Meter 12 x40y402 AZ_NorthKaibabNF_2019_B19",
+  "url": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/AZ_NorthKaibabNF_2019_B19/TIFF/USGS_1M_12_x40y402_AZ_NorthKaibabNF_2019_B19.tif",
+  "bytes": 23449086,
+  "published": "2025-04-14",
+  "bbox": {
+   "minX": -112.11403245099996,
+   "maxX": -112.00149333899998,
+   "minY": 36.229700078000064,
+   "maxY": 36.32082460000004
+  }
+ },
+ {
+  "title": "USGS 1 Meter 12 x41y399 AZ_GrandCanyonNP_2019_B19",
+  "url": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/AZ_GrandCanyonNP_2019_B19/TIFF/USGS_1M_12_x41y399_AZ_GrandCanyonNP_2019_B19.tif",
+  "bytes": 149942717,
+  "published": "2023-04-27",
+  "bbox": {
+   "minX": -111.99920440599999,
+   "maxX": -111.88718383999998,
+   "minY": 35.96025043100008,
+   "maxY": 36.051269931000036
+  }
+ },
+ {
+  "title": "USGS 1 Meter 12 x41y399 AZ_NorthCentral_B23",
+  "url": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/AZ_NorthCentral_B23/TIFF/USGS_1M_12_x41y399_AZ_NorthCentral_B23.tif",
+  "bytes": 52089496,
+  "published": "2026-05-15",
+  "bbox": {
+   "minX": -111.99920440599999,
+   "maxX": -111.88718383999998,
+   "minY": 35.96025043100008,
+   "maxY": 36.051269931000036
+  }
+ },
+ {
+  "title": "USGS 1 Meter 12 x41y399 AZ_NorthEast_D23",
+  "url": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/AZ_NorthEast_D23/TIFF/USGS_1M_12_x41y399_AZ_NorthEast_D23.tif",
+  "bytes": 114943791,
+  "published": "2026-06-16",
+  "bbox": {
+   "minX": -111.99920440599999,
+   "maxX": -111.88718383999998,
+   "minY": 35.96025043100008,
+   "maxY": 36.051269931000036
+  }
+ },
+ {
+  "title": "USGS 1 Meter 12 x41y400 AZ_GrandCanyonNP_2019_B19",
+  "url": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/AZ_GrandCanyonNP_2019_B19/TIFF/USGS_1M_12_x41y400_AZ_GrandCanyonNP_2019_B19.tif",
+  "bytes": 209848473,
+  "published": "2023-04-27",
+  "bbox": {
+   "minX": -112.00034633099995,
+   "maxX": -111.88819444299997,
+   "minY": 36.050396059000036,
+   "maxY": 36.141417044000036
+  }
+ },
+ {
+  "title": "USGS 1 Meter 12 x41y400 AZ_NorthEast_D23",
+  "url": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/AZ_NorthEast_D23/TIFF/USGS_1M_12_x41y400_AZ_NorthEast_D23.tif",
+  "bytes": 139709702,
+  "published": "2026-06-16",
+  "bbox": {
+   "minX": -112.00034633099995,
+   "maxX": -111.88819444299997,
+   "minY": 36.050396059000036,
+   "maxY": 36.141417044000036
+  }
+ },
+ {
+  "title": "USGS 1 Meter 12 x41y401 AZ_GrandCanyonNP_2019_B19",
+  "url": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/AZ_GrandCanyonNP_2019_B19/TIFF/USGS_1M_12_x41y401_AZ_GrandCanyonNP_2019_B19.tif",
+  "bytes": 218815897,
+  "published": "2023-04-27",
+  "bbox": {
+   "minX": -112.00149333899998,
+   "maxX": -111.88920954499997,
+   "minY": 36.14054029700003,
+   "maxY": 36.231562774000054
+  }
+ },
+ {
+  "title": "USGS 1 Meter 12 x41y401 AZ_NorthEast_D23",
+  "url": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/AZ_NorthEast_D23/TIFF/USGS_1M_12_x41y401_AZ_NorthEast_D23.tif",
+  "bytes": 91110960,
+  "published": "2026-06-16",
+  "bbox": {
+   "minX": -112.00149333899998,
+   "maxX": -111.88920954499997,
+   "minY": 36.14054029700003,
+   "maxY": 36.231562774000054
+  }
+ },
+ {
+  "title": "USGS 1 Meter 12 x41y402 AZ_GrandCanyonNP_2019_B19",
+  "url": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/AZ_GrandCanyonNP_2019_B19/TIFF/USGS_1M_12_x41y402_AZ_GrandCanyonNP_2019_B19.tif",
+  "bytes": 74377684,
+  "published": "2023-04-27",
+  "bbox": {
+   "minX": -112.00264545499999,
+   "maxX": -111.89022916599998,
+   "minY": 36.23068314500006,
+   "maxY": 36.321707117000074
+  }
+ },
+ {
+  "title": "USGS 1 Meter 12 x41y402 AZ_NorthEast_D23",
+  "url": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/AZ_NorthEast_D23/TIFF/USGS_1M_12_x41y402_AZ_NorthEast_D23.tif",
+  "bytes": 195289352,
+  "published": "2026-06-16",
+  "bbox": {
+   "minX": -112.00264545499999,
+   "maxX": -111.89022916599998,
+   "minY": 36.23068314500006,
+   "maxY": 36.321707117000074
+  }
+ },
+ {
+  "title": "USGS 1 Meter 12 x41y402 AZ_NorthKaibabNF_2019_B19",
+  "url": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/AZ_NorthKaibabNF_2019_B19/TIFF/USGS_1M_12_x41y402_AZ_NorthKaibabNF_2019_B19.tif",
+  "bytes": 67999637,
+  "published": "2025-04-14",
+  "bbox": {
+   "minX": -112.00264545499999,
+   "maxX": -111.89022916599998,
+   "minY": 36.23068314500006,
+   "maxY": 36.321707117000074
+  }
+ },
+ {
+  "title": "USGS one meter x38y399 AZ VerdeKaibab B1 2018",
+  "url": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/AZ_VerdeKaibab_B1_2018/TIFF/USGS_one_meter_x38y399_AZ_VerdeKaibab_B1_2018.tif",
+  "bytes": 247390536,
+  "published": "2020-03-30",
+  "bbox": {
+   "minX": -112.332280286,
+   "maxX": -112.219751919,
+   "minY": 35.9581477611,
+   "maxY": 36.0472111578
+  }
+ },
+ {
+  "title": "USGS one meter x38y400 AZ VerdeKaibab B1 2018",
+  "url": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/AZ_VerdeKaibab_B1_2018/TIFF/USGS_one_meter_x38y400_AZ_VerdeKaibab_B1_2018.tif",
+  "bytes": 119107748,
+  "published": "2020-03-30",
+  "bbox": {
+   "minX": -112.333791512,
+   "maxX": -112.221141154,
+   "minY": 36.0482866427,
+   "maxY": 36.1373448624
+  }
+ },
+ {
+  "title": "USGS one meter x39y399 AZ VerdeKaibab B1 2018",
+  "url": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/AZ_VerdeKaibab_B1_2018/TIFF/USGS_one_meter_x39y399_AZ_VerdeKaibab_B1_2018.tif",
+  "bytes": 287173509,
+  "published": "2020-03-30",
+  "bbox": {
+   "minX": -112.22127602,
+   "maxX": -112.108878925,
+   "minY": 35.9592235326,
+   "maxY": 36.0483934516
+  }
+ },
+ {
+  "title": "USGS one meter x40y399 AZ VerdeKaibab B1 2018",
+  "url": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/AZ_VerdeKaibab_B1_2018/TIFF/USGS_one_meter_x40y399_AZ_VerdeKaibab_B1_2018.tif",
+  "bytes": 132990894,
+  "published": "2020-03-30",
+  "bbox": {
+   "minX": -112.110287769,
+   "maxX": -111.998000333,
+   "minY": 35.9601968961,
+   "maxY": 36.0494727911
+  }
+ },
+ {
+  "title": "USGS one meter x41y399 AZ VerdeKaibab B1 2018",
+  "url": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/AZ_VerdeKaibab_B1_2018/TIFF/USGS_one_meter_x41y399_AZ_VerdeKaibab_B1_2018.tif",
+  "bytes": 117943828,
+  "published": "2020-03-30",
+  "bbox": {
+   "minX": -111.999282795,
+   "maxX": -111.887116703,
+   "minY": 35.9610678359,
+   "maxY": 36.050449498
+  }
+ }
+]

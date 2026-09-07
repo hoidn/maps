@@ -70,7 +70,13 @@ ladder each level joins. Adjust the zoom thresholds (`z>=2`, `z>=4.5`) in the bu
 `apply()` to taste. Expect roughly 0.6 MB of path data per 250 ft ladder over a 1300×1070
 frame with canyon-scale relief; gentler terrain is far cheaper.
 
-## 8. Sanity checks before publishing
+## 8. Going finer than 50 ft
+
+Check `pipeline/fetch_dem_1m.py` (edit its frame first) for 1 m lidar coverage. If it exists,
+`docs/HIGH_RES.md` has the tiled build plan; for a small inset the ImageServer path in
+`fetch_dem_hi.py` with a ~5 km bbox at 2 m pixels is enough and needs no new code.
+
+## 9. Sanity checks before publishing
 
 - Known elevations at two flat points and two narrow ones (ridge, canyon floor).
 - Trail lengths within ~5% of published figures.

@@ -33,6 +33,7 @@ The scripts write intermediates and the two HTML files into `pipeline/`. Copy th
 - `docs/DESIGN.md` — cartographic decisions: projection, palette, symbology, typography, labels
 - `docs/PITFALLS.md` — the things that went wrong and how they were caught, so they are not repeated
 - `docs/ADAPTING.md` — checklist for pointing the pipeline at a different area
+- `docs/HIGH_RES.md` — plan and size arithmetic for 10 ft contours from the USGS 1 m lidar tiles (`pipeline/fetch_dem_1m.py` lists and fetches them)
 
 ## Layout
 

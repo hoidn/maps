@@ -70,7 +70,7 @@ for w in ways.values():
 pois=[]
 for e in els:
     t=e.get("tags",{})
-    if e["type"]=="node" and t: pois.append(dict(lat=e["lat"],lon=e["lon"],tags=t))
+    if e["type"]=="node" and t: pois.append(dict(id=e["id"],lat=e["lat"],lon=e["lon"],tags=t))
 def poi(name):
     for p in pois:
         if norm(p["tags"].get("name",""))==norm(name): return (p["lat"],p["lon"])

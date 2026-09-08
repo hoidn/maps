@@ -3,6 +3,8 @@
 with trail/river geometry from OpenStreetMap."""
 import json, math, html, numpy as np
 from skimage.measure import approximate_polygon
+from label_manifest import Manifest, embedded_fonts
+M = Manifest("interactive")
 import osmdata as o
 from osmdata import P, hav, length, LAT0, LAT1, LON0, LON1, W, H
 
@@ -79,7 +81,7 @@ def split_by(coords, fn):
 # ---------------------------------------------------------------- label helpers
 def anchored(x, y, dx=0, dy=0, rot=0):
     return f' style="transform:translate({x:.1f}px,{y:.1f}px) scale(var(--k)) translate({dx:.1f}px,{dy:.1f}px) rotate({rot}deg)"'
-def L(lat, lon, text, cls="l-place", dx=0, dy=0, anchor="start", rot=0, sub=None):
+def _label_svg(lat, lon, text, cls="l-place", dx=0, dy=0, anchor="start", rot=0, sub=None):
     x, y = P(lat, lon)
     st = anchored(x, y, dx, dy, rot)
     if sub:
@@ -87,13 +89,17 @@ def L(lat, lon, text, cls="l-place", dx=0, dy=0, anchor="start", rot=0, sub=None
                 f'<tspan class="l-sub" x="0" dy="9.5">{esc(sub)}</tspan></text>')
     return f'<text class="{cls}" x="0" y="0" text-anchor="{anchor}"{st}>{esc(text)}</text>'
 
+def L(lat, lon, text, cls="l-place", dx=0, dy=0, anchor="start", rot=0, sub=None, source_id=None):
+    return M.label(_label_svg(lat, lon, text, cls, dx, dy, anchor, rot, sub),
+                   text, cls, P(lat, lon), angle=rot, source_id=source_id)
+
 def text_at(x, y, text, cls, anchor="start", rot=0, scaled=False):
     if scaled:
         return f'<text class="{cls}" x="0" y="0" text-anchor="{anchor}"{anchored(x, y, 0, 0, rot)}>{esc(text)}</text>'
     tr = f' transform="rotate({rot} {x:.1f} {y:.1f})"' if rot else ""
     return f'<text class="{cls}" x="{x:.1f}" y="{y:.1f}" text-anchor="{anchor}"{tr}>{esc(text)}</text>'
 
-def trail_label(chain, m0, m1, text, cls, off=9, flip=False):
+def _trail_label_svg(chain, m0, m1, text, cls, off=9, flip=False):
     a = P(*point_at(chain, m0)); b = P(*point_at(chain, m1))
     mx, my = (a[0] + b[0]) / 2, (a[1] + b[1]) / 2
     ang = math.degrees(math.atan2(b[1] - a[1], b[0] - a[0]))
@@ -102,12 +108,17 @@ def trail_label(chain, m0, m1, text, cls, off=9, flip=False):
     rad = math.radians(ang); nx, ny = math.sin(rad), -math.cos(rad)
     s = -1 if flip else 1
     return f'<text class="{cls}" x="0" y="0" text-anchor="middle" style="transform:translate({mx:.1f}px,{my:.1f}px) rotate({ang:.1f}deg) scale(var(--k)) translate(0,{-off*s:.1f}px)">{esc(text)}</text>'
+def trail_label(chain, m0, m1, text, cls, off=9, flip=False):
+    a, b = P(*point_at(chain, m0)), P(*point_at(chain, m1))
+    xy = ((a[0]+b[0])/2, (a[1]+b[1])/2)
+    return M.label(_trail_label_svg(chain,m0,m1,text,cls,off,flip),text,cls,xy,kind="line-label")
+
 def trail_label_near(chain, lat, lon, half, text, cls, off=9, flip=False):
     d, _ = along(chain, (lat, lon))
     return trail_label(chain, max(d - half, 0), d + half, text, cls, off, flip)
 
 # ---------------------------------------------------------------- symbols
-def sym(kind, lat, lon, dx=0, dy=0):
+def _symbol_svg(kind, lat, lon, dx=0, dy=0):
     X, Y = P(lat, lon)
     return f'<g{anchored(X, Y, dx, dy)}>{_sym(kind)}</g>'
 def _sym(kind):
@@ -126,6 +137,9 @@ def _sym(kind):
     if kind == "wp2": return f'<circle class="s-wp2" cx="{x:.1f}" cy="{y:.1f}" r="2.6"/>'
     if kind == "falls": return f'<path class="s-falls" d="M{x-3:.1f},{y-5:.1f} v10 M{x:.1f},{y-5:.1f} v10 M{x+3:.1f},{y-5:.1f} v10"/>'
     return ""
+
+def sym(kind, lat, lon, dx=0, dy=0, source_id=None):
+    return M.symbol(_symbol_svg(kind,lat,lon,dx,dy),kind,P(lat,lon),(dx,dy),source_id=source_id)
 
 # ---------------------------------------------------------------- data selections
 BA = orient(o.longest("Bright Angel Trail"), (36.0573, -112.1436))
@@ -348,8 +362,8 @@ for p in o.pois:
     if not inframe(P(p["lat"], p["lon"]), -8): continue
     ft = f'{round(float(t["ele"]) * 3.28084 / 1) :,.0f}' if t.get("ele") else ""
     left = t["name"] in PEAK_LEFT
-    peaks.append(sym("peak", p["lat"], p["lon"]))
-    peaks.append(L(p["lat"], p["lon"], t["name"], "l-peak", -7 if left else 7, 3, "end" if left else "start", sub=(ft + " ft") if ft else None))
+    peaks.append(sym("peak", p["lat"], p["lon"],source_id=p["id"]))
+    peaks.append(L(p["lat"], p["lon"], t["name"], "l-peak", -7 if left else 7, 3, "end" if left else "start", sub=(ft + " ft") if ft else None,source_id=p["id"]))
 
 # Region names
 REG = [
@@ -450,6 +464,8 @@ svg = f'''<svg id="mapsvg" class="map" viewBox="0 0 {W} {H}" data-w="{W}" data-h
 {scalebar(34, H - 40)}</g>
 <rect class="neatline" x="0.5" y="0.5" width="{W-1}" height="{H-1}"/>
 </svg>'''
+
+svg = M.finalize(svg)
 
 # ---------------------------------------------------------------- mileage tables & profile
 def stops_table(chain, stops, title, note):
@@ -874,9 +890,7 @@ legend = "".join([
 
 page = f'''<meta charset="utf-8">
 <title>Grand Canyon Trail Explorer</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bree+Serif&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=Alegreya:ital,wght@1,400;1,500&display=swap">
-<style>{CSS}</style>
+<style>{embedded_fonts()}{CSS}</style>
 <main class="sheet">
 <header class="mast">
   <div>
@@ -947,6 +961,7 @@ page = f'''<meta charset="utf-8">
   <p>Schematic reference, not for navigation. Trail lines and mileages carry mapping error of a few hundred feet; use the park's official trail guides and current conditions for planning.</p>
 </footer>
 </main>
+{M.script()}
 <script>{JS}</script>
 '''
 open("grand_canyon_trails_interactive.html", "w").write(page)

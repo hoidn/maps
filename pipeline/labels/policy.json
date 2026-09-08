@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "clearance": 2,
+  "edgePadding": 4,
+  "maxPointDisplacement": 32,
+  "repeatDistance": 180,
+  "staticProfile": "static-default",
+  "requiredRoutes": ["Bright Angel Trail", "South Kaibab Trail", "North Kaibab Trail"],
+  "fontFamilies": ["Source Sans 3", "Alegreya", "Bree Serif"],
+  "sizes": {"place":12,"secondary":10,"trail":13,"region":14,"contour":10},
+  "performance": {"transactionP95Ms":8,"frameP95Ms":33,"settledMs":100}
+}

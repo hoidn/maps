@@ -3,6 +3,11 @@
 How the current pipeline was actually run, what is automatic, and what would have to change
 to produce sheets for arbitrary routes without a person in the loop.
 
+Draft follow-up (2026-09-08): [automatic layout design](plans/2026-09-08-automatic-map-layout-design.md)
+and [implementation plan](plans/2026-09-08-automatic-map-layout-plan.md) specify continuous-zoom
+collision enforcement, information-coverage gates, static finalization and automated browser
+validation. These are proposed changes; the current implementation described below remains unchanged.
+
 ## How the visual check was done here
 
 After each build the page was served locally, screenshotted with headless Chrome, cropped

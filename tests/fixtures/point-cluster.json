@@ -1,0 +1,1 @@
+{"description":"A required camp and its neighboring facility name require an alternate label position, while their real anchors remain fixed.","anchors":[{"id":"camp","anchor":[40,40],"required":true},{"id":"water","anchor":[45,40],"required":false}],"expectedMinimumVisible":2}

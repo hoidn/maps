@@ -1,0 +1,1 @@
+{"description":"Editorial anchors are retained; candidate translations cannot move a region name beyond the declared CSS-pixel radius.","regions":[{"id":"plateau","anchor":[60,60],"maxDisplacement":12},{"id":"canyon","anchor":[120,80],"maxDisplacement":0}]}

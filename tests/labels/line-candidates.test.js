@@ -1,0 +1,9 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {lineWindows,regionCandidates} from '../../pipeline/labels/candidates.js';
+import {shape} from '../support/layout-fixtures.js';
+test('line windows fit paths and expose upright reading directions',()=>{const ws=lineWindows([[200,0],[0,0]],40,{linePadding:5,lineSampleStep:20});assert.ok(ws.length>1);for(const w of ws){assert.ok(w.start>=5);assert.ok(w.end<=195);assert.ok(Math.abs(w.angle)<=90);assert.equal(w.reverse,true);assert.equal(w.end-w.start,40);}});
+test('short paths cannot carry overflowing labels; degenerate segments are tolerated',()=>{assert.deepEqual(lineWindows([[0,0],[10,0]],20,{}),[]);assert.ok(lineWindows([[0,0],[0,0],[100,0]],20,{}).length>0);});
+test('tight bends fail curvature and usable windows remain on gentler path sections',()=>{assert.deepEqual(lineWindows([[0,0],[30,0],[30,30]],50,{linePadding:0,maxTurnDegrees:30}),[]);assert.ok(lineWindows([[0,0],[100,0],[100,100]],30,{maxTurnDegrees:30}).length>0);});
+test('candidate window sampling is bounded and chooses preferred distance first',()=>{const ws=lineWindows([[0,0],[1000,0]],60,{preferredOffset:600,lineSampleStep:10,maxLineCandidates:8});assert.ok(ws.length<=8);assert.equal(ws[0].start,600);});
+test('region moves stay bounded around editorial placement without rotating measured footprints',()=>{const metric=shape(50,60,30,20);const cs=regionCandidates({anchor:[60,60],maxDisplacement:12},metric,{regionMaxDisplacement:20});assert.equal(cs[0].id,'preferred');assert.ok(cs.length>1);for(const c of cs){assert.ok(Math.hypot(c.dx,c.dy)<=12+1e-8);assert.equal(c.shape.bounds.x,metric.bounds.x+c.dx);}});

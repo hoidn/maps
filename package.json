@@ -1,0 +1,17 @@
+{
+  "name": "grand-canyon-trail-maps",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "24.x"
+  },
+  "scripts": {
+    "test:browser": "playwright test",
+    "test:unit": "node --test tests/labels/*.test.js",
+    "audit": "node scripts/audit-map.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.55.1",
+    "esbuild": "0.28.2"
+  }
+}

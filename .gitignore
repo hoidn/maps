@@ -11,3 +11,9 @@ terrain_*.jpg
 __pycache__/
 server.log
 dem_1m/
+node_modules/
+artifacts/
+pipeline/labels/dist/
+.venv/
+!tests/**/*.png
+pipeline/grand_canyon_trails*.html

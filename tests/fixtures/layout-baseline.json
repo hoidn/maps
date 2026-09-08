@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Legacy evidence, never a release allowlist. Unknown ownership stays unresolved. Counts sum the stated sampled views; no claim about every intermediate zoom.",
+  "limitations": [
+    "Legacy inventory uses transformed text rectangles (per character for curved text), not exact ink contours.",
+    "Panel and scale constituents are grouped into their full control boundary. Symbol path constituents stay grouped.",
+    "Map geometry below the browser fold is inventoried; annotated screenshots show the visible viewport.",
+    "Legacy zoom samples directly reproduce current viewBox, scaling variables and visibility classes; this is an audit probe, not interaction coverage."
+  ],
+  "artifacts": [
+    {
+      "input": "output/grand_canyon_trail_sheet_static.html",
+      "artifactSha256": "d963378652add14d18d7f7ebe48d13fe88fd6135bc2616ac9337ead3a1fba5bf",
+      "browser": "chromium",
+      "browserVersion": "140.0.7339.186",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "status": "findings",
+      "counts": {
+        "overlaps": 214,
+        "clipped": 11,
+        "unresolved": 378
+      },
+      "reportDirectory": "artifacts/layout/baseline-static",
+      "views": [
+        {
+          "zoom": 1,
+          "inventoryCount": 378,
+          "overlaps": 214,
+          "clipped": 11,
+          "unresolved": 378
+        }
+      ],
+      "fontErrors": [],
+      "networkErrors": [],
+      "evidenceHashes": {
+        "report.html": "f4e1eb268c91cbf6f0da62af68458e937935636376d8094d5ada517fc9e03dbb",
+        "report.json": "d00298d3bac81040601b79ca71e899432cac521b89a4120530759a715bb743c1",
+        "zoom-1.png": "a25d66a557d96605a6d29cbbc45c6446c2bfe13f1e237d4b04cf2c17d24fdaeb"
+      }
+    },
+    {
+      "input": "output/grand_canyon_trail_explorer_interactive.html",
+      "artifactSha256": "eb6e31a829624ac15672f731269f5f028f2c990741e58646c10c4bc5bd1e227d",
+      "browser": "chromium",
+      "browserVersion": "140.0.7339.186",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "status": "findings",
+      "counts": {
+        "overlaps": 252,
+        "clipped": 36,
+        "unresolved": 3603
+      },
+      "reportDirectory": "artifacts/layout/baseline-interactive",
+      "views": [
+        {
+          "zoom": 1,
+          "inventoryCount": 372,
+          "overlaps": 184,
+          "clipped": 11,
+          "unresolved": 372
+        },
+        {
+          "zoom": 2,
+          "inventoryCount": 402,
+          "overlaps": 58,
+          "clipped": 16,
+          "unresolved": 402
+        },
+        {
+          "zoom": 4.5,
+          "inventoryCount": 943,
+          "overlaps": 6,
+          "clipped": 5,
+          "unresolved": 943
+        },
+        {
+          "zoom": 6,
+          "inventoryCount": 943,
+          "overlaps": 4,
+          "clipped": 3,
+          "unresolved": 943
+        },
+        {
+          "zoom": 14,
+          "inventoryCount": 943,
+          "overlaps": 0,
+          "clipped": 1,
+          "unresolved": 943
+        }
+      ],
+      "fontErrors": [],
+      "networkErrors": [],
+      "evidenceHashes": {
+        "report.html": "55342e3e6c942c13176aaf25bc6fd03850deb5ee9424a4915898a694691fa2b2",
+        "report.json": "948a18fc1d91f6f47cf1f3f22767fafa607263648bd68fc47b1782692a70a7de",
+        "zoom-1.png": "0ea80d1d568c83d6aeb3e7c068a3c0e63b13be8a57dd124234a0d4568aba5db4",
+        "zoom-14.png": "7b0fb114b6576198467dd36f3dd26276b52096a51622f2ef7aeef7f31d14f2d7",
+        "zoom-2.png": "e7dd494cab084a82d3da0e1cd4e06b5d1c85e46d9f7add34507c19ca5cac3dc8",
+        "zoom-4.5.png": "9d3a06a5d97cbf6ecc088e1e3c293751225d1b27ed84d41f57660952deb6d2e1",
+        "zoom-6.png": "b61fccef9f3faaf7a0826b13011e9f09df97203cb48eae287293cf3550cde4e1"
+      }
+    }
+  ]
+}

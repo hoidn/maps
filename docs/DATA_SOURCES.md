@@ -1,5 +1,10 @@
 # Data sources
 
+**Role:** Acquisition and reference notes for the dated source snapshots below.
+Conditions, service behavior, and catalogue coverage are not live-verified here.
+The [data contract](specs/map-data.md) owns pipeline formats and units; use the
+[index](index.md) to find current implementation and proposed work.
+
 ## Terrain: USGS 3D Elevation Program (3DEP)
 
 - **Service**: `https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer/exportImage`

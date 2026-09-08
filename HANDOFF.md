@@ -1,8 +1,13 @@
 # Handoff: Grand Canyon trail maps session (2026-09-06)
 
+**Status:** Historical session record. Build/branch state, verification claims,
+published links, and suggested priorities below describe that session, not the
+current checkout. Start new work from [AGENTS.md](AGENTS.md) and the
+[documentation index](docs/index.md); confirm current state before relying on this record.
+
 One session, from "make a map of the Grand Canyon trails, draw it yourself" to two published
 maps, a reproducible pipeline, and a product discussion. This file is the entry point for
-whoever picks it up next, human or model.
+the original session context, for a human or model.
 
 ## Delivered
 

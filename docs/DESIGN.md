@@ -1,5 +1,10 @@
 # Design decisions
 
+**Role:** Cartographic guide describing the current hand-placed maps. Automatic
+layout is a [separate draft](plans/2026-09-08-automatic-map-layout-design.md).
+See the [data contract](specs/map-data.md) for interface conventions and the
+[index](index.md) for routing.
+
 The brief was "draw the map yourself", so the sheet uses no map tiles or map library: the
 terrain is rendered from the elevation grid and every line, symbol and label is authored SVG.
 Data comes from USGS and OSM; the cartography is ours.

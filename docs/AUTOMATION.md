@@ -1,5 +1,9 @@
 # Automation roadmap: from one hand-finished sheet to a generator
 
+**Role:** Inventory of current automation plus exploratory roadmap. The proposed
+steps and estimates below do not authorize implementation. Current checks are in
+[validation](VALIDATION.md); use the [index](index.md) for task routing.
+
 How the current pipeline was actually run, what is automatic, and what would have to change
 to produce sheets for arbitrary routes without a person in the loop.
 

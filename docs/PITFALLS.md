@@ -1,5 +1,10 @@
 # Pitfalls and how they were caught
 
+**Role:** Recorded failures and lessons from the original builds. Current
+interface requirements and remaining enforcement gaps live in the
+[data contract](specs/map-data.md); checks live in [validation](VALIDATION.md).
+External-service observations below are historical, not current availability guarantees.
+
 Everything here cost real time. Each entry says what happened, how it showed up, and the fix
 that is now built into the pipeline.
 

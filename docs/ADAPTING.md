@@ -1,13 +1,18 @@
 # Adapting the pipeline to another area
 
+**Role:** Guide to changing the current region-specific scripts, not an
+implemented general map generator. Preserve the [data contract](specs/map-data.md)
+and use the [validation guide](VALIDATION.md) for the affected outputs.
+
 The scripts are specific to the Grand Canyon frame in three places: the frame constants, the
 OSM trail names, and the hand-placed labels. Work through this list in order.
 
 ## 1. Frame
 
-Set `LON0, LAT0, LON1, LAT1` identically in `osmdata.py`, `fetch_dem.py`, `fetch_dem_hi.py`,
-`process_dem.py` and `process_dem_hi.py` (the DEM scripts also hard-code `0.364`/`0.242` for
-the span when computing pixel size; replace with `LON1-LON0`/`LAT1-LAT0`). Recompute:
+Set `LON0, LAT0, LON1, LAT1` identically in `osmdata.py`, `fetch_dem.py` and `fetch_dem_hi.py`.
+The processors do not declare those bounds: `process_dem.py` and `process_dem_hi.py`
+hard-code `0.364`/`0.242` for geographic spans, `36.111` for latitude, and `1300`/`1070`
+for SVG dimensions. Update those consistently with the new frame. Recompute:
 
 - `H = W * ((LAT1-LAT0) / cos(mid latitude)) / (LON1-LON0)` for the SVG frame.
 - DEM `size`: pick a width, then `height = width * (LAT1-LAT0) / (LON1-LON0)` so pixels are
@@ -21,8 +26,9 @@ a national lidar product and read it with `rasterio`. The rest of `process_dem.p
 
 ## 2. Vector pull
 
-Edit the bbox in both Overpass queries. Run `fetch_osm.py`, then `python3 osmdata.py` and read
-the chain summary. For each trail you want:
+Edit the bounding boxes and region-specific relation filters in both Overpass queries.
+Run `fetch_osm.py` and `fetch_osm2.py`; `python3 osmdata.py` also requires `dem.npy` for
+its endpoint-elevation diagnostic. Read the chain summary. For each trail you want:
 
 - Is it one chain of the right length? If not, look for a route relation and add its name to
   the regex in `fetch_osm2.py`, or check for odd tags (`construction`, `abandoned`, unnamed).

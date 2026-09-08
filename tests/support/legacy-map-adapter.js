@@ -67,7 +67,7 @@ export function collectLegacyInventory() {
     result.push({
       id:
         e.id ||
-        `legacy-${kind}-${all.indexOf(e) >= 0 ? all.indexOf(e) : result.length}`,
+        `legacy-${kind}-${all.indexOf(e) >= 0 ? all.indexOf(e) : [...document.querySelectorAll("*")].indexOf(e)}`,
       kind,
       text: e.textContent?.trim().slice(0, 180) || "",
       owner:
@@ -75,7 +75,10 @@ export function collectLegacyInventory() {
         e.closest("[data-feature-id]")?.dataset.featureId ||
         null,
       polygons,
-      clip: e instanceof SVGElement ? clip : null,
+      clip:
+        e instanceof SVGElement
+          ? clip
+          : { left: 0, top: 0, right: innerWidth, bottom: innerHeight },
     });
   };
   for (const e of map.querySelectorAll("text")) {
@@ -93,10 +96,17 @@ export function collectLegacyInventory() {
           if (child.tagName.toLowerCase() !== "text") measure(child, "symbol");
       } else measure(e, "symbol");
     }
-  for (const e of document.querySelectorAll(
-    'button,input,select,[role="button"]',
-  ))
-    if (!map.contains(e)) measure(e, "control");
+  const controls = [
+    ...document.querySelectorAll(
+      '.ctl,.hint,.zlabel,.readout,.layers summary,.layers[open] .box,button,input,select,[role="button"]',
+    ),
+  ].filter((e) => !map.contains(e));
+  for (const e of controls) {
+    const details = e.closest("details:not([open])");
+    if (details && !e.closest("summary")) continue;
+    if (!controls.some((parent) => parent !== e && parent.contains(e)))
+      measure(e, "control");
+  }
   return {
     inventory: result,
     viewport: clip,
@@ -110,12 +120,17 @@ export function collectLegacyInventory() {
 export async function setLegacyZoom(page, zoom) {
   await page.evaluate((z) => {
     const svg = document.querySelector("#mapsvg,svg.map,svg");
-    const b = svg.viewBox.baseVal;
-    const w = Number(svg.dataset.w) || b.width,
-      h = Number(svg.dataset.h) || b.height;
+    const b = svg.viewBox.baseVal || { x: 0, y: 0, width: 0, height: 0 };
+    svg.__legacyAuditExtent ??= {
+      x: b.x,
+      y: b.y,
+      width: Number(svg.dataset.w) || b.width || svg.width.baseVal.value,
+      height: Number(svg.dataset.h) || b.height || svg.height.baseVal.value,
+    };
+    const { x, y, width: w, height: h } = svg.__legacyAuditExtent;
     svg.setAttribute(
       "viewBox",
-      `${(w - w / z) / 2} ${(h - h / z) / 2} ${w / z} ${h / z}`,
+      `${x + (w - w / z) / 2} ${y + (h - h / z) / 2} ${w / z} ${h / z}`,
     );
     svg.style.setProperty("--k", Math.pow(z, -0.55).toFixed(3));
     svg.style.setProperty("--s", Math.pow(z, -0.5).toFixed(3));

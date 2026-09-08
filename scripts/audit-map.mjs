@@ -9,6 +9,17 @@ import {
   setLegacyZoom,
 } from "../tests/support/legacy-map-adapter.js";
 import { checkInventory } from "../tests/support/reference-geometry.js";
+export const legacyPolicy = Object.freeze({
+  id: "legacy-rendered-audit-v1",
+  version: 1,
+  footprints:
+    "screen-transformed-text-rectangles-per-character-on-paths-with-half-stroke-padding",
+  intersection: "positive-area-polygon-intersection-within-common-visible-clip",
+  controls: "whole-visible-panels-and-passive-readouts",
+  ownership: "unknown-is-unresolved-no-assumed-exemptions",
+  clipping: "partly-visible-annotations-crossing-own-clip",
+  zoom: "original-viewBox-centered-samples-and-legacy-visibility-classes",
+});
 export async function runAudit({
   input,
   reportDir,
@@ -85,7 +96,7 @@ export async function runAudit({
     );
     const views = [];
     for (const zoom of zoomSamples) {
-      if (zoom !== 1) await setLegacyZoom(page, zoom);
+      await setLegacyZoom(page, zoom);
       const data = await page.evaluate(collectLegacyInventory);
       const checks = checkInventory(data.inventory, data.viewport);
       const view = { zoom, ...data, ...checks };
@@ -145,6 +156,11 @@ export async function runAudit({
     const report = {
       schemaVersion: 1,
       mode,
+      policyId: legacyPolicy.id,
+      policy: legacyPolicy,
+      policySha256: createHash("sha256")
+        .update(JSON.stringify(legacyPolicy))
+        .digest("hex"),
       artifactSha256: createHash("sha256").update(bytes).digest("hex"),
       input,
       browser: browserName,
@@ -194,6 +210,7 @@ if (
       reportDir: value("--report"),
       mode: args.includes("--mode") ? value("--mode") : "legacy",
       zoomSamples,
+      browserName: args.includes("--browser") ? value("--browser") : "chromium",
     });
     console.log(
       JSON.stringify({

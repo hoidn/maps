@@ -182,3 +182,12 @@ test("overlap outside the common visible clip remains only a clipping finding", 
   expect(report.overlaps).toEqual([]);
   expect(report.clipped.map((x) => x.id)).toContain("a");
 });
+test('clipped polygons retain collisions when a vertex lies exactly on the clip edge',async()=>{
+ const {checkInventory}=await import('../support/reference-geometry.js');
+ const clip={left:0,top:0,right:100,bottom:100};
+ const report=checkInventory([
+  {id:'diamond',owner:'diamond',clip,polygons:[[{x:0,y:10},{x:20,y:30},{x:0,y:50},{x:-20,y:30}]]},
+  {id:'box',owner:'box',clip,polygons:[[{x:2,y:20},{x:12,y:20},{x:12,y:40},{x:2,y:40}]]}
+ ],clip);
+ expect(report.overlaps).toEqual([{ids:['diamond','box']}]);
+});

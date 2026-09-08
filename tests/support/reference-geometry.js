@@ -19,6 +19,8 @@ export function polygonsOverlap(a, b) {
       const p = poly[i],
         q = poly[(i + 1) % poly.length],
         axis = { x: p.y - q.y, y: q.x - p.x };
+      // Clipping can repeat an edge vertex; a zero axis cannot separate polygons.
+      if (axis.x === 0 && axis.y === 0) continue;
       const ap = a.map((v) => v.x * axis.x + v.y * axis.y),
         bp = b.map((v) => v.x * axis.x + v.y * axis.y);
       if (

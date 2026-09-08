@@ -1,6 +1,7 @@
 import {contains,expand,shapeIntersects,lineHitsRect,validRect} from './geometry.js';
 import {SpatialIndex} from './spatial-index.js';
 const stable=(a,b)=>a<b?-1:a>b?1:0;
+const validShape=s=>{try{return Array.isArray(s?.parts)&&s.parts.length>0&&s.parts.every(r=>contains(validRect(s.bounds),validRect(r)));}catch{return false;}};
 const center=s=>[s.bounds.x+s.bounds.width/2,s.bounds.y+s.bounds.height/2];
 
 /** Pure CSS-pixel solver. Higher priority sorts first; required labels precede optional ones.
@@ -19,7 +20,7 @@ export function solveLayout({annotations,obstacles=[],viewport,previous,policy={
   const candidates=a=>{const cs=[...(a.candidates??[])];const ix=cs.findIndex(c=>c.id===old.get(a.id));if(ix>0)cs.unshift(...cs.splice(ix,1));return cs;};
   function blockers(a,c) {
     const hard=[],labels=[],repeat=[];
-    if(!c.shape?.parts?.length) return {hard:['invalid-measurement'],labels,repeat};
+    if(!validShape(c.shape)) return {hard:['invalid-geometry'],labels,repeat};
     if(!contains(frame,c.shape.bounds,padding))hard.push('frame');
     const allowed=new Set(a.allowedObstacleIds??[]);
     for(const key of obstacleIndex.query(expand(c.shape.bounds,clearance))) {
@@ -42,14 +43,22 @@ export function solveLayout({annotations,obstacles=[],viewport,previous,policy={
     if(visit(0)){rebuild();return true;}
     accepted.clear();for(const [id,v] of snapshot)accepted.set(id,v);rebuild();return false;
   }
-  for(const a of ordered){if(a.eligibleReason)continue;for(const c of candidates(a)){const b=blockers(a,c);if(!b.hard.length&&!b.labels.length&&!b.repeat.length){accept(a,c);break;}}
+  function place(a){if(a.eligibleReason||accepted.has(a.id))return;for(const c of candidates(a)){const b=blockers(a,c);if(!b.hard.length&&!b.labels.length&&!b.repeat.length){accept(a,c);break;}}
     if(!accepted.has(a.id))for(const c of candidates(a)){const b=blockers(a,c);if(b.labels.length&&repair(a,c,b))break;}
   }
+  // Reserve just one successfully placed representative of each required group.
+  for(const a of ordered.filter(a=>a.required))place(a);
+  for(const group of [...new Set(policy.requiredGroups??[])].sort(stable)){
+    const members=ordered.filter(a=>a.requiredGroup===group);
+    if(members.some(a=>accepted.has(a.id)))continue;
+    for(const a of members){place(a);if(accepted.has(a.id))break;}
+  }
+  for(const a of ordered)place(a);
   const outcomes=ordered.map(a=>{
     if(accepted.has(a.id))return {id:a.id,reason:'placed',blockerIds:[]};
     if(a.eligibleReason)return {id:a.id,reason:a.eligibleReason,blockerIds:[]};
     const failures=candidates(a).map(c=>blockers(a,c)),ids=[...new Set(failures.flatMap(b=>[...b.hard,...b.labels,...b.repeat]))].sort(stable);
-    const reason=a.required?'no-valid-candidate':failures.some(b=>b.repeat.length&&!b.hard.length&&!b.labels.length)?'repeat-spacing':failures.some(b=>b.labels.length&&!b.hard.length)?'collision':'no-valid-candidate';
+    const reason=failures.length&&failures.every(b=>b.hard.includes('invalid-geometry'))?'invalid-geometry':a.required?'no-valid-candidate':failures.some(b=>b.repeat.length&&!b.hard.length&&!b.labels.length)?'repeat-spacing':failures.some(b=>b.labels.length&&!b.hard.length)?'collision':'no-valid-candidate';
     return {id:a.id,reason,blockerIds:ids};
   });
   const missingRequired=ordered.filter(a=>a.required&&!accepted.has(a.id)).map(a=>a.id);

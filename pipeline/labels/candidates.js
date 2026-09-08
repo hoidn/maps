@@ -5,7 +5,15 @@ const shifted=(metric,id,x,y,extra={})=>{const dx=x-metric.bounds.x,dy=y-metric.
  * Approved text variants are measured separately by the caller. */
 export function pointCandidates(annotation,metric,policy={}) {
   const preferred=shifted(metric,'preferred',metric.bounds.x,metric.bounds.y);
-  if(annotation.kind==='symbol'||!annotation.anchor)return [preferred];
+  if(!annotation.anchor)return [preferred];
+  if(annotation.kind==='symbol'){
+    // Only explicit same-place facility metadata authorizes movement. Each vector
+    // specifies the measured symbol center relative to its true screen anchor.
+    return [preferred,...(annotation.facilityOffsets??[]).map(([dx,dy],i)=>{
+      if(![dx,dy,...annotation.anchor].every(Number.isFinite))throw new Error('Invalid facility offset');
+      return shifted(metric,`facility-${i}`,annotation.anchor[0]+dx-metric.bounds.width/2,annotation.anchor[1]+dy-metric.bounds.height/2);
+    })];
+  }
   const [ax,ay]=annotation.anchor,{width:w,height:h}=metric.bounds;
   const gap=policy.anchorGap??6,extra=Math.max(0,Math.min(32/Math.SQRT2,policy.pointExtraOffset??16));
   const result=[preferred];
@@ -32,7 +40,9 @@ export function regionCandidates(annotation,metric,policy={}) {
  * adapter must reverse path direction (not merely rotate text) to read upright.
  * These are candidate windows, not simultaneous repeats; solveLayout enforces the
  * annotation's repeatDistance across accepted labels. Curved footprints must be
- * independently measured after applying each window before entering solveLayout. */
+ * independently measured after applying each window before entering solveLayout.
+ * sideCandidates supplies a zero vector and opposite perpendicular translations
+ * of policy.lineOffset CSS pixels (default 8, zero disables sides). */
 export function lineWindows(points,textLength,policy={}) {
   if(!Number.isFinite(textLength)||textLength<=0)throw new Error('Invalid text length');
   const segments=[];let total=0;
@@ -53,7 +63,9 @@ export function lineWindows(points,textLength,policy={}) {
   for(const start of starts){const end=start+textLength,covered=segments.filter(s=>s.end>start+1e-7&&s.start<end-1e-7);let curvature=0;for(let i=1;i<covered.length;i++)curvature+=delta(covered[i].angle,covered[i-1].angle);
     if(curvature>(policy.maxTurnDegrees??45))continue;
     const a=at(start),b=at(end);let angle=Math.atan2(b[1]-a[1],b[0]-a[0])*180/Math.PI;const reverse=angle>90||angle< -90;if(reverse)angle+=angle>90?-180:180;
-    result.push({id:`line-${start.toFixed(4)}`,start,end,offset:start,anchor:at((start+end)/2),angle,reverse,curvature});
+    const sideCandidates=[{dx:0,dy:0}],lineOffset=Math.max(0,policy.lineOffset??8);
+    if(lineOffset){const radians=angle*Math.PI/180;for(const side of [1,-1])sideCandidates.push({dx:-Math.sin(radians)*lineOffset*side,dy:Math.cos(radians)*lineOffset*side});}
+    result.push({id:`line-${start.toFixed(4)}`,start,end,offset:start,anchor:at((start+end)/2),angle,reverse,curvature,sideCandidates});
   }
   return result.sort((a,b)=>Math.abs(a.start-preferred)-Math.abs(b.start-preferred)||a.curvature-b.curvature||a.start-b.start).slice(0,limit);
 }

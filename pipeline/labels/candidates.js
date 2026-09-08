@@ -7,7 +7,7 @@ export function pointCandidates(annotation,metric,policy={}) {
   const preferred=shifted(metric,'preferred',metric.bounds.x,metric.bounds.y);
   if(annotation.kind==='symbol'||!annotation.anchor)return [preferred];
   const [ax,ay]=annotation.anchor,{width:w,height:h}=metric.bounds;
-  const gap=policy.anchorGap??6,extra=Math.max(0,Math.min(32,policy.pointExtraOffset??16));
+  const gap=policy.anchorGap??6,extra=Math.max(0,Math.min(32/Math.SQRT2,policy.pointExtraOffset??16));
   const result=[preferred];
   for(const distance of [gap,gap+extra])for(const [name,sx,sy] of [['ne',1,-1],['e',1,0],['se',1,1],['s',0,1],['sw',-1,1],['w',-1,0],['nw',-1,-1],['n',0,-1]]) {
     const x=ax+(sx===1?distance:sx===-1?-distance-w:-w/2),y=ay+(sy===1?distance:sy===-1?-distance-h:-h/2);

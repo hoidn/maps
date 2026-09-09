@@ -202,6 +202,9 @@ restoring a 17.015 px label–ford gap.
 
 ## Final candidate visual evidence
 
+The [compact evidence snapshot](cartography/release-evidence.json) records exact
+inputs and retained report hashes, including failures and pending release work.
+
 The six 18-action seeded sequences passed automated checks and visual review of
 all 114 successful viewport frames. The combined evidence selects five successful
 runs from `artifacts/cartography/fuzz-release-candidate/` and one complete Grand

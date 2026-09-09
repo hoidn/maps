@@ -1,0 +1,441 @@
+{
+  "schemaVersion": 1,
+  "recordType": "bounded-release-evidence-snapshot",
+  "recordedAt": "2026-09-09T15:27:04.642127+00:00",
+  "sourceHeadAtRecord": "da67bda7d34cc14da918a1bbc1e030793ee0931b",
+  "status": {
+    "fullRelease": "pending",
+    "promotion": "pending",
+    "performanceGate": "failed",
+    "threefoldStartupImprovement": "unproven"
+  },
+  "scope": "Exact candidate and report bytes at this snapshot. This record indexes retained evidence; it is not a release approval or a substitute for the complete promotion gate.",
+  "pathBase": "repository root; artifacts/ reports and pipeline/ candidates are local ignored evidence, not bundled into this tracked summary",
+  "candidates": [
+    {
+      "region": "grand_canyon",
+      "mode": "interactive",
+      "path": "pipeline/grand_canyon_trails_interactive.html",
+      "sha256": "dd6f6da91d544ac3e0e63c734c1325637f1159179df0fc93810b27b1abb407e4",
+      "bytes": 52957984
+    },
+    {
+      "region": "sequoia",
+      "mode": "interactive",
+      "path": "pipeline/sequoia_trails_interactive.html",
+      "sha256": "93c66d5ca9d80990c308f86238062d30f3f79b347efcbc09006e0ce0d2da515a",
+      "bytes": 38361055
+    },
+    {
+      "region": "grand_canyon",
+      "mode": "static",
+      "path": "pipeline/grand_canyon_trails_final.html",
+      "sha256": "159e303f5fc550d532a0ff3013b6f8f7d9958b20d7fd62beafb2619247caa298",
+      "bytes": 27162011
+    }
+  ],
+  "fuzz": {
+    "automatedStatus": "passed",
+    "visualStatus": "accepted-with-documented-optional-point-no-fit",
+    "reviewedFrameCount": 114,
+    "actionsPerCase": 18,
+    "selection": "Five successful original cases plus a full Grand Canyon WebKit retry after audit font-precondition correction; original failed matrix preserved. All HTML hashes identical to final candidates.",
+    "selectionRecord": {
+      "path": "artifacts/cartography/fuzz-release-combined.json",
+      "sha256": "5bc5d08c5ac639eb6b16a23854f1e798e6bcea9a2b831130593187bd8763bb2b"
+    },
+    "visualReview": {
+      "path": "artifacts/cartography/fuzz-release-candidate/visual-review.md",
+      "sha256": "ab737899b3618d31eb5387f8090b3d04b27500f698431bfdaf40a58ecca8ed41"
+    },
+    "visualEvidence": {
+      "path": "artifacts/cartography/fuzz-release-candidate/visual-review-evidence.json",
+      "sha256": "9e435a1b01645171e16cea6c9086e2694be936b59be69f5c8ca3bc066c96246b"
+    },
+    "cases": [
+      {
+        "region": "grand_canyon",
+        "engine": "chromium",
+        "backend": "webgl",
+        "seed": 73191,
+        "report": "artifacts/cartography/fuzz-release-candidate/grand_canyon-chromium-webgl/report.json",
+        "reportSha256": "aeb8eb13a4af055fbff8611434d2c4234f31f0f6342b9e8b02304f05097fc901",
+        "artifactSha256": "dd6f6da91d544ac3e0e63c734c1325637f1159179df0fc93810b27b1abb407e4",
+        "browserVersion": "140.0.7339.186",
+        "deviceScaleFactor": 1,
+        "checks": 19,
+        "flaggedFrames": []
+      },
+      {
+        "region": "sequoia",
+        "engine": "chromium",
+        "backend": "canvas",
+        "seed": 82102,
+        "report": "artifacts/cartography/fuzz-release-candidate/sequoia-chromium-canvas/report.json",
+        "reportSha256": "0a0b095b76e2fb35ae606db20c7d4b5b9d40aa7f925472ac80fe2152e43cf0cf",
+        "artifactSha256": "93c66d5ca9d80990c308f86238062d30f3f79b347efcbc09006e0ce0d2da515a",
+        "browserVersion": "140.0.7339.186",
+        "deviceScaleFactor": 2,
+        "checks": 19,
+        "flaggedFrames": []
+      },
+      {
+        "region": "grand_canyon",
+        "engine": "firefox",
+        "backend": "canvas",
+        "seed": 73193,
+        "report": "artifacts/cartography/fuzz-release-candidate/grand_canyon-firefox-canvas/report.json",
+        "reportSha256": "01385c3e38e11e965d7228c93cbee2589e00400307bc46a4587e644705952048",
+        "artifactSha256": "dd6f6da91d544ac3e0e63c734c1325637f1159179df0fc93810b27b1abb407e4",
+        "browserVersion": "141.0",
+        "deviceScaleFactor": 1,
+        "checks": 19,
+        "flaggedFrames": []
+      },
+      {
+        "region": "sequoia",
+        "engine": "firefox",
+        "backend": "svg",
+        "seed": 82104,
+        "report": "artifacts/cartography/fuzz-release-candidate/sequoia-firefox-svg/report.json",
+        "reportSha256": "4f7fb82ef7e7cfd2b6f1e303eb28d7209b300ac964919c1d907bea0feba0be2e",
+        "artifactSha256": "93c66d5ca9d80990c308f86238062d30f3f79b347efcbc09006e0ce0d2da515a",
+        "browserVersion": "141.0",
+        "deviceScaleFactor": 2,
+        "checks": 19,
+        "flaggedFrames": []
+      },
+      {
+        "region": "grand_canyon",
+        "engine": "webkit",
+        "backend": "svg",
+        "seed": 73196,
+        "report": "artifacts/cartography/fuzz-release-gc-webkit-retry/report.json",
+        "reportSha256": "83d4771fa96f614a848c0ca2f279194d3717424129162448d577614b475eb4d7",
+        "artifactSha256": "dd6f6da91d544ac3e0e63c734c1325637f1159179df0fc93810b27b1abb407e4",
+        "browserVersion": "26.0",
+        "deviceScaleFactor": 2,
+        "checks": 19,
+        "flaggedFrames": [
+          10,
+          11,
+          12,
+          13,
+          14
+        ]
+      },
+      {
+        "region": "sequoia",
+        "engine": "webkit",
+        "backend": "webgl",
+        "seed": 82107,
+        "report": "artifacts/cartography/fuzz-release-candidate/sequoia-webkit-webgl/report.json",
+        "reportSha256": "39ad5c9324e65dc959da301c119d7d42bf6d9c7b8cdd9fc9d346cb876ae79793",
+        "artifactSha256": "93c66d5ca9d80990c308f86238062d30f3f79b347efcbc09006e0ce0d2da515a",
+        "browserVersion": "26.0",
+        "deviceScaleFactor": 1,
+        "checks": 19,
+        "flaggedFrames": []
+      }
+    ],
+    "optionalPointOmissions": {
+      "evidence": {
+        "path": "artifacts/cartography/final-point-states.json",
+        "sha256": "ccbfae9c993bd59f5db7e6e89763fc7c666b4e402a6064e7585c2d849a93102d"
+      },
+      "region": "grand_canyon",
+      "engine": "webkit",
+      "steps": [
+        10,
+        11,
+        12,
+        13,
+        14
+      ],
+      "candidateChecks": 901,
+      "result": "All existing candidates independently blocked by current controls or frame bounds; no stale, unprepared or pending layout work. This finding applies only to the recorded states. Declared scene and required-destination coverage checks remain unchanged."
+    },
+    "limits": "Finite seeded view, theme, font, layer and interaction samples. Review used all saved contact sheets and selected original-resolution frames; no universal visibility guarantee."
+  },
+  "frozenStatic": {
+    "status": "passed",
+    "auditCount": 6,
+    "finalization": {
+      "path": "artifacts/layout/static-finalization/finalization.json",
+      "sha256": "7a006d490be87b0103d6b4d1684fea6871a80980fc79adda385325d6fa6ce2f3"
+    },
+    "audits": [
+      {
+        "path": "artifacts/layout/static-finalization/chromium-light/report.json",
+        "sha256": "a850508005db0818a7a213b1e917b7dc89e160bbfceaa00bee7aea38fe1a1762",
+        "browser": "chromium",
+        "browserVersion": "140.0.7339.186",
+        "theme": "light",
+        "viewport": {
+          "width": 1440,
+          "height": 1470
+        },
+        "deviceScaleFactor": 1,
+        "javaScriptEnabled": false,
+        "artifactSha256": "159e303f5fc550d532a0ff3013b6f8f7d9958b20d7fd62beafb2619247caa298",
+        "status": "pass",
+        "counts": {
+          "overlaps": 0,
+          "clipped": 0,
+          "unresolved": 0,
+          "missingRequired": 0,
+          "typography": 0
+        }
+      },
+      {
+        "path": "artifacts/layout/static-finalization/chromium-dark/report.json",
+        "sha256": "46ef6f860fa48cadd17ab020ba97d8a5a825833379e1999e68e32c1940dd07dd",
+        "browser": "chromium",
+        "browserVersion": "140.0.7339.186",
+        "theme": "dark",
+        "viewport": {
+          "width": 1440,
+          "height": 1470
+        },
+        "deviceScaleFactor": 1,
+        "javaScriptEnabled": false,
+        "artifactSha256": "159e303f5fc550d532a0ff3013b6f8f7d9958b20d7fd62beafb2619247caa298",
+        "status": "pass",
+        "counts": {
+          "overlaps": 0,
+          "clipped": 0,
+          "unresolved": 0,
+          "missingRequired": 0,
+          "typography": 0
+        }
+      },
+      {
+        "path": "artifacts/layout/static-finalization/firefox-light/report.json",
+        "sha256": "9121e8127efa9f4024d0adb930d630ed92f586db2cddc20ab1e1d33d62b0fdc5",
+        "browser": "firefox",
+        "browserVersion": "141.0",
+        "theme": "light",
+        "viewport": {
+          "width": 1440,
+          "height": 1470
+        },
+        "deviceScaleFactor": 1,
+        "javaScriptEnabled": false,
+        "artifactSha256": "159e303f5fc550d532a0ff3013b6f8f7d9958b20d7fd62beafb2619247caa298",
+        "status": "pass",
+        "counts": {
+          "overlaps": 0,
+          "clipped": 0,
+          "unresolved": 0,
+          "missingRequired": 0,
+          "typography": 0
+        }
+      },
+      {
+        "path": "artifacts/layout/static-finalization/firefox-dark/report.json",
+        "sha256": "53aa8d589262505c785b0c4c5db22bc88460a2d53b2396cef9746f2b8cb1b632",
+        "browser": "firefox",
+        "browserVersion": "141.0",
+        "theme": "dark",
+        "viewport": {
+          "width": 1440,
+          "height": 1470
+        },
+        "deviceScaleFactor": 1,
+        "javaScriptEnabled": false,
+        "artifactSha256": "159e303f5fc550d532a0ff3013b6f8f7d9958b20d7fd62beafb2619247caa298",
+        "status": "pass",
+        "counts": {
+          "overlaps": 0,
+          "clipped": 0,
+          "unresolved": 0,
+          "missingRequired": 0,
+          "typography": 0
+        }
+      },
+      {
+        "path": "artifacts/layout/static-finalization/webkit-light/report.json",
+        "sha256": "5dcb97495d14d4007357becd2dbc9a00c95bc25d25a3d7f6f4f78b1bf8cd34a9",
+        "browser": "webkit",
+        "browserVersion": "26.0",
+        "theme": "light",
+        "viewport": {
+          "width": 1440,
+          "height": 1470
+        },
+        "deviceScaleFactor": 1,
+        "javaScriptEnabled": false,
+        "artifactSha256": "159e303f5fc550d532a0ff3013b6f8f7d9958b20d7fd62beafb2619247caa298",
+        "status": "pass",
+        "counts": {
+          "overlaps": 0,
+          "clipped": 0,
+          "unresolved": 0,
+          "missingRequired": 0,
+          "typography": 0
+        }
+      },
+      {
+        "path": "artifacts/layout/static-finalization/webkit-dark/report.json",
+        "sha256": "84391725286e69fc1fc3b889df09bf793f2c0700a78cb50f3b598fd54ba6e5ad",
+        "browser": "webkit",
+        "browserVersion": "26.0",
+        "theme": "dark",
+        "viewport": {
+          "width": 1440,
+          "height": 1470
+        },
+        "deviceScaleFactor": 1,
+        "javaScriptEnabled": false,
+        "artifactSha256": "159e303f5fc550d532a0ff3013b6f8f7d9958b20d7fd62beafb2619247caa298",
+        "status": "pass",
+        "counts": {
+          "overlaps": 0,
+          "clipped": 0,
+          "unresolved": 0,
+          "missingRequired": 0,
+          "typography": 0
+        }
+      }
+    ]
+  },
+  "sourceTests": {
+    "python": {
+      "status": "passed",
+      "tests": 127,
+      "log": {
+        "path": "artifacts/cartography/python-release.txt",
+        "sha256": "78554565e22c27d59716f179d58952d550daabb2f5814c7bf1b9bd08288a9537"
+      }
+    },
+    "node": {
+      "status": "passed",
+      "tests": 96,
+      "log": {
+        "path": "artifacts/cartography/node-final-source.txt",
+        "sha256": "ad6876d02b697f3bda5b125a0b3c7c652022cc3bb813d7a5495d09f0a7476afc"
+      }
+    },
+    "scope": "Recorded source-suite executions; subsequent focused regressions are listed separately and are not summed as unique tests or represented as a fresh broad-suite run."
+  },
+  "focusedTests": [
+    {
+      "scope": "font lifecycle and theme settling",
+      "status": "passed",
+      "executions": 105,
+      "log": {
+        "path": "artifacts/cartography/font-lifecycle-green.txt",
+        "sha256": "ca425ad92369a8ea8f94873910a7fac2f4c30d1b7b75a9daefc97fa0bc00ecce"
+      }
+    },
+    {
+      "scope": "audit font preconditions",
+      "status": "passed",
+      "executions": 9,
+      "log": {
+        "path": "artifacts/cartography/audit-font-layout-green.txt",
+        "sha256": "7f2a3667855ae4f820c590d28ab5dbff2f31ecdebfe070da0573286c7f052e6b"
+      }
+    },
+    {
+      "scope": "native trail pin detail selection",
+      "status": "passed",
+      "executions": 15,
+      "log": {
+        "path": "artifacts/cartography/pin-detail-green-final.txt",
+        "sha256": "a670364ad667a805199745e383768af5543e6fdc2406624cd4884ee3519ec781"
+      }
+    },
+    {
+      "scope": "Measured numeric wrapped baseline serialization across SVG/Canvas, primary text and attached elevations at 125%, 150% and reset; static wrapping",
+      "status": "passed",
+      "executions": 9,
+      "testSource": {
+        "path": "tests/browser/point-variants.spec.js",
+        "sha256": "f80cae3028782292e7076dd749ad5a42148d875f4e39ca508424f44189c8ffc3"
+      },
+      "evidenceKind": "agent execution result recorded during this session; no retained standalone runner log"
+    },
+    {
+      "scope": "Audit-owned exact local symbol raster reuse, path/style/bounds invalidation, current transform projection and bounded retention across three engines",
+      "status": "passed",
+      "executions": 9,
+      "testSource": {
+        "path": "tests/browser/audit-raster-cache.spec.js",
+        "sha256": "91600171c3e9d66fa3ae3074ef72ad8e08d6f88e0533498c9295ebab73268cdf"
+      },
+      "evidenceKind": "agent execution result recorded during this session; no retained standalone runner log",
+      "workReduction": {
+        "fixtureRasterPassesBefore": 31,
+        "fixtureRasterPassesAfter": 1,
+        "scope": "Thirty repeated collections after first collection; raster work only, not an overall runtime speedup"
+      }
+    },
+    {
+      "scope": "Empty-ink symbol cache plus quick release harness retaining overlap/font/network and frame checks",
+      "status": "passed",
+      "executions": 2,
+      "engine": "chromium",
+      "evidenceKind": "agent execution result recorded during this session; no retained standalone runner log"
+    }
+  ],
+  "releaseProfilePreflight": {
+    "status": "passed-for-one-profile-only",
+    "report": {
+      "path": "artifacts/layout/release-headed-profile/chromium-360-dpr1-light.json",
+      "sha256": "608d3a20a4bf4ee5a9d246258a77d6fb14afdb0a73a1fa53ac37cc9dddae0c08"
+    },
+    "log": {
+      "path": "artifacts/cartography/release-headed-profile.txt",
+      "sha256": "927e21c335474bb635f0843afc65dbfead306e1c5f30abc595bb32fd93d654f7"
+    },
+    "profile": "chromium-360-dpr1-light",
+    "headless": false,
+    "states": 22,
+    "interactions": 6,
+    "capturedAnimationFrames": 0,
+    "elapsedMs": 68738,
+    "limits": "Remaining complete release matrix and promotion are pending. This single profile is not the full release gate."
+  },
+  "performance": {
+    "status": "fail",
+    "report": {
+      "path": "artifacts/cartography/performance-headed-preflight/performance.json",
+      "sha256": "e1df0a569bff8e5dcd47b283aeb63ccc55cd8bc463ec616029171ae77188c615"
+    },
+    "environment": {
+      "path": "artifacts/cartography/performance-headed-preflight/environment.json",
+      "sha256": "130c00024e356dded8d58704a2cfa65a5b2502b8a5f93667ab9142942d4c3eda"
+    },
+    "artifactSha256": "dd6f6da91d544ac3e0e63c734c1325637f1159179df0fc93810b27b1abb407e4",
+    "browser": "chromium",
+    "browserVersion": "140.0.7339.186",
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "mode": "headed",
+    "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M3, Version 15.2 (Build 24C101))",
+    "softwareRenderer": false,
+    "transactionP95Ms": 26.5,
+    "frameP95Ms": 28.09999990463257,
+    "limits": {
+      "transactionP95Ms": 8,
+      "frameP95Ms": 33
+    },
+    "unmet": [
+      "transactionP95Ms"
+    ],
+    "labelCompletionMs": 1653.1999998092651,
+    "labelCompletionInformational": true,
+    "referenceProfileProvisional": true,
+    "threefoldStartupComparison": "No paired baseline establishes the requested 3x initial-responsiveness gain. This camera preflight does not establish that gain.",
+    "excludedTiming": "Aborted headless SwiftShader preflight has no completed timing result and is not combined with headed Metal evidence."
+  },
+  "limitations": [
+    "Full release, performance acceptance and promotion remain outstanding.",
+    "Candidate byte changes require appropriate new evidence; historical screenshots must not be relabeled with later hashes.",
+    "Source freshness, geographic accuracy, access conditions and universal feature visibility are not established by rendering checks.",
+    "Original reports, including unsuccessful attempts and superseded candidates, are retained."
+  ]
+}

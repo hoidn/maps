@@ -6,6 +6,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'pipeline'))
 from label_manifest import Manifest
 from map_spec import MapSpec
 from cartography.scene import render_scene
+from cartography.entities import normalized_name
 
 
 class DisplayEntityTests(unittest.TestCase):
@@ -84,5 +85,55 @@ class DisplayEntityTests(unittest.TestCase):
   spec,m,f,original,_=self.fixture();f.update(id='osm:way:area',geometry={'type':'Polygon','coordinates':[ring]})
   other=deepcopy(f);other['id']='osm:way:another-area';_,report=render_scene([f,other],[],spec,m)
   self.assertEqual(m.annotations[1]['repeatGroup'],original[1]['repeatGroup']);self.assertEqual(len(report['displayRepeatMatches']['ambiguous']),1)
+
+ def test_numeric_shelter_and_viewpoint_aliases_keep_full_names_and_source_identity(self):
+  for role,name,other,tags in [('shelter','1½ Mile Resthouse','1.5 Mile Resthouse',{'amenity':'shelter'}),('view','Renamed Overlook','Renamed Overlook',{'tourism':'viewpoint'})]:
+   spec,m,f,original,features=self.fixture(name,other,role,tags)
+   if role=='shelter':f.update(kind='building',roles=['building','poi'],geometry={'type':'Polygon','coordinates':[[[.049,.049],[.051,.049],[.051,.051],[.049,.051],[.049,.049]]]})
+   before=deepcopy(f);_,report=render_scene([f],[],spec,m)
+   a=m.annotations[1];b=next(a for a in m.annotations if a.get('sourceId')==f['id'] and a['kind']=='point-label')
+   self.assertEqual(a['repeatGroup'],b['repeatGroup']);self.assertEqual(a['text'],name);self.assertEqual(a['anchor'],original[1]['anchor']);self.assertEqual(f,before)
+   self.assertEqual(len(report['displayRepeatMatches']['matched']),1)
+
+ def test_transit_names_remain_searchable_without_competing_with_nearby_viewpoints(self):
+  spec,m,f,original,_=self.fixture('Renamed Overlook','Renamed Overlook','view',{'tourism':'viewpoint'})
+  bus=deepcopy(f);bus.update(id='osm:node:bus',tags={'highway':'bus_stop','public_transport':'platform'});bus['geometry']['coordinates'][0]+=.0007
+  _,report=render_scene([f,bus],[],spec,m)
+  self.assertEqual(len(report['displayRepeatMatches']['matched']),1)
+  self.assertFalse(any(a.get('sourceId')==bus['id'] and a['kind']=='point-label' for a in m.annotations))
+  self.assertTrue(any(a.get('sourceId')==bus['id'] and a['symbolKind']=='bus' for a in m.annotations if a['kind']=='symbol'))
+  self.assertTrue(any(f.get('sourceId')==bus['id'] and f['directory'] and f['name']=='Renamed Overlook' for f in m.features.values()))
+
+ def test_numeric_spelling_preserves_invalid_literals_and_all_distinguishing_words(self):
+  self.assertEqual(normalized_name('1½ Mile Resthouse','shelter'),normalized_name('1.5 Mile Rest House','shelter'))
+  self.assertNotEqual(normalized_name('Upper 1½ Mile Resthouse','shelter'),normalized_name('1.5 Mile Resthouse','shelter'))
+  self.assertIn('1/0',normalized_name('Trail 1/0 Shelter','shelter'))
+
+ def test_numeric_nearby_and_role_ambiguity_do_not_authorize_a_merge(self):
+  for name,other,role,tags,distance in [('1½ Mile Resthouse','2.5 Mile Resthouse','shelter',{'amenity':'shelter'},.00002),('Vista Overlook','Vista Overlook','view',{'tourism':'viewpoint'},.0008),('Vista Overlook','Vista Overlook','view',{'highway':'bus_stop'},.00002)]:
+   spec,m,f,original,_=self.fixture(name,other,role,tags,distance=distance);_,report=render_scene([f],[],spec,m)
+   self.assertEqual(report['displayRepeatMatches']['matched'],[]);self.assertEqual(m.annotations[1]['repeatGroup'],original[1]['repeatGroup'])
+
+ def boundary_fixture(self,other_name='Juniper Wilderness Area',shift=.0001,other_tags=None):
+  spec=MapSpec.from_dict({'id':'arbitrary','title':'Arbitrary','bbox':[0,0,.1,.1]});m=Manifest()
+  a={'id':'osm:relation:forest','provider':'osm','kind':'boundary','name':'Juniper Wilderness','tags':{'boundary':'protected_area','wikidata':'Q100'},'geometry':{'type':'Polygon','coordinates':[[[.01,.01],[.09,.01],[.09,.09],[.01,.09],[.01,.01]]]}}
+  b=deepcopy(a);b.update(id='agency:2',provider='agency',name=other_name,tags=other_tags or {})
+  b['geometry']['coordinates']=[[[x+shift,y] for x,y in ring] for ring in a['geometry']['coordinates']]
+  return spec,m,a,b
+
+ def test_protected_area_equivalence_requires_full_semantic_name_and_matching_geometry(self):
+  spec,m,a,b=self.boundary_fixture();before=deepcopy([a,b]);_,report=render_scene([a,b],[],spec,m)
+  labels=[a for a in m.annotations if a['kind']=='region-label'];self.assertEqual(len(labels),2)
+  self.assertEqual(len({a['repeatGroup'] for a in labels}),1);self.assertEqual([a,b],before)
+  self.assertEqual({a['text'] for a in labels},{'Juniper Wilderness','Juniper Wilderness Area'})
+  self.assertEqual(len(report['displayRepeatMatches']['protectedAreas']['matched']),1)
+  for name,shift in [('Upper Juniper Wilderness',.0001),('Juniper Wilderness Area',.04)]:
+   spec,m,a,b=self.boundary_fixture(name,shift);_,report=render_scene([a,b],[],spec,m)
+   self.assertEqual(report['displayRepeatMatches']['protectedAreas']['matched'],[])
+
+ def test_protected_area_explicit_identity_preserves_distinct_catalogs(self):
+  spec,m,a,b=self.boundary_fixture('Juniper Preserve',.001,{'wikidata':'Q100'});_,report=render_scene([a,b],[],spec,m)
+  self.assertEqual(len(m.features),2);self.assertEqual(len({a['repeatGroup'] for a in m.annotations}),1)
+  self.assertEqual(report['displayRepeatMatches']['protectedAreas']['matched'][0]['evidence'],'shared-global-id')
 
 if __name__=='__main__':unittest.main()

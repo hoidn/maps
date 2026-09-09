@@ -650,3 +650,28 @@ review. It does not satisfy the expanded typography/density criteria or validate
 newer candidate bytes. The combined selection, exact hashes and prior review are recorded
 in `artifacts/cartography/fuzz-release-combined.json` and the linked evidence.
 Full release promotion and quiet before/after performance measurement remain pending.
+
+### User follow-up: duplicate protected-area and facility labels
+
+The user reported adjacent “John Krebs Wilderness Area” / “John Krebs Wilderness”
+labels for one protected area. General display matching now compares complete
+semantic names (including explicit source aliases) and requires at least 90%
+intersection-over-union across providers, or a shared explicit global identifier.
+It shares display-repeat identity only; source names, geometries, IDs and catalogs
+remain intact. The actual OSM/PADUS pair has 99.21% overlap.
+
+Authored viewpoint/shelter labels use the existing unique source match within
+10 metres or covering source area. Numeric spellings such as `1½` and `1.5` have
+an exact rational normalization without dropping distinguishing words. Transit
+stops retain their symbols and searchable names but no longer add map text,
+keeping them distinct from nearby same-named viewpoints. The current Trailview
+viewpoint qualifies; its separate bus stop is not merged.
+
+The authored 1½ Mile Resthouse lies approximately 104 metres from the OSM shelter
+building centroid, so it does not qualify for the conservative spatial alias
+rule. Resolving that case needs explicit identity evidence or a deliberate
+source-anchor decision; no broad distance exception has been added.
+
+Focused verification: 13 entity/display tests, 33 cartographic scene tests and
+one catalog test pass. These source changes still require fresh candidates and
+visual checks of the reported cases; they are not a release or performance pass.

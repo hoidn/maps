@@ -16,3 +16,10 @@ test('audit font precondition rejects missing and broken declared families',asyn
  await page.evaluate(()=>document.fonts.add(new FontFace('Broken Family','url(data:font/woff2;base64,bm90IGEgZm9udA==)')));
  await expect(page.evaluate(loadAuditFonts,['Broken Family'])).rejects.toThrow();
 });
+
+test('audit reloads hidden faces invalidated by a pending layout commit',async({page})=>{
+ await page.setContent(await fixtureHTML());
+ await page.evaluate(()=>{let pending=true;window.mapLayout={whenSettled:async()=>{if(!pending)return;pending=false;const style=document.createElement('style');style.textContent='body {}';document.head.append(style);document.documentElement.getBoundingClientRect();style.remove();}};});
+ await page.evaluate(loadAuditFonts,['Alegreya','Source Sans 3','Bree Serif']);
+ expect(await page.evaluate(()=>[...document.fonts].map(face=>face.status))).not.toContain('unloaded');
+});

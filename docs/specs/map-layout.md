@@ -56,6 +56,14 @@ Rotated straight text and text on a path use glyph footprints. Curved text must
 fit its usable path in either backend; a clipped textPath is not an acceptable
 shorter label.
 
+Numeric and `px` textPath `dy` values describe a constant CSS-pixel baseline
+offset after zoom normalization. `data-layout-authored-dy` preserves the authored
+value through measurement clones and repeated commits; line applications carry
+`textDy` and `authoredTextDy`. Candidate preparation also checks consecutive
+browser glyph endpoints, rejecting discontinuities above 0.2 em (0.25 px floor).
+This supplements path curvature/length checks; source names are never shortened
+to rescue an invalid window.
+
 [policy.json](../../pipeline/labels/policy.json) owns numerical clearance, edge
 padding, displacement, repetition, minimum text sizes, required routes, font
 families, and performance budgets. Consumers must use the same declared policy;
@@ -87,6 +95,31 @@ missing required content. Candidate order and repair are bounded and determinist
 Required content takes precedence over optional detail. Hiding every eligible
 place name is not a successful interactive layout; release scenes require their
 reviewed content coverage as well as geometric validity.
+
+Cartographic manifests may attach `textImportance` (a numeric ranking score),
+`textImportanceReason` (the semantic basis) and `textMaxMetersPerPixel` (a positive
+ground-scale threshold, or null for no additional threshold) to text annotations.
+`textImportance` supplies their solver priority. The controller rejects text above
+its threshold with `below-text-importance` before measuring it. This interface does
+not gate physical geometry or symbols, and does not replace their existing detail
+limits. Older manifests without these fields retain their original selection.
+Required destinations/routes have no additional text-importance scale threshold.
+The shared generation policy and score tiers live in
+[`text_importance.py`](../../pipeline/cartography/text_importance.py); they derive
+from semantic classes, explicit requirements, mapped linear extent and numeric
+source prominence, never names, region-specific exclusions or inferred popularity.
+Line-label repetitions now require 360 CSS pixels of separation; point-name repeat
+groups retain their independent limits. Full names and useful coverage still need
+visual review, including dense and zoomed scenes.
+
+`maxOptionalPointDisplacement` limits optional point text to 16 CSS pixels from
+its feature; required static names retain `maxPointDisplacement` (32 px).
+Candidate generation and solver validation use the nearest painted text extent,
+excluding collision padding and static measurement reserves. A retained candidate
+that moves beyond this limit during zoom is hidden with `feature-distance` until
+fresh placement; a pure pan preserves the relative position. Symbols and region
+labels retain their separate rules. Generic solver callers without either limit
+remain unconstrained, preserving the existing standalone solver interface.
 
 Protected trail strokes remain obstacles for text and displaced facilities. An
 anchored symbol can cover a trail within its own measured footprint when that
@@ -123,10 +156,12 @@ settled result. `setLayer(layer, visible)` and `select(featureId)` coordinate
 layer visibility and directory selection. `getReport()` returns current status,
 view, outcomes, placements, missing required content, and timing samples.
 
-Interactive startup measures annotations on the main thread and sends plain geometry
-and fallback-candidate inputs to an embedded worker for the initial solve. While
-that solve and contour preparation are pending, camera/layer input can update the
-map with annotations hidden. A result is committed only if the camera, viewport,
+Interactive startup measures private annotation clones in cooperative main-thread
+slices and sends plain geometry and fallback-candidate inputs to an embedded worker.
+Canvas/WebGL scene decoding and contour preparation proceed together. Once both
+are complete, the renderer can paint the complete base at the current camera
+before labels are ready; activation alone does not establish a completed frame.
+While preparation or the initial solve is pending, camera/layer input remains active. A result is committed only if the camera, viewport,
 controls and loaded font identities/status still match; otherwise it is recomputed.
 `ready` resolves after a current initial placement and preview preparation complete.
 The embedded worker also handles subsequent interactive settled solves. New
@@ -267,9 +302,20 @@ widen naturally with zoom; their width is not controlled by `--s`.
 
 ## Progressive cartographic preparation
 
-The startup line-candidate deadline limits the first pass only. Subsequent idle
+The initial pass uses a soft 24 ms candidate preparation budget and attempts up
+to eight distinct eligible named features, ordered by text importance with primary
+point names first, plus their associated markers. That minimum seed may extend
+the soft budget through the same cooperative 8 ms slices. Other uncached
+annotations are deferred; they are not all cloned before applying the budget.
+Collision and protected-geometry checks still govern placement, so attempting
+eight names does not promise that eight names physically fit. Subsequent idle
 preparation visits every eligible annotation through cancellable slices; yielding
 time does not consume a final cutoff. `whenSettled()` waits for that preparation.
+`initialLabelBatch` records actual first-pass named-feature and symbol counts,
+paint time, eligible named-feature count, and whether at least eight names (or
+all eligible names in a smaller view) were painted. `firstUsefulLabels` records
+the first committed frame meeting that threshold; it is absent until one does.
+These are diagnostic milestones, separate from `ready` and `whenSettled()`.
 Candidate diagnostics distinguish path/window, reverse-direction, upright-glyph
 and overflow rejection. Curved waterways with no readable path window may use a
 measured straight name beside the same geometry; source paths are unchanged.
@@ -295,8 +341,9 @@ snapshot, preventing old footprints from committing under a new text preference.
 Performance report schema v2 keeps transaction and frame limits as hard gates.
 `settledMs` is total time from the final wheel frame until idle label completion,
 including the intentional wheel quiet period, animation-frame waits and yielded
-work. It is informational, following the user's acceptance of idle label latency;
-error, nonfinite or incomplete results still fail. This does not establish the
+work. It is informational in this warm-camera gate; that does not establish
+acceptable initial label latency or satisfy the separate startup target.
+Error, nonfinite or incomplete results still fail. This does not establish the
 separate 3× startup target. See [startup investigation](../STARTUP_INVESTIGATION.md).
 
 Area annotations may provide `areaPolygons`: an array of polygons, each containing

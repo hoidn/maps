@@ -3,6 +3,14 @@ ROAD_RANK={'motorway':7,'motorway_link':6,'trunk':6,'trunk_link':5,'primary':5,'
 PAVED={'asphalt','paved','concrete','concrete:plates','paving_stones','sett'}
 UNPAVED={'unpaved','gravel','fine_gravel','compacted','ground','dirt','earth','sand','rock','mud','grass','woodchips'}
 TRAILS={'path','footway','steps','bridleway','cycleway','pedestrian'}
+def visible_reference(kind,name,reference):
+ """A named walking route is identified by its full name, not an opaque code.
+
+ Road refs remain useful signage, and an unnamed path may have only a mapped
+ reference. All references still belong in source records and trail details.
+ """
+ return reference if reference and (kind=='road' or not name or not name.strip()) else None
+
 def transport_style(tags):
  highway=tags.get('highway','path');status='construction' if highway=='construction' else 'abandoned' if tags.get('abandoned')=='yes' else 'disused' if tags.get('disused')=='yes' else 'unknown'
  if highway=='construction':highway=tags.get('construction','path')

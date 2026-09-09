@@ -3,9 +3,10 @@
   "clearance": 2,
   "edgePadding": 4,
   "maxPointDisplacement": 32,
+  "maxOptionalPointDisplacement": 16,
   "pointPreferredDistance": 12,
   "pointDistanceBand": 4,
-  "repeatDistance": 180,
+  "repeatDistance": 360,
   "staticProfile": "static-default",
   "requiredRoutes": [
     "Bright Angel Trail",

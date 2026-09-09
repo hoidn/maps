@@ -16,11 +16,12 @@ from shapely.ops import transform,substring,unary_union
 from label_manifest import NS,stable_id
 from path_geometry import detail_path
 from features import feature_roles
-from .transport import transport_style
+from .transport import transport_style,visible_reference
 from .hydro import hydro_style
 from .poi import poi_style,SYMBOL_ONLY_SERVICES
 from .symbols import symbol_svg
 from .entities import match_display_repeats
+from .text_importance import apply_text_importance
 
 PALETTE={'road':'var(--road-fill)','trail':'var(--trail-ink)','restricted':'var(--restricted-ink)'}
 
@@ -141,6 +142,7 @@ def render_scene(features,routes,spec,M,existing=(),distances=()):
    raw=annotate(f,name,cls,xy,gid,max_mpp)
    if raw:
     M.annotations[-1]['geometryBounds']=list(seg.bounds)
+    M.annotations[-1]['featureLengthMeters']=line.length*spec.meters_per_map_unit
     groups[layer].append(raw)
  def render_poi(f,g):
   p=g if g.geom_type=='Point' else g.representative_point();xy=(p.x,p.y);t=f.get('tags',{});st=poi_style(t);name=f.get('name');fc=f.get('properties',{}).get('featureClass');importance=poi_importance(t,fc)
@@ -196,7 +198,8 @@ def render_scene(features,routes,spec,M,existing=(),distances=()):
     if kind=='trail' and M.mode!='static':groups['hits'].append(f'<path class="hit" d="{d}"{attrs}/>')
     line_labels(named,line,'l-trail' if kind=='trail' else 'l-road','trail-labels',limit)
     ref=f.get('tags',{}).get('ref') or next((route_by_id[r]['tags'].get('ref') for r in f.get('routeIds',[]) if r in route_by_id and route_by_id[r]['tags'].get('ref')),None)
-    if ref:line_labels(named,line,'l-road-ref','trail-labels',limit,text=ref)
+    shown_ref=visible_reference(kind,name,ref)
+    if shown_ref:line_labels(named,line,'l-road-ref','trail-labels',limit,text=shown_ref)
    selected[kind]+=1
   elif kind=='barrier':
    tag=f.get('tags',{}).get('barrier','unknown');lines=list(parts(g,'LineString'))
@@ -282,8 +285,9 @@ def render_scene(features,routes,spec,M,existing=(),distances=()):
   groups['trail-labels'].append(raw);distance_count+=1
  apply_point_importance(M,spec)
  display_matches=match_display_repeats(M,features,spec)
+ text_selection=apply_text_importance(M,features)
  result={k:('<defs>'+''.join(v)+'</defs>' if k=='defs' else f'<g class="{k}">'+''.join(v)+'</g>') for k,v in groups.items()}
- return result,{'displayRepeatMatches':display_matches,'selected':dict(selected),'omitted':omitted,'styles':list(styles.values()),'facilitySymbols':dict(Counter(a['symbolKind'] for a in M.annotations if a['kind']=='symbol')),'distanceLabels':{'generated':distance_count,'omitted':distance_omissions,'method':'Font advance lower bound at native sheet width; supported maximum 14x interactive or 1x static; final browser placement remains authoritative'}}
+ return result,{'textSelection':text_selection,'displayRepeatMatches':display_matches,'selected':dict(selected),'omitted':omitted,'styles':list(styles.values()),'facilitySymbols':dict(Counter(a['symbolKind'] for a in M.annotations if a['kind']=='symbol')),'distanceLabels':{'generated':distance_count,'omitted':distance_omissions,'method':'Font advance lower bound at native sheet width; supported maximum 14x interactive or 1x static; final browser placement remains authoritative'}}
 
 def augment_svg(svg,M,spec,catalog):
  root=ET.fromstring(svg);replace={'hydro','roads','trails','hits','hydro-labels','trail-labels'};discard=set()

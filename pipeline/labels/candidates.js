@@ -1,4 +1,5 @@
 import {moveShape} from './geometry.js';
+import {pointDisplacementLimit,pointPaintDistance} from './point-limits.js';
 const shifted=(metric,id,x,y,extra={})=>{const dx=x-metric.bounds.x,dy=y-metric.bounds.y;return {id,shape:moveShape(metric,dx,dy),dx,dy,...extra};};
 /** metric is the existing rendered CSS footprint. dx/dy translate its wrapper;
  * SVG adapters divide these values by current screen scale. Geographic anchor never moves.
@@ -26,7 +27,7 @@ export function pointCandidates(annotation,metric,policy={}) {
     result.push(atPaint(name+(distance===gap?'':'-far'),x,y));
   }
   if(policy.densePointCandidates){
-    const radius=Math.min(32,policy.maxPointDisplacement??32);
+    const radius=Math.min(32,pointDisplacementLimit(annotation,policy,32));
     // Required names need narrow feasible slots between protected geometry;
     // the ordinary coarse grid can miss them even with complete wrap variants.
     const step=Math.max(1,policy.densePointStep??(annotation.required?1:4));
@@ -37,8 +38,8 @@ export function pointCandidates(annotation,metric,policy={}) {
   }
   // Keep the declared paint limit strict even when a backend rounds glyph
   // extents slightly differently from the SVG preparation measurement.
-  const maximum=Math.max(0,(policy.maxPointDisplacement??32)-(policy.pointPaintReserve??0));
-  return result.filter(c=>{const b=c.shape.bounds,inset=c.shape.paintInset??0,r={x:b.x+inset,y:b.y+inset,width:b.width-2*inset,height:b.height-2*inset};return Math.hypot(Math.max(r.x-ax,0,ax-r.x-r.width),Math.max(r.y-ay,0,ay-r.y-r.height))<=maximum+1e-7;});
+  const maximum=Math.max(0,pointDisplacementLimit(annotation,policy,32)-(policy.pointPaintReserve??0));
+  return result.filter(c=>pointPaintDistance(c.shape,annotation.anchor)<=maximum+1e-7);
 }
 
 /** Conservative translations of an already measured region name. No invented region

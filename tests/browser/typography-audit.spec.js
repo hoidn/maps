@@ -9,3 +9,13 @@ test('static typography retains original positive font profile',async({page})=>{
 
 test('wrapped primary tspans keep primary minimum',async({page})=>{const d=await fixture(page,'<text x="100" y="100" font-size="12"><tspan data-layout-primary="true" font-size="10">Long place</tspan></text>');expect(checkTypography(d,{})).toContainEqual({id:'label',reason:'minimum-font-size',size:10,minimum:12});});
 test('point distance measures painted halo rather than unpainted text bounds',async({page})=>{const d=await fixture(page,'<text x="133" y="100" font-size="12" stroke="white" stroke-width="4">Camp</text>');expect(checkTypography(d,{}).filter(f=>f.reason==='point-displacement')).toEqual([]);});
+
+test('independent collector retains required static identity for point distance limits',async({page})=>{
+ const body='<text x="124" y="100" font-size="12">Camp</text>',policy={maxPointDisplacement:32,maxOptionalPointDisplacement:16};
+ const optional=await fixture(page,body,{},'static');
+ expect(checkTypography(optional,policy).filter(f=>f.reason==='point-displacement')).toHaveLength(1);
+ const required=await fixture(page,body,{requiredProfiles:['static-default']},'static');
+ expect(checkTypography(required,policy).filter(f=>f.reason==='point-displacement')).toEqual([]);
+ const interactive=await fixture(page,body,{requiredProfiles:['static-default']});
+ expect(checkTypography(interactive,policy).filter(f=>f.reason==='point-displacement')).toHaveLength(1);
+});

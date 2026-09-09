@@ -15,3 +15,11 @@ test('fallback and measurement reserves still isolate source candidates',()=>{
  solveLayout({annotations:[a],viewport:{x:0,y:0,width:10,height:10},policy:{measurementReserves:{reserved:2}}});
  assert.equal(fallbackCalls,1);assert.strictEqual(a.fallbackCandidates,fallback);assert.equal(JSON.stringify(a.candidates),before);
 });
+test('one-candidate fast validation does not allocate an ordering copy or sort',()=>{
+ const sort=Array.prototype.sort;let candidateSorts=0;
+ Array.prototype.sort=function(...args){if(this.length===1&&this[0]?.shape)candidateSorts++;return sort.apply(this,args);};
+ let result;
+ try{result=solveLayout({annotations:[{id:'one',candidates:[{id:'only',shape}]}],viewport:{width:100,height:100},policy:{repairMaxNeighbors:0,exhaustiveDiagnostics:false}});}
+ finally{Array.prototype.sort=sort;}
+ assert.equal(result.placements[0].candidateId,'only');assert.equal(candidateSorts,0);
+});

@@ -22,10 +22,10 @@ export class CanvasMapRenderer{
   this.pageHidden=event=>{if(!event.persisted)this.destroy();};window.addEventListener('pagehide',this.pageHidden,{once:true});
  }
  async prepare(){
-  await this.controller.preview.ready;
+  // Independent scene/image work can progress while contour chunks prepare.
+  await Promise.all([this.controller.preview.ready,this.scene.prepare()]);
   if([...this.svg.children].some(e=>e.matches('.contours')&&!this.controller.preview.contours.layers.includes(e)))throw new Error('Unsupported Canvas contour group');
   if(this.requestedBackend==='webgl')try{this.gpu=new WebGLContours(this.contourCanvas,this.controller.preview.contours,error=>this.useCanvas(error));await this.gpu.prepare();}catch(error){this.useCanvas(error);}
-  await this.scene.prepare();
  }
  useCanvas(error){
   this.fallbackReason=error?.message||String(error);this.gpu?.destroy();this.gpu=null;

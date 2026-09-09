@@ -58,3 +58,16 @@ test('detail-hidden paths do not block labels until their ground scale is visibl
  assert.deepEqual(createTrailQuery({...args,metersPerPixel:30})(box).map(o=>o.id),['edge']);
  assert.deepEqual(createTrailQuery({...args,metersPerPixel:3})(box).map(o=>o.id),['crossing','edge']);
 });
+test('query bounds exactly match four-corner projection across affine camera fuzz cases',()=>{
+ let seed=37219;const random=()=>((seed=(Math.imul(seed,1664525)+1013904223)>>>0)/2**32);
+ for(let i=0;i<1000;i++){
+  const inverse=Object.fromEntries(['a','b','c','d','e','f'].map(k=>[k,(random()-.5)*100]));
+  const rect={x:(random()-.5)*100,y:(random()-.5)*100,width:random()*100,height:random()*100},strokeScale=random()*5,maxWidth=random()*10;
+  const points=[[rect.x,rect.y],[rect.x+rect.width,rect.y],[rect.x,rect.y+rect.height],[rect.x+rect.width,rect.y+rect.height]].map(p=>({x:inverse.a*p[0]+inverse.c*p[1]+inverse.e,y:inverse.b*p[0]+inverse.d*p[1]+inverse.f}));
+  const radius=maxWidth*strokeScale/2,x=Math.min(...points.map(p=>p.x))-radius,y=Math.min(...points.map(p=>p.y))-radius;
+  const expected={x,y,width:Math.max(...points.map(p=>p.x))+radius-x,height:Math.max(...points.map(p=>p.y))+radius-y};
+  let actual;const index={query(r){actual=r;return [];}};
+  createTrailQuery({segments:[],index,matrix:inverse,inverse,strokeScale,scale:1,maxWidth})(rect);
+  assert.deepEqual(actual,expected);
+ }
+});

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {annotationOrder} from '../../pipeline/labels/annotation-order.js';
+import {solveLayout} from '../../pipeline/labels/place.js';
 const reference=a=>a.map((_,i)=>i).sort((i,j)=>Number(!!a[j].pinned)-Number(!!a[i].pinned)||Number(!!a[j].required)-Number(!!a[i].required)||(a[j].priority??0)-(a[i].priority??0)||(a[i].id<a[j].id?-1:a[i].id>a[j].id?1:0));
 test('cached ordering follows priority, required, pinned, identity and input changes',()=>{
  let a=[{id:'b',priority:4},{id:'a',priority:4},{id:'c',priority:1}];
@@ -19,4 +20,12 @@ test('cached indices remain bounded and cannot be changed by a caller',()=>{
  assert.throws(()=>initial.reverse(),TypeError);
  for(let i=0;i<5;i++)annotationOrder([{id:'different-'+i}]);
  assert.deepEqual(annotationOrder(a),[0,1]);assert.notStrictEqual(annotationOrder(a),initial);
+});
+test('cached uniqueness validation still rejects a changed duplicate in fast and repair solves',()=>{
+ for(const repairMaxNeighbors of [0,2]){
+  const annotations=[{id:'first',candidates:[]},{id:'second',candidates:[]}],args={annotations,viewport:{width:100,height:100},policy:{repairMaxNeighbors}};
+  solveLayout(args);solveLayout(args);annotations[1].id='first';
+  assert.throws(()=>solveLayout(args),/^Error: Duplicate annotation ID$/);
+  annotations[1].id='third';assert.equal(solveLayout(args).outcomes.length,2);
+ }
 });

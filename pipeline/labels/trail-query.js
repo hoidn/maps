@@ -11,9 +11,15 @@ export function createTrailQuery({segments,index,matrix,inverse,strokeScale,scal
   const projected=new Map();
   function query(rect){
     validRect(rect);
-    const points=[[rect.x,rect.y],[rect.x+rect.width,rect.y],[rect.x,rect.y+rect.height],[rect.x+rect.width,rect.y+rect.height]].map(p=>project(inverse,p));
-    const radius=maxWidth*strokeScale/2,x=Math.min(...points.map(p=>p.x))-radius,y=Math.min(...points.map(p=>p.y))-radius;
-    const r={x,y,width:Math.max(...points.map(p=>p.x))+radius-x,height:Math.max(...points.map(p=>p.y))+radius-y};
+    // Preserve all four corners (including rotated/sheared cameras) without
+    // allocating point and map arrays for every retained-label trail query.
+    const left=rect.x,top=rect.y,right=left+rect.width,bottom=top+rect.height,m=inverse;
+    const x0=m.a*left+m.c*top+m.e,y0=m.b*left+m.d*top+m.f,
+      x1=m.a*right+m.c*top+m.e,y1=m.b*right+m.d*top+m.f,
+      x2=m.a*left+m.c*bottom+m.e,y2=m.b*left+m.d*bottom+m.f,
+      x3=m.a*right+m.c*bottom+m.e,y3=m.b*right+m.d*bottom+m.f;
+    const radius=maxWidth*strokeScale/2,x=Math.min(x0,x1,x2,x3)-radius,y=Math.min(y0,y1,y2,y3)-radius;
+    const r={x,y,width:Math.max(x0,x1,x2,x3)+radius-x,height:Math.max(y0,y1,y2,y3)+radius-y};
     const result=[];
     for(const i of index.query(r)){
       const segment=segments[i];if(segment.maxMpp&&metersPerPixel>segment.maxMpp)continue;if(!touches(segment.bounds,r))continue;

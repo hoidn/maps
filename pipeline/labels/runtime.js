@@ -1,3 +1,5 @@
+import {initialBatch} from './initial-batch.js';
+import {textEligibility} from './text-importance.js';
 import {projectAreaPolygons} from './geometry.js';
 import {InitialPlacementClient} from './initial-placement-client.js';
 import {pointFallback} from './point-fallback.js';
@@ -70,8 +72,12 @@ export class LayoutController {
         this.preview=new MotionPreview(this.svg,this.manifest.map);
         const backend=new URLSearchParams(location.search).get('renderer')||this.svg.dataset.renderer||'svg';
         if(['canvas','webgl'].includes(backend))try{this.renderer=new CanvasMapRenderer(this,backend);}catch(error){this.rendererError=error.message;}
+        const renderer=this.renderer;
+        renderer?.ready.then(()=>{
+          if(this.renderer===renderer){this.startupRendererReady=renderer;if(this.starting)this.schedule();}
+        },()=>{}); // The initial transaction reports renderer preparation failure.
         this.preview.ready.catch(()=>{}); // The initial transaction reports preparation failures.
-        try{let committed=false;while(!committed){this.status='ready';committed=await this.render(true);if(this.status==='error')throw new Error(this.error);}}
+        try{let committed=false;while(!committed){this.status='ready';committed=await this.render(true);if(this.status==='error')throw new Error(this.error);if(!committed){this.cache.invalidate();this.lineCache.clear();await ensureFonts(this.policy.fontFamilies);}}}
         finally{this.starting=false;}
         window.addEventListener('pagehide',()=>this.initialPlacer.close(),{once:true});
       }else{this.status='ready';this.render(true);}
@@ -135,9 +141,21 @@ export class LayoutController {
     if(this.mode==='interactive'){const w=this.manifest.map.width/4.5,h=this.manifest.map.height/4.5;this.requestView({x:Math.max(0,Math.min(this.manifest.map.width-w,f.anchor[0]-w/2)),y:Math.max(0,Math.min(this.manifest.map.height-h,f.anchor[1]-h/2)),w,h});}
   }
   startupSnapshot(){const r=this.svg.getBoundingClientRect();return JSON.stringify([this.view,this.layers,this.textScale,this.revision,r.x,r.y,r.width,r.height,this.controls()]);}
+  paintStartupCamera(){
+    const renderer=this.renderer;
+    if(renderer&&renderer===this.startupRendererReady&&!renderer.refreshPending){
+      // Geometry is complete for this camera before any annotation is exposed.
+      // Readiness continues to mean initial labels; camera paint is independent.
+      this.preview?.restore();renderer.activate();renderer.draw({placements:[]},renderer.camera(this.view).m);
+    }else if(renderer){
+      // Scene preparation walks live SVG sources across asynchronous image work.
+      // Keep its backgrounds attached until the persistent surface is ready.
+      this.camera(false);
+    }else{this.preview?.show();this.camera(false);this.preview?.render(this.view,this.svg.getBoundingClientRect());}
+  }
   schedule(){
     if(this.status==='loading'&&this.starting){
-      if(!this.frame)this.frame=requestAnimationFrame(()=>{this.frame=null;if(this.status==='loading'){this.preview?.show();this.camera(false);this.preview?.render(this.view,this.svg.getBoundingClientRect());}else this.render(false);});
+      if(!this.frame)this.frame=requestAnimationFrame(()=>{this.frame=null;if(this.status==='loading')this.paintStartupCamera();else this.render(false);});
       return;
     }
     if(this.status!=='ready')return;
@@ -275,9 +293,10 @@ export class LayoutController {
 
   eligible(a,anchor,viewport,z,pixelsPerMapUnit){
     if(!this.layers[a.layer])return 'layer-off';
+    const textReason=textEligibility(a,this.manifest.map.metersPerMapUnit/(pixelsPerMapUnit??this.svg.clientWidth/this.view.w));if(textReason)return textReason;
     if(a.geometryBounds){const b=a.geometryBounds,pad=64/(pixelsPerMapUnit??this.svg.clientWidth/this.view.w);if(b[2]+pad<this.view.x||b[0]-pad>this.view.x+this.view.w||b[3]+pad<this.view.y||b[1]-pad>this.view.y+this.view.h)return 'outside-view';}
     if(a.maxMetersPerPixel&&this.manifest.map.metersPerMapUnit&&this.manifest.map.metersPerMapUnit/(pixelsPerMapUnit??this.svg.clientWidth/this.view.w)>a.maxMetersPerPixel)return 'below-detail';
-    if(a.style?.split(' ').includes('l-contour-f')&&z<2||a.style?.split(' ').includes('l-contour-ff')&&z<4.5)return 'below-detail';
+    if(/(?:^| )l-contour-f(?: |$)/.test(a.style||'')&&z<2||/(?:^| )l-contour-ff(?: |$)/.test(a.style||'')&&z<4.5)return 'below-detail';
     if(['point-label','symbol','region-label','edge-pointer'].includes(a.kind)&&!intersects({x:anchor[0]-.5,y:anchor[1]-.5,width:1,height:1},viewport))return 'outside-view';
   }
   panKey(m,viewport){return JSON.stringify([this.view.w,this.view.h,viewport.width,viewport.height,m.a,m.b,m.c,m.d].map(v=>Math.round(v*1e8)/1e8));}
@@ -353,12 +372,14 @@ export class LayoutController {
     if(this.status!=='ready'||this.rendering)return;
     this.rendering=true;const started=performance.now(),settled=includeCurves||this.mode==='static';
     this.transactionKind=settled?'settled':'fast';
-    const asyncSettled=settled&&this.mode==='interactive'&&!this.starting;
-    let job;if(asyncSettled){this.cancelSettling();job={revision:this.revision};this.settleJob=job;}
+    const cooperative=settled&&this.mode==='interactive',asyncSettled=cooperative&&!this.starting;
+    let job;if(cooperative){this.cancelSettling();job={revision:this.revision};if(this.starting)job.fonts=[...document.fonts].map(face=>[face,face.status]);this.settleJob=job;}
     const current=()=>!job||!job.cancelled&&job.revision===this.revision;
     const validSnapshot=()=>{
       if(!current())return false;
-      if(job.snapshot===this.startupSnapshot())return true;
+      const fonts=job.fonts&&[...document.fonts];
+      const fontsMatch=!fonts||fonts.length===job.fonts.length&&fonts.every((face,i)=>face===job.fonts[i][0]&&face.status===job.fonts[i][1]);
+      if(fontsMatch&&job.snapshot===this.startupSnapshot())return true;
       // Live DOM measurements can cross a scroll/control change between slices.
       // Only the current job may discard these caches; an obsolete job must not
       // invalidate measurements belonging to a newer camera transaction.
@@ -373,6 +394,7 @@ export class LayoutController {
       this.rendering=true;
     };
     try {
+      if(this.starting&&settled)this.status='loading';
       if(settled)this.preview?.restore();else if(!this.renderer?.active)this.preview?.show(this.panLayout?.placements);
       // With no retained labels, no painted annotation needs geometry validation.
       // Keep the camera write atomic and defer its layout to normal browser paint.
@@ -389,7 +411,7 @@ export class LayoutController {
       if(settled&&fixed)for(const [id,p] of fixed)obstacles.push({id:'pan-reserved:'+id,kind:'label',shape:p.footprint});
       if(!settled&&!this.renderer?.active)this.preview?.render(this.view,viewport);
       if(this.previewDirty){this.previewDirty=false;this.preview?.invalidate();}
-      const cameraDone=performance.now();let prepared;
+      const cameraDone=performance.now();let prepared,batch;
       if(dormant)prepared=this.manifest.annotations.map(a=>({...a,required:false,candidates:[],eligibleReason:this.layers[a.layer]?'budget-deferred':'layer-off'}));
       else if(!settled)prepared=this.fastPrepared(m,viewport,z,fixed);
       else {
@@ -399,7 +421,7 @@ export class LayoutController {
         if(this.metricScaleKey!==metricScaleKey){this.cache.invalidate();this.metricScaleKey=metricScaleKey;}
         const measuring=new Map();
         const measurementElement=a=>{
-          if(!asyncSettled)return this.elements.get(a.id);
+          if(!cooperative)return this.elements.get(a.id);
           if(measuring.has(a.id))return measuring.get(a.id);
           const original=this.elements.get(a.id),e=original.cloneNode(true);e.removeAttribute('id');e.removeAttribute('data-layout-id');e.dataset.layoutMeasurement='';
           for(const child of e.querySelectorAll('[id]'))child.removeAttribute('id');
@@ -409,8 +431,8 @@ export class LayoutController {
         };
         if(job)job.cleanup=()=>{for(const e of measuring.values())e.remove();measuring.clear();};
         let deadline=performance.now()+8;
-        for(const a of this.manifest.annotations){
-          if(asyncSettled){
+        for(const a of this.starting?[]:this.manifest.annotations){
+          if(cooperative){
             if(!this.eligible(a,project(m,a.anchor),viewport,z)&&!fixed?.has(a.id)&&a.kind!=='line-label'&&!this.cache.entries.has(a.id))measurementElement(a);
             if(performance.now()>=deadline){await pause();deadline=performance.now()+8;}
             continue;
@@ -428,9 +450,10 @@ export class LayoutController {
         // Startup has a small first-paint budget. Idle preparation resumes through
         // the cancellable 8 ms slices above until every eligible label is considered.
         const candidateDeadline=this.mode==='interactive'&&!asyncSettled?performance.now()+(this.policy.interactiveCandidateBudgetMs??24):Infinity;
-        const ordered=[...this.manifest.annotations].sort((a,b)=>(b.priority??0)-(a.priority??0)||a.id.localeCompare(b.id));
+        batch=this.starting?initialBatch(this.manifest.annotations,{eligible:a=>!this.eligible(a,project(m,a.anchor),viewport,z,s)}):null;
+        const ordered=batch?.ordered??[...this.manifest.annotations].sort((a,b)=>(b.priority??0)-(a.priority??0)||a.id.localeCompare(b.id));
         for(const a of ordered){
-          if(asyncSettled&&performance.now()>=deadline){await pause();deadline=performance.now()+8;}
+          if(cooperative&&performance.now()>=deadline){await pause();deadline=performance.now()+8;}
           let e=measuring.get(a.id)||this.elements.get(a.id);
           const anchor=project(m,a.anchor),item={...a,anchor,candidates:[],required:this.mode==='static'&&a.requiredProfiles.includes('static-default')};
           if(a.kind==='symbol'){item.anchorTrailRadius=6;item.anchorTrailFootprint=true;}
@@ -444,7 +467,7 @@ export class LayoutController {
             item.repeatDistance=a.kind==='line-label'?this.policy.repeatDistance:(a.repeatDistance??0);
             prepared.push(item);continue;
           }
-          if(a.kind==='line-label'&&performance.now()>=candidateDeadline&&!this.cache.entries.has(a.id)&&!this.lineCache.has(a.id)){item.eligibleReason='budget-deferred';prepared.push(item);continue;}
+          if((this.starting||a.kind==='line-label')&&!batch?.minimumIds.has(a.id)&&performance.now()>=candidateDeadline&&!this.cache.entries.has(a.id)&&!this.lineCache.has(a.id)){item.eligibleReason='budget-deferred';prepared.push(item);continue;}
           try {
             const line=a.kind==='line-label'&&(a.geometryId||a.geometryIds?.length);
             if(line){
@@ -456,7 +479,7 @@ export class LayoutController {
                 if(['a','b','c','d'].some(k=>!Number.isFinite(cached.parentMatrix[k])||!Number.isFinite(parentMatrix[k])||Math.abs(cached.parentMatrix[k]-parentMatrix[k])>1e-9))throw new Error('Line scale changed');
                 item.candidates=cached.candidates.map(c=>reprojectLineCandidate(c,cached.parentMatrix,parentMatrix));
               }catch{this.lineCache.delete(a.id);}
-              if(!this.lineCache.has(a.id)&&performance.now()>=candidateDeadline){item.eligibleReason='budget-deferred';prepared.push(item);continue;}
+              if(!this.lineCache.has(a.id)&&!batch?.minimumIds.has(a.id)&&performance.now()>=candidateDeadline){item.eligibleReason='budget-deferred';prepared.push(item);continue;}
               if(!this.lineCache.has(a.id)){
                 e=measurementElement(a);
                 const text=e.querySelector('text');e.style.display='inline';e.setAttribute('transform','');
@@ -486,7 +509,7 @@ export class LayoutController {
           prepared.push(item);
         }
       }
-      job?.cleanup();
+      job?.cleanup?.();
       if(job&&!validSnapshot())return false;
       this.prepared=prepared;this.lastObstacles=obstacles;
       const preparedDone=performance.now();
@@ -496,6 +519,12 @@ export class LayoutController {
         if(settled)this.preview?.restore();
         this.transactionKind=settled?'settled':'fast';this.result=result;
         const solvedDone=performance.now();this.commit(this.result,m,s,settled);
+        if(batch||!this.firstUsefulLabels&&this.initialLabelBatch){
+          const names=result.placements.map(p=>this.byId.get(p.id)).filter(a=>a.kind.endsWith('-label')&&a.text?.trim()&&!a.style?.startsWith('l-contour'));
+          const namedFeatures=new Set(names.map(a=>a.featureId));
+          const stats={paintedAt:performance.now(),selectedNames:batch?.namedIds.size??this.initialLabelBatch.selectedNames,eligibleNamedFeatures:batch?.eligibleNamedFeatures??this.initialLabelBatch.eligibleNamedFeatures,paintedNames:namedFeatures.size,primaryNames:new Set(names.filter(a=>(a.textImportance??a.priority??0)>=800).map(a=>a.featureId)).size,symbols:result.placements.filter(p=>this.byId.get(p.id).kind==='symbol').length,useful:namedFeatures.size>=Math.min(8,batch?.eligibleNamedFeatures??this.initialLabelBatch.eligibleNamedFeatures)};
+          if(batch)this.initialLabelBatch=stats;if(stats.useful&&!this.firstUsefulLabels)this.firstUsefulLabels={...stats};
+        }
         if(settled)this.rememberPlacements(result,m,key);
         this.phases={camera:cameraDone-started,prepare:preparedDone-cameraDone,solve:solvedDone-preparedDone,commit:performance.now()-solvedDone};
         const elapsed=performance.now()-started;this.timings.push(elapsed);this.samples.push({kind:this.transactionKind,total:elapsed,...this.phases,placements:this.result.placements.length,candidates:prepared.reduce((n,a)=>n+a.candidates.length,0)});
@@ -519,8 +548,8 @@ export class LayoutController {
         const {queryObstacles:unused,...payload}=args;
         payload.annotations=prepared.map(({fallbackCandidates,...a})=>a);
         payload.trail={segments:this.trailSegments,matrix:matrix(m),inverse:matrix(m.inverse()),strokeScale:1/z,scale:s,maxWidth:this.maxTrailWidth,metersPerPixel:this.manifest.map.metersPerMapUnit/s};
-        this.status='loading';
-        return this.initialPlacer.solve(payload).then(async result=>{
+        this.status='loading';this.rendering=false;
+        return await this.initialPlacer.solve(payload).then(async result=>{
           // Read the current preparation promise: a layer/theme change can replace it.
           let ready;do{ready=this.preview.ready;await ready;}while(ready!==this.preview.ready);
           if(this.renderer)try{await this.renderer.ready;}catch(error){this.rendererError=error.message;this.renderer.fallback(error);}
@@ -535,6 +564,6 @@ export class LayoutController {
       }
       return finish(solveLayout(args));
     }catch(error){if(error.name==='AbortError')return false;for(const e of this.elements.values())e.style.visibility='hidden';this.visibleIds.clear();this.renderer?.clearLabels();this.status='error';this.error=error.message;this.details.textContent='Map labels unavailable: '+error.message;}
-    finally{job?.cleanup();if(this.settleJob===job)this.settleJob=null;this.rendering=false;}
+    finally{job?.cleanup?.();if(this.settleJob===job)this.settleJob=null;this.rendering=false;}
   }
 }

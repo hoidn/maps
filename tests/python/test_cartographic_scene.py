@@ -57,6 +57,8 @@ class SceneTests(unittest.TestCase):
   for path,coords in zip(paths,f['geometry']['coordinates']):
    self.assertAlmostEqual(float(path.get('data-mi')),Geod(ellps='WGS84').line_length(*zip(*coords))/1609.344,places=4)
    info=path.get('data-info','');self.assertIn('ground',info);self.assertIn('mountain_hiking',info);self.assertIn('intermediate',info);self.assertIn('private',info);self.assertIn('R1',info)
+  self.assertTrue(any(a.get('text')=='Arbitrary Trail' for a in m.annotations))
+  self.assertFalse(any(a.get('style')=='l-road-ref' for a in m.annotations))
  def test_fully_covered_water_line_never_emits_empty_svg_path(self):
   from copy import deepcopy
   f=deepcopy(self.f);f.update(kind='waterway',tags={'waterway':'river'})

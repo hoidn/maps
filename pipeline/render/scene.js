@@ -44,6 +44,9 @@ export function captureCommands(root,svg,{world=false}={}){
 export function paintCommands(ctx,commands,outer=new DOMMatrix(),{strokeFactor=1,opacity=1}={}){
  const paint=(c,pass)=>{
   const t=c.matrix,s=c.style;
+  // Most geographic paths have only a stroke. An absent paint pass must not
+  // repeat transform, dash and font setup for thousands of invisible fills.
+  if(pass==='fill'?s.fill==='none':s.stroke==='none'||!s.width)return;
   ctx.setTransform(outer.a*t[0]+outer.c*t[1],outer.b*t[0]+outer.d*t[1],outer.a*t[2]+outer.c*t[3],outer.b*t[2]+outer.d*t[3],outer.a*t[4]+outer.c*t[5]+outer.e,outer.b*t[4]+outer.d*t[5]+outer.f);
   ctx.lineWidth=s.width*strokeFactor;ctx.lineCap=s.cap;ctx.lineJoin=s.join;ctx.miterLimit=s.miter;ctx.setLineDash(s.dash.map(n=>n*strokeFactor));ctx.lineDashOffset=s.dashOffset*strokeFactor;
   if(c.kind==='glyph'){ctx.font=s.font;ctx.textAlign='left';ctx.textBaseline='alphabetic';ctx.fontKerning='none';}

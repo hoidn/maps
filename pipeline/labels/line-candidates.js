@@ -39,6 +39,12 @@ export function applyLineCandidate(element,candidate) {
   const application=candidate.application??candidate;
   if(candidate.textHTML&&element.querySelector('text').innerHTML!==candidate.textHTML)element.querySelector('text').innerHTML=candidate.textHTML;
   element.setAttribute('transform',application.transform);
+  if(application.textDy!==undefined){
+    const text=element.querySelector('text');text.setAttribute('dy',application.textDy);
+    // Measurement clones must retain the authored CSS offset, not interpret a
+    // previously normalized dy as a new authored value on the next zoom.
+    text.setAttribute('data-layout-authored-dy',application.authoredTextDy);
+  }
   if(application.startOffset!==undefined)element.querySelector('textPath').setAttribute('startOffset',application.startOffset);
 }
 
@@ -48,13 +54,18 @@ export function applyLineCandidate(element,candidate) {
  * Straight labels follow geometryIds with upright rotations. Curved labels retain the
  * real textPath and omit reverse-reading windows, avoiding mutation of shared paths. */
 export function buildLineCandidates({annotation,element,policy={},diagnostics={},measurement={}}) {
-  Object.assign(diagnostics,{paths:0,windows:0,reverseWindows:0,uprightRejected:0,overflowRejected:0,measuredCandidates:0});
+  Object.assign(diagnostics,{paths:0,windows:0,reverseWindows:0,uprightRejected:0,legibilityRejected:0,overflowRejected:0,measuredCandidates:0});
   const text=element.querySelector('text');if(!text)return [];
   const originalTextHTML=text.innerHTML;
   const tp=text.querySelector('textPath'),originalTransform=element.getAttribute('transform'),originalOffset=tp?.getAttribute('startOffset');
+  const originalDy=text.getAttribute('dy'),originalAuthoredDy=text.getAttribute('data-layout-authored-dy'),authoredDy=originalAuthoredDy??originalDy;
   const parent=element.parentElement.getScreenCTM(),parentMatrix=new DOMMatrix([parent.a,parent.b,parent.c,parent.d,parent.e,parent.f]);
   const em=element.getScreenCTM(),base=parentMatrix.inverse().multiply(new DOMMatrix([em.a,em.b,em.c,em.d,em.e,em.f]));
   const tm=text.getScreenCTM(),scale=Math.hypot(tm.a,tm.b);
+  // The generators' scalar numeric/px baseline offsets are screen distances,
+  // like their inverse-scaled glyphs. Leave other SVG length/list syntax intact.
+  const scalarDy=authoredDy!==null&&/^[-+]?(?:\d*\.\d+|\d+\.?\d*)(?:[eE][-+]?\d+)?(?:px)?$/.test(authoredDy.trim());
+  const offsetApplication=tp&&scalarDy?{textDy:String(parseFloat(authoredDy)/scale),authoredTextDy:authoredDy}:{};
   let advance=text.getComputedTextLength()*scale;
   if(!tp&&text.querySelector('[data-layout-primary]'))advance=text.getBBox().width*scale;
   if(tp){
@@ -123,7 +134,7 @@ export function buildLineCandidates({annotation,element,policy={},diagnostics={}
           if(tp){
             const anchor=getComputedStyle(tp).textAnchor,shift=anchor==='middle'?advance/2:anchor==='end'?advance:0;
             const startOffset=String((window.start+shift)/pathScale);
-            application={transform:transformFor(new DOMMatrix().translate(delta.dx,delta.dy)),startOffset};
+            application={transform:transformFor(new DOMMatrix().translate(delta.dx,delta.dy)),startOffset,...offsetApplication};
           }else{
             const metric=straightMetric,cx=metric.bounds.x+metric.bounds.width/2,cy=metric.bounds.y+metric.bounds.height/2;
             const screen=new DOMMatrix().translate(window.anchor[0]+delta.dx,window.anchor[1]+delta.dy).rotate(window.angle-textAngle).translate(-cx,-cy);
@@ -132,18 +143,28 @@ export function buildLineCandidates({annotation,element,policy={},diagnostics={}
           applyLineCandidate(element,application);
           if(tp){
             const m=text.getScreenCTM(),baseAngle=Math.atan2(m.b,m.a)*180/Math.PI;
-            let upright=true;
+            let upright=true,continuous=true,previousEnd;
+            const maxJump=Math.max(.25,parseFloat(getComputedStyle(text).fontSize)*Math.hypot(m.a,m.b)*.2);
             for(let i=0;i<text.getNumberOfChars();i++){
               const angle=((text.getRotationOfChar(i)+baseAngle+540)%360)-180;
               if(Math.abs(angle)>90+1e-5){upright=false;break;}
+              const start=text.getStartPositionOfChar(i);
+              if(previousEnd){const dx=start.x-previousEnd.x,dy=start.y-previousEnd.y;
+                // A short turn can still fold an offset baseline over itself.
+                // Check actual browser glyph placement, including dy, instead
+                // of assuming the source centerline curvature establishes fit.
+                if(Math.hypot(m.a*dx+m.c*dy,m.b*dx+m.d*dy)>maxJump){continuous=false;break;}
+              }
+              previousEnd=text.getEndPositionOfChar(i);
             }
             if(!upright){diagnostics.uprightRejected++;continue;}
+            if(!continuous){diagnostics.legibilityRejected++;continue;}
           }
           try{output.push({id:`${id}:${window.id}:side-${side}`,shape:measureElement(element,0,measurement),dx:0,dy:0,...application,application,...(tp?{textHTML:originalTextHTML}:{}),geometryId:id,angle:window.angle,side,windowStart:window.start,windowEnd:window.end});}
           catch(error){if(!error.message.includes('overflow'))throw error;diagnostics.overflowRejected++;}
         }
     }
-  }finally{restore(element,'transform',originalTransform);if(tp)restore(tp,'startOffset',originalOffset);}
+  }finally{restore(element,'transform',originalTransform);restore(text,'dy',originalDy);restore(text,'data-layout-authored-dy',originalAuthoredDy);if(tp)restore(tp,'startOffset',originalOffset);}
   // Required route groups also need their declared straight/wrapped alternatives
   // when curved candidates exist but cannot clear other required annotations.
   // Optional names retain the cheap no-curved-candidate fallback. Source geometry
@@ -154,7 +175,8 @@ export function buildLineCandidates({annotation,element,policy={},diagnostics={}
       text.textContent=plainText;
       const textHTML=text.innerHTML,fallback={};
       const alternatives=buildLineCandidates({annotation:{...annotation,geometryId:undefined,geometryIds:ids},element,policy,diagnostics:fallback,measurement});
-      output.push(...alternatives.map(c=>({...c,id:'straight:'+c.id,textHTML:c.textHTML??textHTML})));
+      output.push(...alternatives.map(c=>({...c,id:'straight:'+c.id,textHTML:c.textHTML??textHTML,
+        ...(scalarDy?{application:{...c.application,textDy:originalDy,authoredTextDy:authoredDy}}:{})})));
       diagnostics.straightFallback=fallback;
     }finally{text.innerHTML=originalHTML;}
   }

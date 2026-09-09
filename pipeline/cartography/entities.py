@@ -1,14 +1,15 @@
 """Conservative display repetition for authored aliases, never a catalog merge.
 
 Only explicit campsite/trailhead roles and their terminal abbreviations qualify.
-A unique source point must lie within ten geodesic metres of the authored feature
-anchor. Areas keep their existing exact-name repetition; no point/area proximity
-merge is inferred. Source identity, geometry, names and priorities are untouched.
+A unique matching source must be a point within ten geodesic metres or an area
+covering the authored feature anchor. Source identity, geometry, names and
+priorities are untouched; this changes display repetition only.
 """
 from collections import defaultdict
 from pyproj import Geod
+from shapely.geometry import shape,Point
 
-RULE='semantic-suffix-and-unique-point-within-10m-v1'
+RULE='semantic-suffix-and-unique-point-or-containing-area-v2'
 SUFFIXES={'camp':frozenset(('cg','camp','campground')),
           'th':frozenset(('th','trailhead'))}
 
@@ -34,16 +35,16 @@ def match_display_repeats(manifest,features,spec):
  roles=defaultdict(set)
  for a in manifest.annotations:
   if a['kind']=='symbol':roles[a['featureId']].add(a['symbolKind'])
- points=defaultdict(dict)
+ destinations=defaultdict(dict)
  labels=[a for a in manifest.annotations if a['kind']=='point-label']
  for a in labels:
   feature=manifest.features[a['featureId']]
   source=sources.get(feature.get('sourceId'))
-  if source is None or source['geometry']['type']!='Point':continue
+  if source is None or source['geometry']['type'] not in ('Point','Polygon','MultiPolygon'):continue
   role=source_role(source)
   if role is None:continue
   name=normalized_name(a['text'],role)
-  if name:points[(role,name)][source['id']]=(a,source)
+  if name:destinations[(role,name)][source['id']]=(a,source)
  geod=Geod(ellps='WGS84')
  for a in labels:
   feature=manifest.features[a['featureId']]
@@ -58,17 +59,22 @@ def match_display_repeats(manifest,features,spec):
   if not name:continue
   latitude,longitude=spec.unproject(*feature['anchor'])
   candidates=[]
-  for source_id,(other,source) in points.get((role,name),{}).items():
-   lon,lat=source['geometry']['coordinates'][:2]
-   distance=geod.inv(longitude,latitude,lon,lat)[2]
-   if distance<=10:candidates.append((source_id,other,distance))
+  for source_id,(other,source) in destinations.get((role,name),{}).items():
+   if source['geometry']['type']=='Point':
+    lon,lat=source['geometry']['coordinates'][:2]
+    distance=geod.inv(longitude,latitude,lon,lat)[2]
+    if distance<=10:candidates.append((source_id,other,{'spatialEvidence':'point-within-10m','distanceMeters':round(distance,3)}))
+   else:
+    area=shape(source['geometry'])
+    if area.is_valid and area.covers(Point(longitude,latitude)):
+     candidates.append((source_id,other,{'spatialEvidence':'anchor-covered-by-source-area'}))
   if len(candidates)>1:
    report['ambiguous'].append({'annotationId':a['id'],'featureId':feature['id'],'sourceIds':sorted(c[0] for c in candidates)})
   elif len(candidates)==1:
-   source_id,other,distance=candidates[0]
+   source_id,other,spatial=candidates[0]
    evidence={'rule':RULE,'confidence':'inferred-display-alias','sourceId':source_id,
              'sourceFeatureId':other['featureId'],'sourceAnnotationId':other['id'],
-             'distanceMeters':round(distance,3),'semanticRole':role,
+             **spatial,'semanticRole':role,
              'originalRepeatGroup':a['repeatGroup']}
    a['repeatGroup']=other['repeatGroup']
    a['displayRepeatMatch']=evidence

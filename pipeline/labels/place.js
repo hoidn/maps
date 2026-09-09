@@ -1,6 +1,7 @@
 import {annotationOrder} from './annotation-order.js';
 import {contains,expand,shapeIntersects,lineHitsRect,lineOutsideCircle,validRect,anchorDistance,shapeInsidePolygons} from './geometry.js';
 import {SpatialIndex} from './spatial-index.js';
+import {pointDisplacementLimit,pointPaintDistance} from './point-limits.js';
 const stable=(a,b)=>a<b?-1:a>b?1:0;
 const validShape=s=>{try{return Array.isArray(s?.parts)&&s.parts.length>0&&s.parts.every(r=>contains(validRect(s.bounds),validRect(r)));}catch{return false;}};
 const repeatKey=a=>a.repeatGroup??a.featureId;
@@ -25,13 +26,15 @@ function* layoutSteps({annotations,obstacles=[],viewport,previous,policy={},quer
   const placementDiagnostics=policy.exhaustiveDiagnostics===false&&policy.repairMaxNeighbors===0,attemptFailures=new Map();
   const clearance=policy.clearance??2,padding=policy.edgePadding??4;
   const frame={x:viewport.x??0,y:viewport.y??0,width:viewport.width,height:viewport.height};validRect(frame);
+  const unreservedShapes=new WeakMap();
   const reserve=(a,c)=>{
     const margin=policy.measurementReserves?.[a.id]??0;if(!margin||!validShape(c.shape))return c;
     const edges=typeof margin==='number'?{left:margin,top:margin,right:margin,bottom:margin}:margin;
     const {left=0,top=0,right=0,bottom=0}=edges;
     if(![left,top,right,bottom].every(n=>Number.isFinite(n)&&n>=0))throw new Error('Invalid measurement reserve for '+a.id);
     const expanded=r=>({x:r.x-left,y:r.y-top,width:r.width+left+right,height:r.height+top+bottom});
-    return {...c,shape:{bounds:expanded(c.shape.bounds),parts:c.shape.parts.map(expanded)}};
+    const reserved={...c,shape:{bounds:expanded(c.shape.bounds),parts:c.shape.parts.map(expanded)}};
+    unreservedShapes.set(reserved,c.shape);return reserved;
   };
   const ordered=annotationOrder(annotations).map(i=>{
     const a=annotations[i];
@@ -40,19 +43,21 @@ function* layoutSteps({annotations,obstacles=[],viewport,previous,policy={},quer
     if(a.eligibleReason||Array.isArray(a.candidates)&&!a.fallbackCandidates&&!policy.measurementReserves?.[a.id])return a;
     return {...a,candidates:(a.candidates??[]).map(c=>reserve(a,c))};
   });
-  const byId=new Map();for(const a of ordered)byId.set(a.id,a);if(byId.size!==ordered.length)throw new Error('Duplicate annotation ID');
+  // annotationOrder validates IDs, including when its immutable ordering is
+  // reused. Only repair needs an additional annotation lookup table.
+  const byId=(policy.repairMaxNeighbors??2)>0?new Map(ordered.map(a=>[a.id,a])):null;
   const featureGroups=new Map(),repeatDistances=new Map();
   const reservedFeatures=new Map();
   for(const p of repeatReservations){let group=reservedFeatures.get(repeatKey(p));if(!group){group=[];reservedFeatures.set(repeatKey(p),group);}group.push(p);}
   for(const a of ordered){if(a.eligibleReason)continue;const distance=a.repeatDistance??0;repeatDistances.set(a.id,distance);if(!a.featureId)continue;let group=featureGroups.get(repeatKey(a));if(!group){group={ids:[],maximum:0};featureGroups.set(repeatKey(a),group);}group.ids.push(a.id);group.maximum=Math.max(group.maximum,distance);}
-  const old=new Map((Array.isArray(previous)?previous:previous?.placements??[]).map(p=>[p.id,p.candidateId]));
+  let old;
   const obstacleIndex=new SpatialIndex(),obstacleMap=new Map();
   obstacles.forEach((o,i)=>{const key=String(i);obstacleMap.set(key,o);const b=o.shape?.bounds??{x:Math.min(o.line.a.x,o.line.b.x)-(o.line.width||0)/2,y:Math.min(o.line.a.y,o.line.b.y)-(o.line.width||0)/2,width:Math.abs(o.line.a.x-o.line.b.x)+(o.line.width||0),height:Math.abs(o.line.a.y-o.line.b.y)+(o.line.width||0)};obstacleIndex.insert(key,b);});
   const accepted=new Map(),hardCache=new Map(),localQueries=new Map();let placedIndex=new SpatialIndex();
   const indexPlacement=(id,c)=>placedIndex.insert(id,c.shape.bounds);
   const proximity=(a,c)=>a.kind==='point-label'&&a.anchor?Math.floor((anchorDistance(c.shape?.bounds,a.anchor)+1e-6)/(policy.pointDistanceBand??4)):0;
   const candidateOrder=new Map(),repairBudgets=new Map();
-  const candidates=a=>{const cached=candidateOrder.get(a.id);if(cached?.length===a.candidates.length)return cached;const cs=[...(a.candidates??[])];const ix=cs.findIndex(c=>c.id===old.get(a.id));if(ix>0)cs.unshift(...cs.splice(ix,1));cs.sort((c,d)=>proximity(a,c)-proximity(a,d));candidateOrder.set(a.id,cs);return cs;};
+  const candidates=a=>{if(a.candidates.length<2)return a.candidates;const cached=candidateOrder.get(a.id);if(cached?.length===a.candidates.length)return cached;old??=new Map((Array.isArray(previous)?previous:previous?.placements??[]).map(p=>[p.id,p.candidateId]));const cs=[...(a.candidates??[])];const ix=cs.findIndex(c=>c.id===old.get(a.id));if(ix>0)cs.unshift(...cs.splice(ix,1));cs.sort((c,d)=>proximity(a,c)-proximity(a,d));candidateOrder.set(a.id,cs);return cs;};
   function nearbyTrails(a,rect){
     if(!queryObstacles)return [];
     // A sole candidate without fallback gets one cached hard-obstacle check.
@@ -69,13 +74,14 @@ function* layoutSteps({annotations,obstacles=[],viewport,previous,policy={},quer
   }
   function blockers(a,c) {
     const labels=[],repeat=[];
-    let cache=hardCache.get(a.id);if(!cache){cache=new Map();hardCache.set(a.id,cache);}
-    let hard=cache.get(c);
+    let cache=hardCache.get(a.id);if(!cache){cache={candidate:c,hard:null,others:null};hardCache.set(a.id,cache);}
+    let hard=cache.candidate===c?cache.hard:cache.others?.get(c);
     if(!hard){hard=[];
     if(!validShape(c.shape)) return {hard:['invalid-geometry'],labels,repeat};
+    if(a.kind==='point-label'&&a.anchor&&pointPaintDistance(unreservedShapes.get(c)??c.shape,a.anchor)>pointDisplacementLimit(a,policy)+1e-7)hard.push('feature-distance');
     if(!contains(frame,c.shape.bounds,padding))hard.push('frame');
     if(a.areaPolygons&&!shapeInsidePolygons(c.shape,a.areaPolygons))hard.push('area-boundary');
-    if(placementDiagnostics&&hard.length){cache.set(c,hard);return {hard,labels,repeat};}
+    if(placementDiagnostics&&hard.length){if(cache.candidate===c)cache.hard=hard;else(cache.others??=new Map()).set(c,hard);return {hard,labels,repeat};}
     const allowed=new Set(a.allowedObstacleIds??[]);
     const query=expand(c.shape.bounds,clearance);
     const nearby=obstacleIndex.query(query).map(key=>obstacleMap.get(key));
@@ -89,7 +95,7 @@ function* layoutSteps({annotations,obstacles=[],viewport,previous,policy={},quer
       if(lines?lines.some(line=>c.shape.parts.some(r=>lineHitsRect(line,r,clearance))):shapeIntersects(c.shape,o.shape,clearance))hard.push(o.id);
       if(placementDiagnostics&&hard.length)break;
     }
-    hard=[...new Set(hard)].sort(stable);cache.set(c,hard);
+    hard=[...new Set(hard)].sort(stable);if(cache.candidate===c)cache.hard=hard;else(cache.others??=new Map()).set(c,hard);
     }
     if(placementDiagnostics&&hard.length)return {hard,labels,repeat};
     for(const id of placedIndex.query(expand(c.shape.bounds,clearance))){if(id===a.id)continue;const other=accepted.get(id);if(other&&shapeIntersects(c.shape,other.shape,clearance))labels.push(id);if(placementDiagnostics&&labels.length)break;}
@@ -145,7 +151,7 @@ function* layoutSteps({annotations,obstacles=[],viewport,previous,policy={},quer
     if(a.required)missingRequired.push(a.id);
     if(a.eligibleReason){outcomes.push({id:a.id,reason:a.eligibleReason,blockerIds:[]});continue;}
     const failures=placementDiagnostics?attemptFailures.get(a.id)??[]:candidates(a).map(c=>blockers(a,c)),ids=[...new Set(failures.flatMap(b=>[...b.hard,...b.labels,...b.repeat]))].sort(stable);
-    const reason=failures.length&&failures.every(b=>b.hard.includes('invalid-geometry'))?'invalid-geometry':a.required?'no-valid-candidate':failures.some(b=>b.repeat.length&&!b.hard.length&&!b.labels.length)?'repeat-spacing':failures.some(b=>b.labels.length&&!b.hard.length)?'collision':'no-valid-candidate';
+    const reason=failures.length&&failures.every(b=>b.hard.includes('invalid-geometry'))?'invalid-geometry':failures.length&&failures.every(b=>b.hard.includes('feature-distance'))?'feature-distance':a.required?'no-valid-candidate':failures.some(b=>b.repeat.length&&!b.hard.length&&!b.labels.length)?'repeat-spacing':failures.some(b=>b.labels.length&&!b.hard.length)?'collision':'no-valid-candidate';
     outcomes.push({id:a.id,reason,blockerIds:ids,...(a.candidateDiagnostics?{candidateDiagnostics:a.candidateDiagnostics}:{})});
   }
   for(const group of [...new Set(policy.requiredGroups??[])].sort(stable))if(!ordered.some(a=>a.requiredGroup===group&&accepted.has(a.id)))missingRequired.push('route:'+group);

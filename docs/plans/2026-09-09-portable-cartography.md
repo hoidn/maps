@@ -367,6 +367,11 @@ modify relevant fixture builders and `docs/ADAPTING.md`, `docs/DESIGN.md`,
    editorial importance, preserve unknowns, and test renaming/translation parity.
    Check both first-useful-label latency and final text density/placement; neither
    an early lone glyph nor a full but crowded label set satisfies this requirement.
+   Enforce close feature association for optional point text: if no nearby safe
+   placement exists, withhold that label at the current view instead of packing it
+   into a distant gap. Revalidate this distance during retained zoom frames as well
+   as initial placement. Review repeated labels by physical/display entity, with
+   one point-destination name and restrained spacing for long linear features.
 6. Run sequential renderer/startup benchmarks using immutable before/after files,
    same hardware/browser/viewport, at least three repetitions. Preserve raw results.
    Aim for no >10% regression in median/p95 gesture CPU or early-input latency;
@@ -408,6 +413,15 @@ separate. Preserve worktrees until their evidence and needed artifacts are retai
    Adopt only changes with real latency gains and correct progressive rendering.
    The minimum desired ratio is ≥3× for the agreed initial-response metric; it remains
    a target, not a predicted outcome. Revise this task's implementation details after tracing.
+5. Compare faster label-placement approaches against measured remaining costs:
+   importance selection before measurement; inexpensive ranking of candidate
+   positions and wraps followed by precise measurement of promising choices;
+   reusable font/text measurements; progressive priority-first placement; and
+   incremental repair confined to affected neighborhoods. Keep exact paint,
+   clearance, feature-distance and curve-legibility validation authoritative.
+   Benchmark candidate/measurement counts, first useful label batch, final useful
+   coverage and main-thread stalls separately. Adopt only demonstrated gains;
+   additional workers alone do not remove DOM-dependent measurement work.
 
 ## Completion criteria for the useful first release
 
@@ -441,9 +455,10 @@ separate. Preserve worktrees until their evidence and needed artifacts are retai
 - [ ] 13. Separate production 3× startup target
   - [x] Corrected probes, trace investigation and diagnostic ablations
 
-User steering: the camera is already smooth. Preserve it; focus implementation on
-font growth/readability, label completion and cartographic content. Idle label latency
-is acceptable provided ongoing interaction remains responsive. Task 13 stays separate.
+Earlier user steering said the camera was already smooth and tolerated idle label
+latency. Subsequent steering supersedes that tolerance: initial names must appear
+promptly, text density must be selective, and the separate 3× camera-response
+target remains unresolved. Preserve smooth gestures while improving both timings.
 
 First batch: reversed/winding hydro regressions and transition back to textPath
 passed with the existing line-adapter suite (45 browser cases). Idle preparation
@@ -488,12 +503,14 @@ geometry. Point preparation reserves 0.125px for backend glyph rounding without
 relaxing the painted displacement limit.
 
 
-Final seeded validation: six 18-action sequences and all 114 successful frames
+Earlier-candidate seeded validation: six 18-action sequences and all 114 successful frames
 passed automated checks and visual review on the final candidate hashes. The
 Grand Canyon WebKit sequence was rerun after correcting audit font readiness;
 its original failed report is retained. Five narrow-view point-name omissions
 were independently explained by 901 candidates blocked by current controls/frame
-bounds. No pending layout work or unresolved visual defect remained in the reviewed
-frames. The combined selection, exact hashes and screenshot review are recorded
+bounds. That review found no pending layout work; subsequent full-resolution
+inspection and user screenshots exposed curved-glyph defects missed by the earlier
+review. It does not satisfy the expanded typography/density criteria or validate
+newer candidate bytes. The combined selection, exact hashes and prior review are recorded
 in `artifacts/cartography/fuzz-release-combined.json` and the linked evidence.
 Full release promotion and quiet before/after performance measurement remain pending.

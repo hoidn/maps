@@ -47,3 +47,40 @@ test('collision padding preserves generated paint positions and narrow boundary 
   assert.equal(padded[i].shape.paintInset,inset);
  }
 });
+
+const closePolicy={maxPointDisplacement:32,maxOptionalPointDisplacement:16,edgePadding:0};
+test('optional points cannot use an old far slot while required static names retain it',()=>{
+ const bounds={x:24,y:0,width:20,height:10},anchor=[0,0],metric={bounds,parts:[bounds]};
+ const annotation={kind:'point-label',anchor};
+ assert(!pointCandidates(annotation,metric,closePolicy).some(c=>c.id==='preferred'));
+ assert(pointCandidates({...annotation,required:true},metric,closePolicy).some(c=>c.id==='preferred'));
+ const symbol=pointCandidates({...annotation,kind:'symbol'},metric,closePolicy);
+ assert.equal(symbol[0].id,'preferred');
+});
+test('solver rechecks painted distance without treating collision padding or reserves as ink',()=>{
+ const bounds={x:15.8,y:0,width:20,height:10},shape={bounds,parts:[bounds],paintInset:.35};
+ const annotation={id:'point',kind:'point-label',anchor:[0,0],candidates:[{id:'retained',shape}]};
+ for(const measurementReserves of [undefined,{point:{left:4,right:1,top:2,bottom:3}}]){
+  const result=solveLayout({annotations:[annotation],viewport:{x:-100,y:-100,width:400,height:400},policy:{...closePolicy,measurementReserves}});
+  assert.deepEqual(result.placements,[]);
+  assert.equal(result.outcomes[0].reason,'feature-distance');
+ }
+ const compatibility=solveLayout({annotations:[annotation],viewport:{x:-100,y:-100,width:400,height:400}});
+ assert.equal(compatibility.placements.length,1,'unconfigured generic solver retains compatibility');
+});
+
+import {CanvasMapRenderer} from '../../pipeline/render/canvas-renderer.js';
+test('fast retained Canvas text hides beyond optional anchor limit on zoom and remains stable on pan',()=>{
+ const annotation={id:'point',featureId:'source',kind:'point-label',anchor:[100,100]},bounds={x:110,y:95,width:20,height:10};
+ const placement={id:'point',candidateId:'preferred',dx:0,dy:0,footprint:{bounds,parts:[bounds]}};
+ const renderer={controller:{svg:{clientWidth:500},view:{w:500},manifest:{annotations:[annotation]},eligible:()=>undefined,policy:closePolicy},labels:new Map([['point',{placement,worldCenter:[120,100],center:[120,100]}]])};
+ const viewport={x:0,y:0,width:500,height:500};
+ const solve=m=>solveLayout({annotations:CanvasMapRenderer.prototype.prepareFast.call(renderer,m,viewport,m.a),viewport,policy:closePolicy});
+ const first=solve({a:1,b:0,c:0,d:1,e:0,f:0}),pan=solve({a:1,b:0,c:0,d:1,e:20,f:30});
+ assert.equal(first.placements.length,1);assert.equal(pan.placements.length,1);
+ assert.equal(pan.placements[0].candidateId,first.placements[0].candidateId);
+ assert.equal(pan.placements[0].footprint.bounds.x-first.placements[0].footprint.bounds.x,20);
+ const zoom=solve({a:2,b:0,c:0,d:2,e:0,f:0});
+ assert.deepEqual(zoom.placements,[]);assert.equal(zoom.outcomes[0].reason,'feature-distance');
+ assert.deepEqual(first.placements[0].footprint.bounds,bounds,'later camera passes cannot mutate prior placements');
+});

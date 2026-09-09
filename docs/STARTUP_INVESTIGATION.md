@@ -184,8 +184,8 @@ The most realistic next prototype therefore needs both changes:
    geometry is ready, draw the current camera view and continue responding to
    input while labels prepare. Commit labels progressively when valid results
    arrive. This must produce actual correct Canvas/WebGL frames, not merely
-   advance a readiness flag. It follows the user's explicit tolerance for label
-   latency while the camera remains smooth.
+   advance a readiness flag. The user subsequently clarified that the first useful labels must also appear
+   promptly; camera independence alone does not satisfy the task.
 
 Precomputed contour arrays, bounds and chunk metadata remain a secondary
 prototype: they can avoid repeated parsing and allocations, but roughly 300 ms
@@ -216,7 +216,125 @@ PLAYWRIGHT_BROWSERS_PATH=.browser-cache \
   node scripts/benchmark-renderers.mjs chromium BASELINE.html CANDIDATE.html 3
 ```
 
-Pending evidence: frozen final cartography candidate comparisons, prototype
-correctness and speedup without competing builds/browser work, and Firefox/WebKit
-startup measurements. These baseline results do not authorize declaring task 13's
-3× implementation objective delivered.
+## Quiet comparison and subsequent startup implementation (2026-09-09)
+
+The completed comparison is retained in
+`artifacts/startup/task13/final-quiet-headed/RESULTS.md`, with raw JSON, hashes,
+graphics metadata and a documented gesture instrumentation limitation. It used
+three interleaved repetitions per backend/input phase, headed Chromium on Apple
+M3 Metal at 1440×1000, DPR 1. Baseline SHA
+`81e4df40f3827c7a6ebc92a96aa61e68c473a80efe788b5bc78718283e2cd035`
+and candidate SHA
+`a52064dcad978fe1184baa17fa9baccda3db0f4ae50b28281f917c47c4f06473`
+were immutable throughout. The candidate grew from 323 to 3,163 features,
+934 to 3,690 annotations, and 43.05 to 52.96 MB; it is not an equal-content
+renderer microbenchmark.
+
+| Backend | Input after DOMContentLoaded | Main response median | Cartography response median |
+| --- | ---: | ---: | ---: |
+| Canvas | 25 ms | 1,032 ms | 2,784 ms |
+| Canvas | 100 ms | 965 ms | 4,222 ms |
+| Canvas | 250 ms | 806 ms | 4,052 ms |
+| WebGL | 25 ms | 1,356 ms | 2,897 ms |
+| WebGL | 100 ms | 1,515 ms | 5,147 ms |
+| WebGL | 250 ms | 1,479 ms | 5,628 ms |
+
+These measured regressions did not meet the 3× target. Warm gesture frames
+remained mostly near the 60 Hz display cadence. Canvas zoom transaction p95
+increased from 9.0 to 12.2 ms; WebGL increased from 3.3 to 4.9 ms. Trusted
+wheel/pan correctness checks passed; the slow-drag derived flag was affected by
+pointermove/compatibility-mousemove ordering in instrumentation. Raw paired draws
+support 12 correct camera updates per row, but the terminal input lacks a
+subsequent independent presentation observation, so that scenario is explicitly
+noncomparable for presentation correctness. The original flags are retained.
+
+Subsequent production changes make startup label preparation cooperative from
+its first pass, prepare the base scene and contours concurrently, and paint the
+complete current base camera as soon as renderer preparation finishes. A delayed
+label worker no longer holds the base camera. Pending scene preparation keeps
+its SVG source children attached, avoiding mutation across image-decoding awaits.
+Obsolete camera/font snapshots cancel both initial measurements and worker work;
+blocked workers retain the cooperative numerical fallback.
+
+The first candidate pass now chooses up to eight distinct eligible important
+names, primary point names first, plus their associated markers. It applies its
+24 ms soft budget before cloning the remaining uncached points and continues
+through 8 ms cooperative slices while preparing the minimum seed. It does not
+relax collision checks or force names into infeasible positions. Idle preparation
+still visits the complete eligible inventory. Diagnostic `initialLabelBatch` and
+`firstUsefulLabels` milestones report actual named-feature and symbol counts,
+separately from initial readiness and eventual completion.
+
+A subsequent nine-load Canvas diagnostic used the same old cartography data
+with the current bundle substituted, SHA
+`f65bde8a0c03c98b1026a27e1b6caaa27fc88f9e93b24f0c3b03a90cbdaf6e4c`.
+It ran headed on the same hardware profile without competing browser/build work.
+One tiny five-test Node invocation overlapped early measurement; this diagnostic
+is not a final acceptance comparison. The concurrently developed text-importance
+and source-decluttering data were absent from this input.
+
+| Input phase | Correct camera response median | First useful label paint from navigation | Eventual label completion |
+| --- | ---: | ---: | ---: |
+| 25 ms | 931.8 ms | 1,504.0 ms | 6,270.9 ms |
+| 100 ms | 917.1 ms | 1,500.8 ms | 6,336.1 ms |
+| 250 ms | 779.0 ms | 1,540.5 ms | 6,289.9 ms |
+
+All nine runs painted eight distinct primary names and nine symbols in the
+first batch, then reached 302 placements at the sampled final view without
+errors or backend fallback. This improves the preceding cartography startup,
+but only returns camera response near original main: **3× remains unmet**.
+The earlier cooperative implementation still normalized all eligible points
+before its first candidate deadline and took roughly 3.5–3.8 seconds to first
+labels; avoiding that work before the bounded seed is the principal subsequent
+label-latency change. These separately timed runs do not establish an isolated
+speedup for each individual code change.
+
+Focused evidence: 36 startup browser cases passed across Chromium, Firefox and
+WebKit, followed by three statistics checks; five batch-selection, renderer-order
+and text-eligibility unit tests passed. Regressions cover actual base pixels,
+current camera revision, delayed labels, initial cancellation/font changes,
+blocked workers, source preservation during image decoding, eight actual painted
+names despite an expired soft budget, no secondary premeasurement, and eventual
+nondeferred inventory. These do not replace the final release gate.
+
+Pending: rebuild with new cartographic text tiers, independently inspect first
+useful labels, repeat immutable quiet comparisons, and finish full release
+validation. Preparing only currently required contour tiers remains the most
+concrete next path toward the original 3× response target; it requires correct
+immediate zoom across pending tiers and eventual full geometry, not a readiness
+flag change.
+
+## Faster placement algorithms: ranked investigation
+
+The current interactive solver is already a priority-ordered greedy solver with
+repair disabled. Switching to greedy or adding another spatial index is therefore
+not a new algorithmic gain. The remaining eager work is more promising: in the
+nine-load diagnostic above, final preparation took approximately 2.29–2.35 s and
+worker solving 2.21–2.29 s, including scheduling/yield time. Commit took 79–96 ms.
+The old candidate inventory contained 549 point names, 1,433 declared wraps and
+25,261 ordinary candidates. Wraps contain 49,061 glyphs versus 8,819 base-name
+glyphs; one 21-word description alone declares 190 wraps. These are diagnostic
+work counts, not measurements of the rebuilt importance-filtered map.
+
+| Approach | Expected benefit and cost | Decision |
+| --- | --- | --- |
+| Select important text before measuring | Removes entire low-value measurement/candidate trees; little runtime complexity. Useful coverage must be checked at each ground scale. | Implemented; new-artifact measurement pending. Symbols and geometry remain independent. |
+| Lazy exact wrap escalation | Start with the full unwrapped name and one cheaply ranked balanced wrap; precisely measure further declared wraps only for unresolved names. Avoids combinatorial DOM work. Requires a cancellable second pass that revisits affected lower-priority placements. | Preferred next preparation prototype. Keep complete names and all eventual alternatives. |
+| Lazy fallback positions | Enumerate nearby positions in deterministic distance order and stop at the first acceptable position, instead of constructing and sorting every dense grid for every wrap. | Preferred next solver prototype. Compare placement identity and diagnostics with the exhaustive reference. |
+| Reuse text metrics across zoom | Could remove repeated DOM measurement when CSS font size and shaping are identical. Current browsers can change advances with fractional transforms, and the map intentionally grows text with zoom. | Cache only an explicitly verified font/shaping/scale signature; broader reuse needs glyph-level parity evidence. |
+| Incremental local repair | Reconsider only changed or newly eligible neighborhoods after zoom. Pan already preserves placement, so this primarily helps zoom settling. | Later, after preparation reductions; changing font size and priorities can invalidate distant dependencies. |
+| GPU collision/placement | Parallel numeric candidate checks could help very large scenes, but text shaping, exact glyph geometry, deterministic priority conflicts and data transfers remain. | Larger rewrite with uncertain benefit; WebGL painting alone does not eliminate the measured preparation cost. |
+
+No per-approach speedup is established. As an illustrative ceiling calculation,
+halving both approximately 2.3 s phases would reduce a 6.3 s completion to about
+4.0 s (1.6×), while reducing both to one third gives about 3.3 s (1.9×), assuming
+other phases and scheduling stay fixed. These are scenario estimates, not additive
+benchmark promises. They do not predict early camera response, whose critical
+path includes renderer preparation. A 3× camera target still needs its own
+completed-draw comparison.
+
+For each prototype, record exact candidate bytes, eligible names, wrap/glyph
+measurements, candidates actually tested, longest uninterrupted work, first useful
+label paint and final coverage. Validate full words, curve continuity, close
+feature association, collision clearance, stable panning and cancellation before
+adopting it. Static exhaustive placement can remain unchanged.

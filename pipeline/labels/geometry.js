@@ -27,6 +27,9 @@ export function lineHitsRect(line,rect,gap=0) {
   const x=rect.x-margin,y=rect.y-margin,width=rect.width+2*margin,height=rect.height+2*margin,
     a=line.a,b=line.b,ax=a.x,ay=a.y,bx=b.x,by=b.y;
   if(!Number.isFinite(ax)||!Number.isFinite(ay)||!Number.isFinite(bx)||!Number.isFinite(by))throw new Error('Invalid line');
+  // A spatial cell can return segments nowhere near an individual glyph.
+  // Reject disjoint endpoint bounds before the exact clipping calculation.
+  if(margin>=0&&Number.isFinite(margin)&&(Math.max(ax,bx)<x||Math.min(ax,bx)>x+width||Math.max(ay,by)<y||Math.min(ay,by)>y+height))return false;
   let lo=0,hi=1;const dx=bx-ax,dy=by-ay;
   for(let edge=0;edge<4;edge++){
     let p,q;

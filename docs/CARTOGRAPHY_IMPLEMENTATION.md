@@ -277,3 +277,62 @@ focused cross-engine control/frame/sprite tests, and explicit previous-result an
 input-isolation cases. Final rebuilt-artifact fuzzing, the complete release matrix
 and the quiet main-versus-candidate comparison remain separate. The working logs
 are retained under `artifacts/cartography/performance-fast-*`.
+
+## Current readability and startup follow-up
+
+The user’s full-resolution street/trail screenshots exposed a textPath baseline
+problem beyond the previous offset-reset fix. An authored numeric `dy=-4` stayed
+in map units while font size was normalized: at 10× it displaced the baseline
+40 screen pixels and scattered or folded glyphs around turns. The adapter now
+normalizes numeric/px offsets to a constant screen distance, preserves the authored
+value across commits/clones, and rejects discontinuous browser glyph joins.
+Pima Street, Cave Creek and High Sierra Trail have source-derived regressions.
+The High Sierra scan covered 26 source windows at three scales: the old adapter
+produced 1,737 broken glyph joins; the new adapter produced zero. Some sharply
+folded windows are rejected in favor of gentler windows on the same path. The
+cropped screenshot's exact annotation was not identifiable. Their names and
+geometries are unchanged. Current rebuilt-map visual review remains pending.
+
+Optional point names now stay within 16 CSS pixels of their true feature;
+required static names retain 32. A zoomed retained sprite that exceeds the limit
+is withheld until fresh placement. Pan preserves its layout. Collision padding
+and static measurement reserves cannot disguise distance from the painted text.
+The independent typography audit applies the new policy in both modes.
+
+Shared semantic text-importance tiers now run before measurement, with source
+prominence used only when explicitly numeric. Geometry and symbols are not gated
+by this text score. Named trails show their full name without additionally
+spelling out an opaque source reference such as TONT; references remain in the
+catalog and details. Nearby, unambiguous authored campground/trailhead aliases
+share display-repeat groups with their source feature, and repeated line names
+need 360 CSS pixels of separation. These are portable rules; distinct nearby
+features are not merged by a name-only guess. The alias rule also accepts a unique
+same-role/name source area covering the authored geographic anchor, respecting
+holes and rejecting ambiguous overlapping destinations. This fixes the remaining
+Bright Angel campground duplication without changing either feature's geometry.
+The source diagnostic finds 14 Grand Canyon aliases and no Sequoia aliases; that
+does not establish that every possible duplicate has been resolved.
+
+Campgrounds use one green tent symbol throughout both builders, imported data and
+the legend. Named basic toilets, benches, waste and telephones remain searchable
+but use symbols on the map. The key includes campground/campsite and toilets.
+Combined campground/service features retain their campground names.
+
+Startup paints the complete base camera independently of labels, then prepares a
+small priority-first batch of names and markers cooperatively. Idle work finishes
+the eligible inventory. Exact timings, limitations and the ranked investigation
+of lazy wrap/position algorithms are in the
+[startup investigation](STARTUP_INVESTIGATION.md#faster-placement-algorithms-ranked-investigation).
+
+The combined source currently passes 143 Python and 133 Node tests. A fresh
+72-case browser run covering startup, curve legibility, point ink and typography
+passed across all three engines (`artifacts/cartography/label-quality-browser.txt`).
+These focused checks do not replace real-map validation.
+The cached build completed for Grand Canyon and Sequoia, including six static
+finalization audits. The resulting HTML hashes are in
+`artifacts/cartography/text-hierarchy-inputs.json`. Full-resolution review, the
+updated fuzz matrix, performance acceptance and local promotion remain pending.
+The first matrix on these bytes exposed Firefox idle timeouts during interrupted
+gestures/resizes; those failures are under investigation. A headed Metal warm
+preflight measured 20.2 ms transaction p95, above the unchanged 8 ms gate, and
+22.9 ms frame p95. Neither a promotion pass nor a 3× startup gain is established.

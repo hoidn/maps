@@ -64,4 +64,25 @@ class DisplayEntityTests(unittest.TestCase):
     spec,m,f,original,_=self.fixture(name,source_name,role,tags);_,report=render_scene([f],[],spec,m)
     self.assertEqual(m.annotations[1]['repeatGroup'],original[1]['repeatGroup']);self.assertEqual(report['displayRepeatMatches']['matched'],[])
 
+ def test_unique_containing_area_matches_authored_alias_without_moving_either_feature(self):
+  for offset in [0,36]:
+   spec,m,f,original,features=self.fixture(offset=offset)
+   ring=[[offset+x,offset+y] for x,y in [(.048,.048),(.052,.048),(.052,.052),(.048,.052),(.048,.048)]]
+   f.update(id='osm:relation:area',geometry={'type':'MultiPolygon','coordinates':[[ring]]})
+   before=deepcopy(f);_,report=render_scene([f],[],spec,m)
+   a=m.annotations[1];source=next(a for a in m.annotations if a.get('sourceId')==f['id'] and a['kind']=='point-label')
+   self.assertEqual(a['repeatGroup'],source['repeatGroup'])
+   self.assertEqual(a['anchor'],original[1]['anchor']);self.assertEqual(m.features[a['featureId']],features[a['featureId']]);self.assertEqual(f,before)
+   self.assertEqual(report['displayRepeatMatches']['matched'][0]['spatialEvidence'],'anchor-covered-by-source-area')
+
+ def test_area_holes_and_overlapping_same_named_areas_do_not_authorize_aliases(self):
+  ring=[[.048,.048],[.052,.048],[.052,.052],[.048,.052],[.048,.048]]
+  hole=[[.049,.049],[.051,.049],[.051,.051],[.049,.051],[.049,.049]]
+  spec,m,f,original,_=self.fixture();f.update(id='osm:way:area',geometry={'type':'Polygon','coordinates':[ring,hole]})
+  _,report=render_scene([f],[],spec,m)
+  self.assertEqual(m.annotations[1]['repeatGroup'],original[1]['repeatGroup']);self.assertEqual(report['displayRepeatMatches']['matched'],[])
+  spec,m,f,original,_=self.fixture();f.update(id='osm:way:area',geometry={'type':'Polygon','coordinates':[ring]})
+  other=deepcopy(f);other['id']='osm:way:another-area';_,report=render_scene([f,other],[],spec,m)
+  self.assertEqual(m.annotations[1]['repeatGroup'],original[1]['repeatGroup']);self.assertEqual(len(report['displayRepeatMatches']['ambiguous']),1)
+
 if __name__=='__main__':unittest.main()

@@ -56,8 +56,9 @@ for interactive maps; shared existing feature records make the actual increment 
 This font bound does not establish final fit: curvature, enlarged text, competing labels
 and protected geometry still require the independent browser gate.
 
-These Task 8/S17 and C07/C16/C23 corrections have focused regressions. Final generated
-candidates, cross-engine visual/geometry checks and promotion remain pending.
+These Task 8/S17 and C07/C16/C23 corrections have focused regressions and rebuilt
+candidates. The final seeded cross-engine review is recorded below; full release
+validation and promotion remain pending.
 
 ## Why performance improved
 
@@ -175,8 +176,8 @@ The broad browser run passed 518 cases with 10 declared skips, followed by all s
 real-map water/proximity cases. Later focused glyph-ink, resize, theme and fixed-UI
 regressions cover the changes made after that run. Source-to-paint review inspected
 21 matched-ground-scale scenes in Grand Canyon and Sequoia, with hashes and
-explicit scale/fit/collision omissions in the coverage baseline. These checks are
-not yet a completed release gate or a claim that the final fuzz matrix passes.
+explicit scale/fit/collision omissions in the coverage baseline. These checks remain separate from the complete release gate and the final seeded
+fuzz evidence below.
 
 
 The next fuzz replay isolated a font-recovery cancellation bug: page scrolling could
@@ -194,4 +195,38 @@ WebKit. Wrapped variants now serialize their measured local baseline advance,
 so a changed font size also updates the committed spacing. Cross-engine regressions
 cover SVG/Canvas, primary text and attached elevations at 125%, 150% and reset.
 The exact source-state replay keeps its candidate, position and font size while
-restoring a 17.015 px label–ford gap. Final rebuilt-matrix review remains separate.
+restoring a 17.015 px label–ford gap.
+
+
+## Final candidate visual evidence
+
+The six 18-action seeded sequences passed automated checks and visual review of
+all 114 successful viewport frames. The combined evidence selects five successful
+runs from `artifacts/cartography/fuzz-release-candidate/` and one complete Grand
+Canyon WebKit retry from `artifacts/cartography/fuzz-release-gc-webkit-retry/`.
+The retry followed an audit font-readiness correction; its HTML bytes did not
+change, and the original failed report is retained. The selection and exact report,
+screenshot and HTML hashes are in `artifacts/cartography/fuzz-release-combined.json`.
+
+Five narrow Grand Canyon views with no optional point names received independent
+follow-up: all 901 repeated-state candidates were blocked by current controls or
+frame bounds. No stale, unprepared or pending layout work explained those omissions.
+`artifacts/cartography/final-point-states.json` retains the exact state comparison.
+This is finite-view evidence; crowded narrow screens still constrain label coverage.
+
+The reviewed interactive hashes are
+`dd6f6da91d544ac3e0e63c734c1325637f1159179df0fc93810b27b1abb407e4`
+(Grand Canyon) and
+`93c66d5ca9d80990c308f86238062d30f3f79b347efcbc09006e0ce0d2da515a`
+(Sequoia). All six frozen-static browser/theme audits passed for
+`159e303f5fc550d532a0ff3013b6f8f7d9958b20d7fd62beafb2619247caa298`.
+The final source suite passed 127 Python and 96 Node tests. Focused browser
+regressions cover the subsequent font lifecycle, audit readiness and wrapped
+baseline fixes; those counts are not added to the earlier broad suite as though
+they were unique tests.
+
+The full promotion gate was stopped after its first narrow Chromium profile
+reported a native trail-pin check failure. Its other geometry, typography and
+coverage checks passed. Diagnosis and the remaining release profiles are pending;
+no delivered output has been replaced. The separate production 3× startup target
+also remains unproven.

@@ -397,7 +397,7 @@ separate. Preserve worktrees until their evidence and needed artifacts are retai
 - [x] 9. Land cover/boundaries
 - [x] 10. Furniture
 - [ ] 11. Portability/performance validation
-  - [ ] Seeded visual fuzzing, replayable failures, screenshot/contact-sheet review
+  - [x] Seeded visual fuzzing, replayable failures, screenshot/contact-sheet review
 - [ ] 12. Release and promotion
 - [ ] 13. Separate production 3× startup target
   - [x] Corrected probes, trace investigation and diagnostic ablations
@@ -447,3 +447,14 @@ features remain available as secondary detail. Static visual review also found
 interaction hit paths painting black; the static scene now omits that interaction
 geometry. Point preparation reserves 0.125px for backend glyph rounding without
 relaxing the painted displacement limit.
+
+
+Final seeded validation: six 18-action sequences and all 114 successful frames
+passed automated checks and visual review on the final candidate hashes. The
+Grand Canyon WebKit sequence was rerun after correcting audit font readiness;
+its original failed report is retained. Five narrow-view point-name omissions
+were independently explained by 901 candidates blocked by current controls/frame
+bounds. No pending layout work or unresolved visual defect remained in the reviewed
+frames. The combined selection, exact hashes and screenshot review are recorded
+in `artifacts/cartography/fuzz-release-combined.json` and the linked evidence.
+Full release promotion and quiet before/after performance measurement remain pending.

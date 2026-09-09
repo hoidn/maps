@@ -3,7 +3,8 @@
 **Status:** Maintained contract for the existing pipeline, established 2026-09-08.
 **Scope:** Coordinate/unit conventions, intermediate formats, and artifact
 boundaries used by the current static and interactive builders. This document
-does not approve the automatic-layout or lidar proposals.
+does not define layout behavior or approve lidar proposals. The implemented
+layout interfaces belong to the [map layout contract](map-layout.md).
 
 Preserve these interfaces when changing a producer or consumer, or explicitly
 update the contract and affected code together. Existing enforcement gaps below
@@ -54,7 +55,8 @@ A pixel-center/edge alignment change requires a deliberate producer/consumer rev
 ## Artifacts and ownership
 
 All intermediate and candidate paths in this table are relative to `pipeline/`.
-The current scripts require that working directory.
+Individual Python stages require that working directory. Root npm commands and
+build entry points establish it before invoking those stages.
 
 | Producer | Artifact | Consumer or destination |
 |---|---|---|
@@ -63,15 +65,20 @@ The current scripts require that working directory.
 | `fetch_dem_hi.py` | `dem_hi.tif`, `dem_hi.npy` | Interactive processor/builder |
 | `process_dem.py` | `terrain.json`, light/dark JPEGs | `build_static.py` reads the JSON |
 | `process_dem_hi.py` | `terrain_hi.json`, light/dark JPEGs | `build_interactive.py` reads the JSON |
-| `build_static.py` | `grand_canyon_trails.html` | Reviewed candidate for `output/grand_canyon_trail_sheet_static.html` at repo root |
-| `build_interactive.py` | `grand_canyon_trails_interactive.html` | Reviewed candidate for `output/grand_canyon_trail_explorer_interactive.html` at repo root |
+| `build_static.py` | `grand_canyon_trails.html` | Runtime-dependent staging input to `scripts/finalize-static.mjs` at repo root |
+| `scripts/finalize-static.mjs` at repo root | `grand_canyon_trails_final.html` | Frozen candidate for verified promotion to `output/grand_canyon_trail_sheet_static.html` at repo root |
+| `build_interactive.py` | `grand_canyon_trails_interactive.html` | Runtime-embedded candidate for verified promotion to `output/grand_canyon_trail_explorer_interactive.html` at repo root |
 
 Current fetched array shapes are `(1729, 2600)` for static and `(2592, 3900)` for
 interactive, in `(height, width)` order. NPY files carry no geographic metadata;
 their frame is implicit in code. Raw/intermediate data are ignored by Git. HTML
 in `output/` is tracked, generated delivery content; lasting edits belong in the
 builders. Validation precedes replacement of delivered files, and hosted
-publication is separate. Automatic verified promotion is only a draft proposal.
+publication is separate. The implemented `scripts/verify-maps.mjs` at repo root
+verifies both candidates and promotes matching snapshots with rollback on a later
+replacement failure. Use the [layout validation guide](../LAYOUT_VALIDATION.md)
+for commands. **Release validation is pending**; implementation does not establish
+that current delivered or hosted artifacts pass these gates.
 
 Live refetching can change map content independently of code. When comparing a
 data-sensitive rebuild, identify whether inputs were reused or refreshed; retain
@@ -129,7 +136,8 @@ rounded readout is not the full-resolution bilinear sampler used by the tables.
 The static fetch does not verify returned extent; fetchers do not explicitly
 enforce expected shape or a complete finite/no-data policy; terrain JSON has no
 schema validator; frame constants are duplicated; source identity is not carried
-through intermediates; output promotion is manual. There is no checked-in
-automated regression suite. These gaps need scoped implementation work, not
-stronger claims in documentation. The [layout draft](../plans/2026-09-08-automatic-map-layout-design.md)
-proposes additional interfaces and checks but does not implement them.
+through terrain intermediates. Automated layout tests, annotation manifests and
+verified promotion now exist, but they do not close these geographic-data gaps.
+Those gaps need scoped implementation work, not stronger claims in documentation.
+The [map layout contract](map-layout.md) defines the separate rendering interfaces;
+release validation of the generated pair remains pending.

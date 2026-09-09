@@ -18,8 +18,14 @@ the task. The index owns task routing; it does not define requirements.
 - [Map data contract](docs/specs/map-data.md) owns coordinate, unit, intermediate
   format, and artifact-boundary conventions. Do not duplicate these requirements
   in another guide; link to their owning section.
-- Draft designs and plans are proposals, not implemented behavior or permission
-  to start unrelated work. The automatic-layout documents remain drafts.
+- [Map layout contract](docs/specs/map-layout.md) owns the implemented manifest,
+  measurement, placement, controller, and frozen-static interfaces. The
+  [layout validation guide](docs/LAYOUT_VALIDATION.md) owns operating commands and
+  rendering-profile limits.
+- Draft designs and plans do not authorize unrelated work. Automatic-layout
+  implementation is active under the user's instruction to execute its plan;
+  release validation and delivery remain pending. A historical draft status is
+  not a claim that the installed implementation is absent or fully validated.
 - [HANDOFF.md](HANDOFF.md) is historical context. Strategy notes, suggested next
   steps, old measurements, and session summaries do not establish current priorities
   or fresh verification evidence.
@@ -33,16 +39,18 @@ the task. The index owns task routing; it does not define requirements.
 
 - Edit the generators in `pipeline/` for durable map changes. Both builders contain
   shared-looking but separate logic; assess whether a change affects both outputs.
-- Scripts use paths relative to the working directory and some load data at import
-  time. Run existing pipeline commands from `pipeline/`; do not import builders
-  just to inspect helpers.
-- `cd pipeline && ./run_all.sh` fetches live data and rebuilds both maps. It is not
-  a quick offline test. Reuse existing intermediates for affected stages when possible.
+- Python stages use paths relative to `pipeline/` and some load data at import
+  time; do not import builders just to inspect helpers. Root npm commands and
+  the build shell entry points establish the required directories themselves.
+- `pipeline/run_all.sh` explicitly fetches live data, processes it, and builds
+  candidates. `npm run build:maps` reuses caches without fetching. Both include
+  static finalization; neither promotes files into `output/`.
 - Builders write candidate HTML into `pipeline/`. The two HTML files in `output/`
   are tracked deliverables with different names. Use the
   [artifact mapping](docs/specs/map-data.md#artifacts-and-ownership) when updating them.
-- Validate candidates before replacing delivered files. Local replacement and
-  publication to a hosted page are separate actions; a local build is not publication.
+- Validate and promote candidates through the release commands in the layout
+  guide. Do not bypass their hash, coverage, browser, and rollback checks with
+  manual copies. Local replacement and hosted publication remain separate.
 - Keep downloaded grids and intermediate data out of Git according to `.gitignore`.
   If validation needs temporary reports, keep them outside tracked source paths or
   add an appropriately scoped ignore rule as part of that task.
@@ -58,9 +66,9 @@ the task. The index owns task routing; it does not define requirements.
 - Use [VALIDATION.md](docs/VALIDATION.md) to select checks that can establish the
   actual claim. A successful build or screenshot alone does not prove interaction
   correctness, absence of collisions, or accurate geographic data.
-- For behavior changes, use a small regression case where practical. No checked-in
-  automated test suite exists yet; the Node/Playwright commands in the layout plan
-  are proposed tooling, not current commands.
+- For behavior changes, use a small regression case that fails for the defect.
+  Python, Node, and Playwright suites are checked in. Select focused tests for a
+  local change; the complete release gate is required before map promotion.
 - Routine documentation edits need link/source checks, not map regeneration.
   Report what changed, what was checked, and material unchecked behavior.
 - Keep plans proportional. Use `docs/plans/` for work that needs a durable sequence

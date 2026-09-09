@@ -1,13 +1,16 @@
 # Validation guide
 
-**Status:** Guidance for the current pipeline, 2026-09-08. Browser automation,
-automatic collision checks, and verified promotion in the layout plan remain
-proposals. This guide does not claim the delivered maps pass those future gates.
+**Status:** Implementation active; **release validation pending**, 2026-09-08.
+Python, Node, browser audits, static finalization, and verified local promotion are
+implemented. This guide does not claim that the delivered maps pass the release
+gates or that hosted artifacts have been updated.
 
-Select evidence for the requested change and affected
-[data contracts](specs/map-data.md). A narrow fix does not require the entire
-future layout release matrix. Report missing prerequisites or unchecked behavior
-instead of treating a historical screenshot or a successful build as proof.
+Select evidence for the requested change and the affected [data](specs/map-data.md)
+and [layout](specs/map-layout.md) contracts. A narrow fix needs focused evidence;
+map promotion needs the complete release gate. Report missing prerequisites and
+unchecked behavior rather than treating an old screenshot or build as proof.
+The [layout operations guide](LAYOUT_VALIDATION.md) owns setup, commands, profiles,
+and operational limits.
 
 ## Documentation-only changes
 
@@ -18,39 +21,26 @@ changes to prose alone.
 
 ## Build and delivery
 
-Existing scripts run from `pipeline/`. Install dependencies there with
-`python3 -m pip install -r requirements.txt` when needed. There is no current
-root `package.json`, Node test harness, or `build_maps.sh`.
+Use the root commands in the [layout operations guide](LAYOUT_VALIDATION.md#setup-and-commands).
+The cached build entry point checks required intermediates, bundles the engine,
+runs both Python builders, and finalizes the static staging file. It makes no
+source-data fetches. The full build explicitly fetches and processes OSM/USGS
+inputs first; fresh data may differ from the delivered edition.
 
-With the required intermediates present, rerun only affected stages:
+Individual Python stages still run from `pipeline/`; processors require their
+DEM NPY inputs, and builders require processed terrain, OSM inputs, and the layout
+bundle. Rebuilding a static generator alone produces runtime-dependent staging
+HTML, not the final static delivery artifact. Use the
+[artifact mapping](specs/map-data.md#artifacts-and-ownership) and
+[frozen-static contract](specs/map-layout.md#frozen-static-artifact).
 
-```bash
-cd pipeline
-python3 build_static.py       # osm.json, osm2.json, terrain.json, dem.npy required
-python3 build_interactive.py  # osm.json, osm2.json, terrain_hi.json, dem_hi.npy required
-```
-
-Terrain-processing changes also need `python3 process_dem.py` or
-`python3 process_dem_hi.py` before the corresponding builder. Those processors
-require their DEM NPY inputs. If inputs are missing and the task requires a
-full data rebuild, `cd pipeline && ./run_all.sh` from the repository root fetches
-live OSM/USGS data and rebuilds both candidates. Do not present this as an offline
-test or assume freshly fetched inputs match the delivered edition.
-
-Confirm the command exits successfully and writes the intended candidate, then
-inspect that file using the checks below. When the task includes updating local
-deliverables, copy the checked candidates according to the
-[artifact mapping](specs/map-data.md#artifacts-and-ownership) and confirm the
-destination bytes match, for example from the repository root:
-
-```bash
-cmp pipeline/grand_canyon_trails.html output/grand_canyon_trail_sheet_static.html
-cmp pipeline/grand_canyon_trails_interactive.html output/grand_canyon_trail_explorer_interactive.html
-```
-
-Run the comparison for each output being replaced; exit status 0 means identical
-bytes. These commands verify copying, not cartographic correctness. Existing
-build scripts do not validate or promote outputs automatically.
+Static finalization reopens serialized bytes without JavaScript or external
+network access in the supported browser/theme matrix. Pair verification also
+checks interactive release scenes, reviewed coverage, and real-map performance.
+Promotion verifies immutable snapshots, checks their hashes again, and rolls back
+a prior replacement if the later replacement fails. Do not bypass the gate with
+manual copies or interpret one successful fixture as approval of the real maps.
+Hosted publication remains a separate action.
 
 ## Geographic and terrain changes
 
@@ -73,7 +63,8 @@ outputs when changing shared geographic conventions or duplicated builder logic.
 
 ## Cartography and interaction
 
-Serve the repository from its root with `python3 -m http.server 8765` and open the
+Serve the repository from its root with
+`python3 -m http.server 8765 --bind 127.0.0.1` and open the
 affected candidate under `/pipeline/` or the delivered map under `/output/`.
 The [process guide](PROCESS.md#4-check-the-render-once) also records a headless
 screenshot command; its URL assumes `pipeline/` is the served root.
@@ -90,10 +81,16 @@ For zoom-dependent changes, include both sides of 1.02×, 2×, and 4.5× transit
 and the supported 1×–14× limits. Report which inputs/devices were actually tested;
 a screenshot at the end of a gesture does not test its intermediate frames.
 
-If behavior gets an automated regression test, use a small fixture that can fail
-for the relevant defect and does not depend on live data. The
-[draft layout plan](plans/2026-09-08-automatic-map-layout-plan.md) describes future
-test tooling and release checks; do not run its commands as if they already exist.
+Use the checked-in Python, Node, and Playwright suites for behavior regressions.
+A small fixture should fail for the defect and work without live data. Independent
+managed audits remeasure rendered geometry rather than trusting solver diagnostics;
+legacy reports preserve original findings and are not a release allowlist.
+
+Follow [layout operations](LAYOUT_VALIDATION.md#what-the-gates-establish) for the
+complete release checks. Confirm the scene configuration's coverage review is
+frozen and the reports refer to the exact candidate hashes. Paint-aligned automated
+frames supplement the runtime's synchronous checks; they are finite test evidence,
+not a mathematical proof over every zoom or a substitute for real-device testing.
 
 ## What to report
 

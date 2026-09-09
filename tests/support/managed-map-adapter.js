@@ -27,6 +27,13 @@ export function collectManagedInventory() {
     mapRect.y+(mapRect.height-cameraView.h*fit)/2-cameraView.y*fit]) : sourceMatrix;
   const canvasPaint = new Map(renderer?.painted.map(p => [p.id,p]) || []);
   const paintContext = renderer ? document.createElement('canvas').getContext('2d') : null;
+  // Captured Path2D commands are immutable. Cache only independently rasterized
+  // local ink, never solver footprints, camera projection, or annotation IDs.
+  // This collector is also serialized into pages, so its cache belongs to the
+  // document global rather than module state. LRU retention is bounded.
+  const rasterKey=Symbol.for('map-independent-audit-local-path-ink-v1');
+  const rasterCache=renderer?(globalThis[rasterKey]??={paths:new WeakMap(),entries:new Set()}):null;
+  const rasterWork={hits:0,misses:0,scannedPixels:0,entries:rasterCache?.entries.size??0};
   const screen = { left: 0, top: 0, right: innerWidth, bottom: innerHeight };
   const shown = (e) => {
     for (let p = e; p && p !== document; p = p.parentElement) {
@@ -137,6 +144,12 @@ export function collectManagedInventory() {
     }
     if(!b || !(b.width||b.height))return [];
     if(c.kind==='path'){
+      const signature=JSON.stringify([b,s]);
+      const entries=rasterCache.paths.get(c.path),cached=entries?.get(signature);
+      if(cached){
+        rasterWork.hits++;rasterCache.entries.delete(cached);rasterCache.entries.add(cached);b=cached.bounds;
+      }else{
+      rasterWork.misses++;
       // Rasterize the actual path to measure joins/caps, rather than multiplying
       // a bounding box by the miter limit (which invents false symbol collisions).
       // The half-coverage boundary estimates geometric ink, as the SVG audit
@@ -148,10 +161,19 @@ export function collectManagedInventory() {
       if(s.fill!=='none'){ctx.fillStyle='black';ctx.fill(c.path,s.fillRule);}
       if(s.stroke!=='none'&&s.width){ctx.strokeStyle='black';ctx.stroke(c.path);}
       const w=ctx.canvas.width,h=ctx.canvas.height,data=ctx.getImageData(0,0,w,h).data;
+      rasterWork.scannedPixels+=w*h;
       let left=w,top=h,right=0,bottom=0;
       for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(data[(y*w+x)*4+3]>=128){left=Math.min(left,x);top=Math.min(top,y);right=Math.max(right,x+1);bottom=Math.max(bottom,y+1);}
-      if(right<=left)return [];
-      b={x:b.x-pad+(left+0.5)/density,y:b.y-pad+(top+0.5)/density,width:(right-left-1)/density,height:(bottom-top-1)/density};
+      b=right<=left?null:{x:b.x-pad+(left+0.5)/density,y:b.y-pad+(top+0.5)/density,width:(right-left-1)/density,height:(bottom-top-1)/density};
+      const entry={path:c.path,signature,bounds:b},byStyle=entries??new Map();
+      byStyle.set(signature,entry);rasterCache.paths.set(c.path,byStyle);rasterCache.entries.add(entry);
+      if(rasterCache.entries.size>1024){
+        const oldest=rasterCache.entries.values().next().value,oldStyles=rasterCache.paths.get(oldest.path);
+        oldStyles.delete(oldest.signature);if(!oldStyles.size)rasterCache.paths.delete(oldest.path);rasterCache.entries.delete(oldest);
+      }
+      }
+      rasterWork.entries=rasterCache.entries.size;
+      if(!b)return [];
     }
     const m=new DOMMatrix(c.matrix);
     m.e+=mapRect.x-renderer.paintViewport.x+(canvasPaint.get(id).offset?.[0]||0);m.f+=mapRect.y-renderer.paintViewport.y+(canvasPaint.get(id).offset?.[1]||0);
@@ -337,6 +359,7 @@ export function collectManagedInventory() {
   }
   return {
     manifest,
+    rasterWork,
     inventory,
     annotationPolygons: inventory,
     obstacles,

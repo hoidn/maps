@@ -55,7 +55,8 @@ work, copied into the ignored investigation directory without modifying its byte
 
 Copying a measurement baseline does not promote it into `output/`.
 
-Nine Chromium Canvas runs, three at each input offset, produced the following
+Nine headless Chromium 140.0.7339.186 Canvas runs on an Apple M3 (macOS arm64,
+Node 24.6.0), three at each input offset, produced the following
 medians. These are baseline observations, not improvement claims:
 
 | Input after DOMContentLoaded | Due input → correct Canvas frame | Timer queue delay | Navigation → initial layout ready | Navigation → settled labels |
@@ -94,6 +95,16 @@ These rows are sampled CPU attribution, not independently additive wall-time
 savings. Browser-native work and idle time remain separate; they cannot safely be
 assigned to image decode or HTML parsing solely from this CPU profile.
 
+A separate detailed timeline (`chromium-timeline.json`, with promise-stage
+observations in `stages.json` under the same task directory) recorded about
+199 ms of HTML parsing, 104 ms of layout and 52 ms of style updates through the
+first correct Canvas frame. Required font-face loads spanned roughly 69 ms;
+individual faces overlap, so their durations must not be added. The two image
+decode promises in scene preparation waited about 1 and 18 ms. Native image
+decode events across threads totaled about 70 ms. These profiled events overlap
+other work and do not form an additive wall-time budget. This evidence does not
+identify font or image decode as the main startup obstacle.
+
 The frozen file has 1,583 paths containing 37,949,531 bytes of path data (88% of
 file size), about 1.78 MB of embedded image strings and 2.26 MB of font strings.
 Contour path data alone is distributed as follows:
@@ -110,31 +121,83 @@ at the initial overview. `CanvasMapRenderer.prepare()` nevertheless awaits
 for every tier. WebGL subsequently prepares its buffers from that same collection.
 Merely selecting WebGL does not remove this shared initialization dependency.
 
-## Recommended isolated prototypes
+## Contour-tier ablation: useful, insufficient alone
 
-1. **Prepare the required contour tier first.** Activate the persistent renderer
-   with complete geometry for the initial view, then prepare hidden tiers in
-   bounded idle work. A zoom that needs a pending tier must prioritize it, retain
-   usable coarse geometry while preparing, and finish with the correct contour
-   interval. Preserve deterministic feature identity and all eventual content.
-   This is the strongest 3× candidate because it removes preparation of 80% of
-   currently hidden contour data from the initial dependency chain. A 3× ratio
-   remains a hypothesis until the corrected interleaved benchmark and correctness
-   checks pass; it is not a promise derived from byte counts.
-2. **Precompute contour arrays, bounds and chunk metadata.** Embedded typed data
-   could avoid repeated runtime text parsing and reduce allocations. The profile
-   justifies testing it, but removing roughly 300 ms of sampled work alone does
-   not demonstrate a 3× reduction from an 800–1,000 ms response. Retaining both
-   full SVG paths and duplicate numeric data could make navigation worse.
-3. **Create dense measurement SVG only when needed.** This can reduce the large
-   inline path parse/layout surface while preserving authored static output.
-   It is a larger artifact/interface change and should follow the tier prototype,
-   with exact geometry, source identity, text-path measurement, fallback and
-   standalone loading regression coverage. Current data does not quantify its
-   isolated gain.
+A diagnostic HTML copy removed the fine and finest contour groups (29.32 MB of
+markup), retaining the rest of the frozen baseline unchanged. It deliberately
+lacks content, so it is **not a deliverable or proof of a correct optimization**.
+It estimates headroom for preparing hidden tiers later. Three interleaved runs
+per input phase produced:
 
-Do not adopt another camera rewrite on this evidence. Preserve current smooth
-pan/zoom behavior and allow labels to complete progressively, as the user requested.
+| Input offset | Baseline median | Overview-only ablation median | Ratio |
+|---|---:|---:|---:|
+| 25 ms | 780 ms | 522 ms | 1.49× |
+| 100 ms | 1,001 ms | 840 ms | 1.19× |
+| 250 ms | 845 ms | 657 ms | 1.29× |
+
+Evidence: `artifacts/startup/task13/ablation-canvas/`, with hashes in `inputs.json`.
+This negative result matters: removing 80% of contour bytes did **not** produce
+3× initial response. Inspecting the remaining dependency shows why:
+`CanvasMapRenderer.activate()` is reached through label `commit()`, after the
+initial placement worker completes. While the worker runs, controller status is
+`loading`, which blocks `render()` even if geometry has finished preparing.
+Input during initial placement can also invalidate its snapshot and require
+another layout attempt. Faster geometry preparation alone leaves those waits.
+
+## Combined diagnostic: geometry first, labels later
+
+A second ignored diagnostic copy also activated the unlabeled camera immediately
+when renderer geometry became ready and redrew it when the camera revision
+changed, independently of the initial label worker. It retained the same
+intentional omission of fine contours. An interleaved run observed:
+
+| Input offset | Baseline median | Combined ablation median | Ratio |
+|---|---:|---:|---:|
+| 25 ms | 1,403 ms | 674 ms | 2.08× |
+| 100 ms | 1,885 ms | 639 ms | 2.95× |
+| 250 ms | 1,824 ms | 544 ms | 3.35× |
+
+These timings are **exploratory, not acceptance evidence**. A source build was
+running during the comparison and the baseline itself became materially slower
+than the isolated baseline run. Interleaving helps order bias but cannot remove
+unequal competing load. A preceding run overlapped a browser test and was
+explicitly discarded. Additionally, both diagnostic copies lack dense contour
+content; neither proves an equivalent, correctly progressive implementation.
+Evidence is under `artifacts/startup/task13/ablation-early-camera`; rejected runs
+are identified separately. No 3× production improvement follows from this table.
+
+The result supports testing the combined dependency change and shows that the
+25 ms phase still falls short. Initial synchronous label measurement and required
+font loading are remaining dependencies to inspect after the complete-geometry
+prototype, rather than promising another factor from unmeasured work.
+
+## Recommended combined prototype
+
+The most realistic next prototype therefore needs both changes:
+
+1. **Prepare the required contour tier first.** Make complete overview geometry
+   available before preparing hidden fine/finest tiers. A zoom needing a pending
+   tier must prioritize it, preserve useful coarse geometry during preparation,
+   then finish with the correct interval. Preserve all eventual content and
+   deterministic source identity.
+2. **Activate the camera independently of initial label placement.** Once its
+   geometry is ready, draw the current camera view and continue responding to
+   input while labels prepare. Commit labels progressively when valid results
+   arrive. This must produce actual correct Canvas/WebGL frames, not merely
+   advance a readiness flag. It follows the user's explicit tolerance for label
+   latency while the camera remains smooth.
+
+Precomputed contour arrays, bounds and chunk metadata remain a secondary
+prototype: they can avoid repeated parsing and allocations, but roughly 300 ms
+of sampled work alone does not establish a 3× reduction from an 800–1,000 ms
+response. Keeping both SVG strings and duplicate arrays could worsen navigation.
+Creating dense measurement SVG on demand could reduce the 43 MB inline parse
+surface; it is a larger artifact/interface change needing geometry, source
+identity, text-path, fallback and standalone loading coverage. Its isolated gain
+has not been measured.
+
+Do not adopt another steady-camera rewrite on this evidence. Preserve current
+smooth pan/zoom behavior and allow labels to complete progressively.
 
 ## Reproduction
 
@@ -153,7 +216,7 @@ PLAYWRIGHT_BROWSERS_PATH=.browser-cache \
   node scripts/benchmark-renderers.mjs chromium BASELINE.html CANDIDATE.html 3
 ```
 
-Pending evidence: isolated parse/font/image trace, frozen final cartography
-candidate comparisons, prototype correctness and speedup, and Firefox/WebKit
+Pending evidence: frozen final cartography candidate comparisons, prototype
+correctness and speedup without competing builds/browser work, and Firefox/WebKit
 startup measurements. These baseline results do not authorize declaring task 13's
 3× implementation objective delivered.

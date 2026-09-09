@@ -133,13 +133,13 @@ test('settlement waits for quiet frames without running full passes inside a ges
 
 test('an empty retained set updates the camera without querying unused collision geometry',async({page})=>{
  await mountFixture(page);
- const result=await page.evaluate(async()=>{const l=window.mapLayout;await l.whenSettled();l.previous={placements:[],outcomes:[],missingRequired:[]};for(const e of l.elements.values()){e.style.display='none';e.style.visibility='hidden';}l.visibleIds.clear();let queries=0;const controls=l.controls.bind(l);l.controls=()=>{queries++;return controls();};l.requestView({...l.view,w:400,h:320});await new Promise(requestAnimationFrame);const result={queries,kind:l.transactionKind,placed:l.result.placements.length,accounted:l.result.outcomes.length,total:l.manifest.annotations.length};l.controls=controls;return result;});
+ const result=await page.evaluate(async()=>{const l=window.mapLayout;await l.whenSettled();l.panLayout=null;l.previous={placements:[],outcomes:[],missingRequired:[]};for(const e of l.elements.values()){e.style.display='none';e.style.visibility='hidden';}l.visibleIds.clear();let queries=0;const controls=l.controls.bind(l);l.controls=()=>{queries++;return controls();};l.requestView({...l.view,w:400,h:320});await new Promise(requestAnimationFrame);const result={queries,kind:l.transactionKind,placed:l.result.placements.length,accounted:l.result.outcomes.length,total:l.manifest.annotations.length};l.controls=controls;return result;});
  expect(result).toEqual({queries:0,kind:'fast',placed:0,accounted:3,total:3});
 });
 
 test('budget-deferred lines never enter the normalization and measurement batch',async({page})=>{
  await mountFixture(page);
- const result=await page.evaluate(async()=>{const l=window.mapLayout;await l.whenSettled();l.policy.interactiveCandidateBudgetMs=0;l.cache.invalidate();l.lineCache.clear();let lineCalls=0;const normalize=l.normalize.bind(l);l.normalize=(a,...args)=>{if(a.kind==='line-label')lineCalls++;return normalize(a,...args);};l.render(true);return {lineCalls,reason:l.result.outcomes.find(o=>o.id==='curve').reason};});
+ const result=await page.evaluate(async()=>{const l=window.mapLayout;await l.whenSettled();l.policy.interactiveCandidateBudgetMs=0;l.panLayout=null;l.cache.invalidate();l.lineCache.clear();let lineCalls=0;const normalize=l.normalize.bind(l);l.normalize=(a,...args)=>{if(a.kind==='line-label')lineCalls++;return normalize(a,...args);};l.render(true);return {lineCalls,reason:l.result.outcomes.find(o=>o.id==='curve').reason};});
  expect(result).toEqual({lineCalls:0,reason:'budget-deferred'});
 });
 

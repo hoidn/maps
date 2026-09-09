@@ -52,7 +52,7 @@ export class MotionPreview {
     }catch(error){if(generation===this.generation)this.error=error.message;}
     finally{if(sourceURL)URL.revokeObjectURL(sourceURL);if(bitmapURL)URL.revokeObjectURL(bitmapURL);}
   }
-  show(){
+  show(recoverableIds){
     if(this.active||!this.image||!this.contours.initialized)return;
     // Visible textPath labels still need their source geometry in the document.
     // Move only those original paths into non-painted defs while contours are
@@ -60,7 +60,7 @@ export class MotionPreview {
     this.references=[];
     for(const textPath of this.svg.querySelectorAll('textPath')){
       const wrapper=textPath.closest('[data-layout-id]');
-      if(wrapper&&(wrapper.style.display==='none'||wrapper.style.visibility==='hidden'))continue;
+      if(wrapper&&(wrapper.style.display==='none'||wrapper.style.visibility==='hidden')&&!recoverableIds?.has(wrapper.dataset.layoutId))continue;
       const href=textPath.getAttribute('href')||textPath.getAttributeNS('http://www.w3.org/1999/xlink','href');
       const path=href?.startsWith('#')?this.svg.ownerDocument.getElementById(href.slice(1)):null;
       if(!path||!this.contours.layers.some(layer=>layer.contains(path)))continue;

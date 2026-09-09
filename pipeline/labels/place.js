@@ -13,16 +13,20 @@ const center=s=>[s.bounds.x+s.bounds.width/2,s.bounds.y+s.bounds.height/2];
  * observed at placement time. Accepted placements only grow in that mode, so those
  * blocker IDs remain valid but can omit later blockers. All other modes report final blockers.
  * Optional fallbackCandidates() iterables are evaluated only after ordinary candidates fail.
+ * repeatReservations retain feature spacing for hidden fixed placements. Entries
+ * carry id, featureId, distance and a CSS-space shape; each label exempts itself.
  * A true-anchor symbol footprint may cover a trail; displaced candidates retain strict checks.
  * A symbol with anchorTrailRadius=6 permits only trail centerline portions inside
  * its true-anchor disk. Explicit allowedObstacleIds never exempt protected trails. */
-export function solveLayout({annotations,obstacles=[],viewport,previous,policy={},queryObstacles}) {
+export function solveLayout({annotations,obstacles=[],viewport,previous,policy={},queryObstacles,repeatReservations=[]}) {
   const placementDiagnostics=policy.exhaustiveDiagnostics===false&&policy.repairMaxNeighbors===0,attemptFailures=new Map();
   const clearance=policy.clearance??2,padding=policy.edgePadding??4;
   const frame={x:viewport.x??0,y:viewport.y??0,width:viewport.width,height:viewport.height};validRect(frame);
   const ordered=annotations.map(a=>({...a,candidates:[...(a.candidates??[])]})).sort((a,b)=>Number(!!b.required)-Number(!!a.required)||(b.priority??0)-(a.priority??0)||stable(a.id,b.id));
   const byId=new Map(ordered.map(a=>[a.id,a]));if(byId.size!==ordered.length)throw new Error('Duplicate annotation ID');
   const featureGroups=new Map(),repeatDistances=new Map();
+  const reservedFeatures=new Map();
+  for(const p of repeatReservations){let group=reservedFeatures.get(p.featureId);if(!group){group=[];reservedFeatures.set(p.featureId,group);}group.push(p);}
   for(const a of ordered){const distance=a.repeatDistance??0;repeatDistances.set(a.id,distance);if(!a.featureId)continue;let group=featureGroups.get(a.featureId);if(!group){group={ids:[],maximum:0};featureGroups.set(a.featureId,group);}group.ids.push(a.id);group.maximum=Math.max(group.maximum,distance);}
   const old=new Map((Array.isArray(previous)?previous:previous?.placements??[]).map(p=>[p.id,p.candidateId]));
   const obstacleIndex=new SpatialIndex(),obstacleMap=new Map();
@@ -72,6 +76,11 @@ export function solveLayout({annotations,obstacles=[],viewport,previous,policy={
     // Repeat distance is a feature-level constraint, not a rectangle approximation.
     const group=featureGroups.get(a.featureId);
     if(group?.maximum>0)for(const id of group.ids){if(id===a.id)continue;const other=accepted.get(id);if(!other)continue;const distance=Math.max(repeatDistances.get(a.id),repeatDistances.get(id));if(distance<=0)continue;const p=center(c.shape),q=center(other.shape);if(Math.hypot(p[0]-q[0],p[1]-q[1])<distance)repeat.push(id);}
+    for(const other of reservedFeatures.get(a.featureId)||[]){
+      if(other.id===a.id)continue;
+      const distance=Math.max(repeatDistances.get(a.id),other.distance??0),p=center(c.shape),q=center(other.shape);
+      if(distance>0&&Math.hypot(p[0]-q[0],p[1]-q[1])<distance)repeat.push(other.id);
+    }
     return {hard:[...new Set(hard)].sort(stable),labels:[...new Set(labels)].sort(stable),repeat:[...new Set(repeat)].sort(stable)};
   }
   function accept(a,c){accepted.set(a.id,c);indexPlacement(a.id,c);}

@@ -1,6 +1,7 @@
 # How the interactive map became more responsive
 
-Written 2026-09-09; records the performance work through commit `d9780ae`.
+Written 2026-09-09; records startup work through commit `d9780ae` and the
+subsequent pan stability and gesture-scheduling work described at the end.
 The main gains came from moving initial label computation off the UI thread,
 avoiding duplicate image preparation, and drawing less contour geometry during
 gestures. The map still uses authored SVG with a Canvas contour preview and is
@@ -268,3 +269,102 @@ five placed elevation labels survived a pan in the sampled 2× view.
 
 These checks establish the tested behavior, not every view or device. No files
 in `output/` were promoted, and hosted publication was not part of this work.
+
+## Pan stability and gesture stalls, 2026-09-09
+
+The subsequent pan work preserves the selected label offset, line position and
+text wrapping at the current zoom. Panning can hide labels behind controls or
+outside the frame and restore them unchanged. Newly visible labels use unoccupied
+positions at settlement; hidden cached labels still reserve their footprints and
+same-feature repeat spacing. Zoom, viewport size, fonts and layer changes allow a
+fresh layout. The [controller contract](specs/map-layout.md#interactive-controller)
+owns this behavior.
+
+Pure pan frames reuse measured footprints and established trail clearance. DOM
+updates are skipped when the chosen transform is unchanged, and retained parent
+matrices are read after the write batch. Recoverable contour labels retain their
+original textPath source even while temporarily hidden. These changes improve
+stability and reduce repeated work, but did **not** demonstrate a consistent 3×
+continuous-pan frame-rate improvement. Initial paired camera-only measurements
+were noisy and included regressions, especially in Firefox. They are not evidence
+for a 3× drawing-speed claim.
+
+### Why dragging by hand was worse than the continuous benchmark
+
+The controller previously inferred gesture completion from two quiet animation
+frames. It had no knowledge of a held pointer. A slow drag with 50 ms between
+moves could repeatedly restore the full SVG and perform synchronous settled label
+layout while the mouse button was still held. The continuous camera benchmark,
+which submits a view every animation frame, never exercised this gap.
+
+A trusted-pointer diagnostic reproduced ten such settled passes during twelve
+small moves in Chromium. Most fast transactions took 5–8 ms, but the unnecessary
+full passes took 48–68 ms each. SVG-to-Canvas switching itself took approximately
+1 ms in that trace; the synchronous layout and browser geometry work were more
+expensive. A separate early zoom trace included a 181 ms pending settled pass,
+showing how newly arriving input can wait behind work already on the main thread.
+That trace does not establish a universal first-zoom delay.
+
+The controller now tracks pointer lifetime, including cancellation, lost capture
+and window blur. A held pointer prevents scheduled full passes. Wheel bursts have
+a 120 ms quiet window before the existing two-frame settling check. Fast camera
+updates still run on the next animation frame. The final full pass remains
+synchronous and can still delay a new gesture that arrives after it has started.
+
+### Isolated gesture-scheduling comparison
+
+Both files in this comparison already contain the pan placement cache and the
+parallel contour raster alignment change (`bd54f25`). Only gesture scheduling
+changes between them. At 1440 × 1000 and zoom 2, the harness sends twelve trusted
+pointer moves, three CSS pixels each, separated by 50 ms. These are single paired
+runs, not population statistics.
+
+| Engine | Full passes while held, before → after | Total renderer time while held | Reduction | Longest held render, before → after |
+|---|---:|---:|---:|---:|
+| Chromium | 10 → 0 | 638 → 78 ms | 8.1× | 67 → 22 ms |
+| Firefox | 6 → 0 | 717 → 84 ms | 8.5× | 122 → 43 ms |
+| WebKit | 6 → 0 | 800 → 159 ms | 5.0× | 107 → 49 ms |
+
+This exceeds 3× for **time spent inside the renderer during this slow-drag
+workload**, by eliminating unnecessary passes. It does not mean 3× frame rate,
+3× less end-to-end input latency, or 3× faster initial zoom. The first warm wheel
+fast transaction was essentially unchanged: Chromium 21 → 20 ms, Firefox
+30 → 31 ms, WebKit 44 → 42 ms. Canvas redraws at a new scale, SVG geometry reads,
+remaining live SVG painting and synchronous final layout still need work before
+making those broader claims.
+
+Reproduce from the repository root after building the runtime:
+
+```bash
+PLAYWRIGHT_BROWSERS_PATH=.browser-cache node scripts/benchmark-gestures.mjs chromium BEFORE.html AFTER.html
+PLAYWRIGHT_BROWSERS_PATH=.browser-cache node scripts/benchmark-pan.mjs chromium BEFORE.html AFTER.html
+```
+
+Repeat for Firefox and WebKit sequentially, with other browser workloads idle.
+The first harness exercises trusted wheel/pointer input; the second isolates
+continuous camera updates and reports frame intervals. Both write raw samples,
+browser versions and HTML SHA-256 hashes under ignored `artifacts/pan-layout/`.
+The original isolated gesture results were retained as `*-gestures-forward.json`.
+
+A second pass ran the candidate first and reproduced zero held-pointer full
+passes in all engines. Total held renderer time improved 691 → 77 ms in Chromium
+(8.9×), 761 → 89 ms in Firefox (8.6×), and 913 → 187 ms in WebKit (4.9×).
+The longest individual held render improved about 2.4–2.9× in this repeat;
+there is still no consistent 3× claim for that latency metric. The repeated
+first-wheel timings also remained similar. These raw results are in
+`*-gestures.json`; each file records the tested HTML hashes.
+
+Validation for this worktree candidate: 71 Node tests passed; 133 focused browser
+tests passed across Chromium, Firefox and WebKit, with two existing skips.
+Independent Chromium audits passed at zoom 1, 1.27 and 6 with no overlaps,
+clipping, unresolved ownership, missing required content or typography findings.
+A separate rendered-geometry check of held-pan frames and settlement at zoom 2,
+6 and 14 found no geometry violations or changes to original label transforms
+and wrapping. These are sampled checks, not the complete release gate.
+Audited candidate SHA-256:
+`e38754423ff36958a9e5bb625d25eae8acfd9ee5c37dfab5595597164bed4687`.
+
+Integration is intentionally deferred to the parallel gesture-responsiveness
+session at the user's request. This worktree retains the measured candidate and
+regressions; the main checkout has additional in-progress asynchronous-settling
+work. No `output/` deliverable was promoted by this pass.

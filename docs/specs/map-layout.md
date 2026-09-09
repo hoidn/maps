@@ -99,6 +99,10 @@ names and symbols are not dropped because the curved-label candidate budget
 expires. Truly crowded or frame-edge content may still be omitted; these rules
 do not guarantee every name can fit every possible view.
 
+Interactive pan retention takes precedence over reranking an already chosen
+placement: at a fixed scale, its position and text variant remain fixed. Ranking
+applies when a label first receives a placement or its layout is invalidated.
+
 ## Interactive controller
 
 The embedded engine exposes `window.mapLayout`. Consumers await `ready`, use
@@ -118,9 +122,24 @@ that fallback preserves labels but does not promise the worker's responsiveness.
 The initial worker is terminated after startup. Later settled passes and static
 finalization retain their synchronous placement behavior.
 
+Interactive pointer drags defer scheduled settled layout until all accepted
+pointers are released, cancelled or lose capture (window blur also releases the
+hold). Wheel input requires 120 ms without another wheel event, followed by two
+quiet animation frames. Camera input still requests a fast frame immediately.
+`whenSettled()` remains pending while a changed view awaits gesture release.
+Stationary pointer clicks alone do not request a new layout.
+
 Camera changes and accepted annotation visibility are committed together before
 paint. Interaction can temporarily hide optional detail while preserving a safe
-frame; settled layout restores feasible content. Controller diagnostics are
+frame; settled layout restores feasible content. Pure panning reprojects cached
+label footprints and preserves each chosen offset, line position and text wrap.
+Labels crossing the frame or controls can be hidden and restored unchanged.
+Newly revealed labels can be placed at settlement, respecting both the occupied
+footprints and feature repeat distances of existing cached placements, including
+temporarily hidden labels. Font, layer, viewport-size or zoom changes invalidate
+these reservations. The cache covers the current scale, not every prior zoom.
+Pure pan frames reuse known trail clearance; new placements and zoom transactions
+retain the ordinary geometry checks. Controller diagnostics are
 useful for debugging, but are not independent proof that rendered geometry fits.
 
 ## Frozen static artifact
@@ -191,7 +210,7 @@ The original contour SVG is restored for settled views. Roads, waterways,
 water-area polygons and trails remain live SVG throughout gestures. Relief and
 contour preview pixel buffers share the 24MiB budget. Unsupported transformed
 or annotated contour groups stay live instead of being rasterized.
-Paths referenced by visible elevation text remain connected in temporary,
+Paths referenced by visible or recoverable cached elevation text remain connected in temporary,
 non-painted SVG definitions during motion. The preview moves the original nodes
 and restores their original positions at settlement; it does not duplicate their
 geometry or invalidate the textPath references.

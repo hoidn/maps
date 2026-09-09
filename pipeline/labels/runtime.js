@@ -31,7 +31,22 @@ export class LayoutController {
     this.strokeScopes=[...new Set([...svg.querySelectorAll('.trails,.hits,.contours,.hydro,.roads,[data-layout-obstacle="trail"]')].map(topScope))];
     const details=document.createElement('div');details.dataset.layoutDetails='';details.setAttribute('role','status');details.style.cssText='padding:8px 12px;min-height:20px;font:13px var(--sans,sans-serif)';
     svg.parentElement.after(details);this.details=details;
+    this.pointers=new Set();this.wheelQuietUntil=0;
+    if(this.mode==='interactive')this.trackGestures();
     this.createDirectory();this.ready=this.initialize();
+  }
+  trackGestures(){
+    // A pause between pointer events is still part of the same drag. Wheel
+    // gestures have no release event, so give their next input a short window.
+    this.svg.addEventListener('pointerdown',event=>{
+      this.pointers.add(event.pointerId);if(this.settlePending)this.scheduleSettled();
+    },true);
+    const release=event=>{
+      if(this.pointers.delete(event.pointerId)&&!this.pointers.size&&this.settlePending)this.scheduleSettled();
+    };
+    for(const type of ['pointerup','pointercancel','lostpointercapture'])window.addEventListener(type,release,true);
+    window.addEventListener('blur',()=>{if(this.pointers.size){this.pointers.clear();if(this.settlePending)this.scheduleSettled();}});
+    this.svg.addEventListener('wheel',()=>{this.wheelQuietUntil=performance.now()+120;this.scheduleSettled();},{capture:true,passive:true});
   }
   createDirectory(){
     let select=document.getElementById('goto');
@@ -79,10 +94,11 @@ export class LayoutController {
   }
   fontsChanged(){
     this.preview?.restore();
+    this.panLayout=null;
     const generation=this.fontGeneration=(this.fontGeneration??0)+1;this.status='loading';
     this.cache.invalidate();this.lineCache.clear();this.previous=null;
     clearTimeout(this.settleTimer);cancelAnimationFrame(this.frame);cancelAnimationFrame(this.quietFrame);
-    this.settleTimer=null;this.frame=null;this.quietFrame=null;this.settleGeneration=(this.settleGeneration??0)+1;
+    this.settleTimer=null;this.frame=null;this.quietFrame=null;this.settlePending=false;this.settleGeneration=(this.settleGeneration??0)+1;
     for(const e of this.elements.values()){e.style.visibility='hidden';e.style.display='none';}this.visibleIds.clear();
     this.fontReady=document.fonts.ready.then(()=>ensureFonts(this.policy.fontFamilies)).then(()=>{
       if(generation!==this.fontGeneration)return;
@@ -93,7 +109,7 @@ export class LayoutController {
     });
   }
   requestView(view){this.view={...view};this.onCameraChange?.(this.view);this.schedule();}
-  setLayer(layer,visible){if(!(layer in this.layers))throw new Error('Unknown layer');this.layers[layer]=visible;this.preview?.restore();this.preview?.release();this.previewDirty=true;this.schedule();}
+  setLayer(layer,visible){if(!(layer in this.layers))throw new Error('Unknown layer');if(this.layers[layer]!==visible)this.panLayout=null;this.layers[layer]=visible;this.preview?.restore();this.preview?.release();this.previewDirty=true;this.schedule();}
   select(id){const f=this.manifest.features.find(f=>f.id===id);if(!f)throw new Error('Unknown feature');this.details.textContent=f.name;this.selected=id;
     if(this.mode==='interactive'){const w=this.manifest.map.width/4.5,h=this.manifest.map.height/4.5;this.requestView({x:Math.max(0,Math.min(this.manifest.map.width-w,f.anchor[0]-w/2)),y:Math.max(0,Math.min(this.manifest.map.height-h,f.anchor[1]-h/2)),w,h});}
   }
@@ -110,6 +126,8 @@ export class LayoutController {
   scheduleSettled(){
     const generation=this.settleGeneration=(this.settleGeneration??0)+1;
     clearTimeout(this.settleTimer);cancelAnimationFrame(this.quietFrame);
+    this.settleTimer=null;this.quietFrame=null;this.settlePending=true;
+    if(this.pointers.size)return;
     this.settleTimer=setTimeout(()=>{
       // Heavy SVG paint can outlast the idle delay. Require two paint boundaries
       // with no newer input, rather than starting full work between gesture frames.
@@ -117,12 +135,12 @@ export class LayoutController {
         if(generation!==this.settleGeneration)return;
         this.quietFrame=requestAnimationFrame(()=>{
           if(generation!==this.settleGeneration)return;
-          this.settleTimer=null;this.quietFrame=null;this.render(true);this.resolveWaiters();
+          this.settleTimer=null;this.quietFrame=null;this.settlePending=false;this.render(true);this.resolveWaiters();
         });
       });
-    },0);
+    },Math.max(0,this.wheelQuietUntil-performance.now()));
   }
-  whenSettled(){return this.ready.then(()=>this.fontReady).then(()=>this.frame||this.settleTimer?new Promise(resolve=>this.waiters.push(resolve)):this.getReport());}
+  whenSettled(){return this.ready.then(()=>this.fontReady).then(()=>this.frame||this.settlePending?new Promise(resolve=>this.waiters.push(resolve)):this.getReport());}
   resolveWaiters(){for(const resolve of this.waiters.splice(0))resolve(this.getReport());}
   getReport(){return {status:this.status,error:this.error,view:{...this.view},diagnostics:this.result?.diagnostics,outcomes:this.result?.outcomes||[],missingRequired:this.result?.missingRequired||[],placements:this.result?.placements||[],timings:this.timings.slice(-200),samples:this.samples.slice(-200),transactionKind:this.transactionKind};}
   camera(readAfter=true){
@@ -187,12 +205,25 @@ export class LayoutController {
     if(a.style?.split(' ').includes('l-contour-f')&&z<2||a.style?.split(' ').includes('l-contour-ff')&&z<4.5)return 'below-detail';
     if(['point-label','symbol','region-label','edge-pointer'].includes(a.kind)&&!intersects({x:anchor[0]-.5,y:anchor[1]-.5,width:1,height:1},viewport))return 'outside-view';
   }
-  fastPrepared(m,viewport,z){
+  panKey(m,viewport){return JSON.stringify([this.view.w,this.view.h,viewport.width,viewport.height,m.a,m.b,m.c,m.d].map(v=>Math.round(v*1e8)/1e8));}
+  fixedPlacements(m,key){
+    if(this.mode!=='interactive'||this.panLayout?.key!==key)return null;
+    const {matrix,placements}=this.panLayout,dx=m.e-matrix.e,dy=m.f-matrix.f;
+    return new Map([...placements].map(([id,p])=>[id,{...p,footprint:moveShape(p.footprint,dx,dy)}]));
+  }
+  rememberPlacements(result,m,key){
+    if(this.mode!=='interactive')return;
+    if(this.panLayout?.key!==key)this.panLayout={key,matrix:{e:m.e,f:m.f},placements:new Map()};
+    const {matrix,placements}=this.panLayout;
+    for(const p of result.placements)if(!placements.has(p.id))placements.set(p.id,{...p,footprint:moveShape(p.footprint,matrix.e-m.e,matrix.f-m.f)});
+  }
+  fastPrepared(m,viewport,z,fixed=null){
     const previous=new Map((this.previous?.placements||[]).map(p=>[p.id,p]));
     return this.manifest.annotations.map(a=>{
       const anchor=project(m,a.anchor),item={...a,anchor,candidates:[],required:false};
       if(a.kind==='symbol'){item.anchorTrailRadius=6;item.anchorTrailFootprint=true;}
       item.eligibleReason=this.eligible(a,anchor,viewport,z);if(item.eligibleReason)return item;
+      if(fixed){const p=fixed.get(a.id);if(p)item.candidates=[{...p,id:p.candidateId,shape:p.footprint}];else item.eligibleReason='budget-deferred';if(a.kind==='line-label')item.repeatDistance=this.policy.repeatDistance;return item;}
       const old=previous.get(a.id),retained=this.retained?.get(a.id);
       if(!old||!retained){item.eligibleReason='budget-deferred';return item;}
       if(old.application){
@@ -215,10 +246,18 @@ export class LayoutController {
     for(const placement of result.placements){
       const e=this.elements.get(placement.id),a=this.byId.get(placement.id),text=e.querySelector('text');
       e.style.display='inline';
-      if(placement.application)applyLineCandidate(e,placement);
-      else e.setAttribute('transform',`translate(${placement.dx/s} ${placement.dy/s})`);
+      const application=placement.application,transform=application?.transform??`translate(${placement.dx/s} ${placement.dy/s})`;
+      if(application){
+        if(e.getAttribute('transform')!==transform||application.startOffset!==undefined&&text.querySelector('textPath')?.getAttribute('startOffset')!==String(application.startOffset))applyLineCandidate(e,placement);
+      }else if(e.getAttribute('transform')!==transform)e.setAttribute('transform',transform);
       if(placement.textHTML&&text.innerHTML!==placement.textHTML)text.innerHTML=placement.textHTML;
-      e.style.visibility='visible';retained.set(a.id,{anchor:project(m,a.anchor),parentMatrix:placement.application?e.parentElement.getScreenCTM():null});
+      e.style.visibility='visible';
+    }
+    const parents=new Map();
+    for(const placement of result.placements){
+      const e=this.elements.get(placement.id),a=this.byId.get(placement.id),parent=e.parentElement;
+      if(placement.application&&!parents.has(parent))parents.set(parent,parent.getScreenCTM());
+      retained.set(a.id,{anchor:project(m,a.anchor),parentMatrix:placement.application?parents.get(parent):null});
     }
     this.visibleIds=next;this.retained=retained;this.previous=result;
   }
@@ -227,17 +266,24 @@ export class LayoutController {
     this.rendering=true;const started=performance.now(),settled=includeCurves||this.mode==='static';
     this.transactionKind=settled?'settled':'fast';
     try {
-      if(settled)this.preview?.restore();else this.preview?.show();
-      if(!settled)for(const p of this.previous?.placements||[])if(!p.application)this.elements.get(p.id).setAttribute('transform','');
+      if(settled)this.preview?.restore();else this.preview?.show(this.panLayout?.placements);
       // With no retained labels, no painted annotation needs geometry validation.
       // Keep the camera write atomic and defer its layout to normal browser paint.
-      const dormant=!settled&&this.previous?.placements.length===0&&!!this.lastViewport;
-      const {m,s,z}=this.camera(!dormant),viewport=dormant?this.lastViewport:rectangle(this.svg.getBoundingClientRect()),obstacles=dormant?[]:this.controls(),queryObstacles=dormant?undefined:this.trailQuery(m,s,z);
+      const dormant=!settled&&this.previous?.placements.length===0&&!!this.lastViewport&&!this.panLayout?.placements.size;
+      const {m,s,z}=this.camera(!dormant),viewport=dormant?this.lastViewport:rectangle(this.svg.getBoundingClientRect()),obstacles=dormant?[]:this.controls();
+      const key=m?this.panKey(m,viewport):null,fixed=m?this.fixedPlacements(m,key):null;
+      // Pure translation preserves prior trail clearance. Only the viewport,
+      // fixed controls and the retained-label visibility need checking again.
+      const queryObstacles=dormant||!settled&&fixed?undefined:this.trailQuery(m,s,z);
+      if(!settled&&!fixed)for(const p of this.previous?.placements||[])if(!p.application)this.elements.get(p.id).setAttribute('transform','');
+      // Preserve occupied map positions even while their text is clipped or under
+      // a control. Newly revealed labels must not displace existing placements.
+      if(settled&&fixed)for(const [id,p] of fixed)obstacles.push({id:'pan-reserved:'+id,kind:'label',shape:p.footprint});
       if(!settled)this.preview?.render(this.view,viewport);
       if(this.previewDirty){this.previewDirty=false;this.preview?.invalidate();}
       const cameraDone=performance.now();let prepared;
       if(dormant)prepared=this.manifest.annotations.map(a=>({...a,required:false,candidates:[],eligibleReason:this.layers[a.layer]?'budget-deferred':'layer-off'}));
-      else if(!settled)prepared=this.fastPrepared(m,viewport,z);
+      else if(!settled)prepared=this.fastPrepared(m,viewport,z,fixed);
       else {
         // Fractional zoom can change browser glyph advances despite inverse CSS
         // scaling. Keep only metrics measured at this exact screen scale.
@@ -247,6 +293,7 @@ export class LayoutController {
         // This avoids forcing style/layout once for every ordinary point label.
         for(const a of this.manifest.annotations){
           const e=this.elements.get(a.id),text=e.querySelector('text');e.style.visibility='hidden';
+          if(fixed?.has(a.id))continue;
           const deferredLine=a.kind==='line-label'&&(a.geometryId||a.geometryIds?.length);
           if(deferredLine||this.eligible(a,project(m,a.anchor),viewport,z)){e.style.display='none';continue;}
           e.style.display='inline';e.setAttribute('transform','');
@@ -262,6 +309,12 @@ export class LayoutController {
           if(a.kind==='symbol'){item.anchorTrailRadius=6;item.anchorTrailFootprint=true;}
           item.eligibleReason=this.eligible(a,anchor,viewport,z);
           if(item.eligibleReason){prepared.push(item);continue;}
+          if(fixed?.has(a.id)){
+            const p=fixed.get(a.id);item.candidates=[{...p,id:p.candidateId,shape:p.footprint}];
+            item.allowedObstacleIds=[...(item.allowedObstacleIds||[]),'pan-reserved:'+a.id];
+            item.repeatDistance=a.kind==='line-label'?this.policy.repeatDistance:0;
+            prepared.push(item);continue;
+          }
           if(a.kind==='line-label'&&performance.now()>=candidateDeadline&&!this.cache.entries.has(a.id)&&!this.lineCache.has(a.id)){item.eligibleReason='budget-deferred';prepared.push(item);continue;}
           try {
             const line=a.kind==='line-label'&&(a.geometryId||a.geometryIds?.length);
@@ -299,10 +352,12 @@ export class LayoutController {
       }
       this.prepared=prepared;this.lastObstacles=obstacles;
       const preparedDone=performance.now();
-      const args={annotations:prepared,obstacles,queryObstacles,viewport,previous:this.previous,policy:{...this.policy,exhaustiveDiagnostics:this.mode!=='interactive',repairMaxNeighbors:this.mode==='interactive'?0:2,requiredGroups:this.mode==='static'?this.policy.requiredRoutes:[]}};
+      const repeatReservations=settled&&fixed?[...fixed].map(([id,p])=>({id,featureId:this.byId.get(id).featureId,distance:this.byId.get(id).kind==='line-label'?this.policy.repeatDistance:0,shape:p.footprint})):[];
+      const args={annotations:prepared,obstacles,queryObstacles,repeatReservations,viewport,previous:this.previous,policy:{...this.policy,exhaustiveDiagnostics:this.mode!=='interactive',repairMaxNeighbors:this.mode==='interactive'?0:2,requiredGroups:this.mode==='static'?this.policy.requiredRoutes:[]}};
       const finish=result=>{
         this.result=result;
         const solvedDone=performance.now();this.commit(this.result,m,s);
+        if(settled)this.rememberPlacements(result,m,key);
         this.phases={camera:cameraDone-started,prepare:preparedDone-cameraDone,solve:solvedDone-preparedDone,commit:performance.now()-solvedDone};
         const elapsed=performance.now()-started;this.timings.push(elapsed);this.samples.push({kind:this.transactionKind,total:elapsed,...this.phases,placements:this.result.placements.length,candidates:prepared.reduce((n,a)=>n+a.candidates.length,0)});
         if(this.timings.length>500)this.timings.shift();if(this.samples.length>500)this.samples.shift();

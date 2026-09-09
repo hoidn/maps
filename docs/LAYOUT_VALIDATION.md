@@ -127,6 +127,18 @@ theme, interaction and geometry gates before promotion. The regional source/scen
 in [coverage-baselines.json](cartography/coverage-baselines.json) has a separate scope and does
 not establish a Sequoia destination-visibility guarantee from this Grand Canyon fixture.
 
+For arbitrary interactive camera states, an in-frame point anchor above its detail
+threshold does not guarantee room for its name: the frame, fixed controls and other
+geometry can exclude every permitted placement. The independent geometry audit therefore
+does not impose an unconditional one-point-name minimum on random views. This deliberately
+replaces its former `interactive-visible-point-name` failure. Static required names/routes,
+declared scene minima and the reviewed destination floors above remain acceptance checks.
+Compact audits and fuzz captures retain `pointNameCoverage`: eligible and visible counts,
+all missing eligible point-label IDs, and `reviewRequired` when none of the eligible point
+names paints. Every flagged state requires screenshot/outcome review; a successful fuzz
+geometry status alone does not complete that review. This diagnostic is not a waiver for
+missing destinations in a scene with declared expectations.
+
 ## Additional cartography and startup evidence
 
 The [ground-scale audit](../scripts/audit-cartography.mjs) records source/catalog/scene/paint

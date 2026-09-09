@@ -159,3 +159,21 @@ a changed frame aborts and clears that job's measurements through the existing
 cleanup path. A deterministic scroll-out/scroll-back fixture fails on the old
 code by committing mismatched coordinates and passes with the guard. The complete
 pan/scroll regression set passes 42 cases across all three browser engines.
+
+
+Theme/reset visual review found two asynchronous rendering defects. Canvas/WebGL
+scene refreshes now participate in `whenSettled()`, so pending image decoding
+cannot return an old theme as a completed frame. Scene lifetime tokens are
+separate from sprite invalidation: a font change during decoding must not cancel
+the new theme. Overlapping refreshes and failure-to-SVG fallback have focused
+regressions. Fixed cartouche commands recaptured after reset also refresh their
+culling bounds; previously a theme prepared while zoomed could leave empty bounds
+and permanently hide the title despite restored text commands. Pixel regressions
+cover this zoom–theme–reset sequence across all three engines.
+
+The broad browser run passed 518 cases with 10 declared skips, followed by all six
+real-map water/proximity cases. Later focused glyph-ink, resize, theme and fixed-UI
+regressions cover the changes made after that run. Source-to-paint review inspected
+21 matched-ground-scale scenes in Grand Canyon and Sequoia, with hashes and
+explicit scale/fit/collision omissions in the coverage baseline. These checks are
+not yet a completed release gate or a claim that the final fuzz matrix passes.

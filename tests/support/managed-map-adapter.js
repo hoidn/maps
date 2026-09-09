@@ -523,11 +523,10 @@ export function checkManagedInventory(data, policy = {}) {
         !annotations.some((a) => a.requiredGroup === group && visible.has(a.id))
       )
         missingRequired.push("route:" + group);
-  } else if (
-    data.outcomes.some((o) => o.eligible) &&
-    !data.outcomes.some((o) => o.eligible && visible.has(o.id))
-  )
-    missingRequired.push("interactive-visible-point-name");
+  }
+  // Anchor/scale eligibility does not prove that optional text fits around the
+  // frame and controls. Interactive coverage belongs to declared scene minima;
+  // arbitrary-view point-name omissions are retained as review diagnostics.
   return { overlaps, clipped, missingRequired, unknown, unresolved: unknown };
 }
 

@@ -1,13 +1,13 @@
 {
   "version": 1,
-  "status": "current-source-catalog-scene-inventory; final-paint-review-pending",
-  "generatedAt": "2026-09-09T13:16:20.328551+00:00",
+  "status": "reviewed source-catalog-scene-candidate inventory; bounded Chromium paint review complete for recorded hashes; promotion separate",
+  "generatedAt": "2026-09-09T13:44:45.923339+00:00",
   "profileEvidence": {
     "path": "tests/fixtures/cartography-scenes.json",
     "sha256": "1a9398e168d4f877be25a238e424195baa59018d4fab896ea46dbddfbd344fdd",
     "bytes": 662
   },
-  "visualReviewComplete": false,
+  "visualReviewComplete": true,
   "sourceCurrencyEstablished": false,
   "finalArtifactHashes": null,
   "method": {
@@ -24,8 +24,9 @@
     "preFixBrowserEvidence": "artifacts/cartography/grand-canyon-coverage.json and sequoia-coverage.json predate fixes; neither is used to approve this baseline.",
     "enrichmentInterpretation": "Hydro duplicates are explicitly deduplicated source coverage, not missing geography. Unmatched GNIS identities have no explicit-ID match in other catalog features and remain standalone named features; this count is not missing-label or missing-source count.",
     "physicalAndSemanticCounts": "Catalog kind counts partition physical features. Semantic role counts overlap: a tagged building retains its footprint and also contributes a public POI role with the same source identity. Scene selected.poi counts those roles, not only physical kind=poi. A role-only omission never means its building footprint is missing.",
-    "candidateEvidence": "Candidate HTML/manifest hashes bind generated annotations and source inventories only; these are not final promoted artifact hashes or evidence that browser placement painted them.",
-    "pendingFinalContentRefresh": "Final cached-node normalization is incorporated in these current catalog/scene/candidate snapshots. Raw acquisition bytes and provenance metadata were unchanged; the future explicit standalone-ford selector has not been claimed as run. Final browser paint review and promotion hashes remain separate."
+    "candidateEvidence": "snapshots.interactiveCandidate identifies the exact bytes used for the inspected Chromium source-to-paint evidence below. Later interactive-only defect fixes and release hashes are recorded separately; these screenshots are never relabeled as evidence for different bytes.",
+    "finalContentSnapshot": "Cached-node normalization is incorporated in current catalog/scene/candidate snapshots. Raw acquisition bytes and provenance metadata were unchanged; the future explicit standalone-ford selector is not claimed as run.",
+    "paintNeighborhoodJoin": "Source IDs are joined between catalog features within the independently defined 500 m geographic neighborhood and runtime-visible geometry or painted annotations. Camera-wide expected-kind presence is recorded separately; a whole-camera count is not a local-neighborhood coverage fraction. POI geometry evidence comes from symbol annotations, while point-label evidence is separately counted."
   },
   "regions": {
     "grand_canyon": {
@@ -78,13 +79,18 @@
         },
         "interactiveCandidate": {
           "path": "pipeline/grand_canyon_trails_interactive.html",
-          "sha256": "51fa1c64d888aa21ed96630287bcbf1a42a3d46c2ac2ffb43bd0c7c65ebb0efd",
-          "bytes": 52957280
+          "sha256": "b65f2f3b03628b6978891111846f8e276ffed8d3180bebbaafd388b6ec49feba",
+          "bytes": 52957640
         },
         "previousInteractiveCandidate": {
           "path": "pipeline/grand_canyon_trails_interactive.html",
           "sha256": "6ac84053ea92c203ed3920b950d4552a1caa2d953ed10b9c9de6e319bb940fcd",
           "bytes": 52221957
+        },
+        "paintAudit": {
+          "path": "artifacts/cartography/grand-canyon-release-coverage.json",
+          "sha256": "059888b7eb419d693fb6f6be49e041ff8ba148697e0b9bd6c72944ab35c0eaba",
+          "bytes": 16588775
         }
       },
       "sourceToCatalog": {
@@ -307,7 +313,7 @@
             ],
             "sha256": "ee19b1e5a3f4ef8272da206579a89bfe106ab7dca340c37ab0d1fca982f9d29f",
             "bytes": 61355351,
-            "attribution": "© OpenStreetMap contributors, ODbL"
+            "attribution": "\u00a9 OpenStreetMap contributors, ODbL"
           },
           {
             "provider": "USGS PAD-US 4.1",
@@ -824,7 +830,7 @@
               "id": "label-57fe2194a9fa64cd",
               "featureId": "feature-231b3771e0f18cc6",
               "sourceId": null,
-              "text": "1½ Mile Resthouse",
+              "text": "1\u00bd Mile Resthouse",
               "priority": 1000,
               "requiredProfiles": [
                 "static-default"
@@ -904,10 +910,9 @@
                 274.1
               ]
             }
-          ],
-          "status": "current-candidate; painted-visibility-not-established"
+          ]
         },
-        "status": "current-generated-scene; independent-paint-review-pending",
+        "status": "current-generated-scene; bounded Chromium paint review recorded below",
         "facilitySymbolCounts": {
           "th": 27,
           "view": 66,
@@ -996,11 +1001,115 @@
         "reason": "These snapshots cannot enumerate features absent from all retained sources; cache availability is not geographic completeness or currency."
       },
       "runtimeOmissions": {
-        "collisionCounts": null,
-        "detailGateCounts": null,
-        "unpreparedLabelCounts": null,
-        "paintedExpectedFeatureCounts": null,
-        "status": "pending-post-fix-browser-review; source or scene omission counts are not collision counts"
+        "status": "measured per camera below; source and scene omissions remain separate",
+        "outcomeReasonCountsByView": [
+          {
+            "profile": "Phantom Ranch",
+            "targetMetersPerPixel": 32,
+            "counts": {
+              "placed": 369,
+              "no-valid-candidate": 661,
+              "repeat-spacing": 100,
+              "collision": 448,
+              "below-detail": 2112
+            }
+          },
+          {
+            "profile": "Phantom Ranch",
+            "targetMetersPerPixel": 12,
+            "counts": {
+              "placed": 299,
+              "outside-view": 1628,
+              "collision": 618,
+              "no-valid-candidate": 577,
+              "repeat-spacing": 57,
+              "below-detail": 511
+            }
+          },
+          {
+            "profile": "Phantom Ranch",
+            "targetMetersPerPixel": 3,
+            "counts": {
+              "placed": 78,
+              "outside-view": 3208,
+              "no-valid-candidate": 341,
+              "repeat-spacing": 9,
+              "collision": 53,
+              "below-detail": 1
+            }
+          },
+          {
+            "profile": "Grand Canyon Village",
+            "targetMetersPerPixel": 32,
+            "counts": {
+              "placed": 369,
+              "no-valid-candidate": 661,
+              "repeat-spacing": 100,
+              "collision": 448,
+              "below-detail": 2112
+            }
+          },
+          {
+            "profile": "Grand Canyon Village",
+            "targetMetersPerPixel": 12,
+            "counts": {
+              "placed": 295,
+              "outside-view": 1429,
+              "collision": 726,
+              "no-valid-candidate": 699,
+              "repeat-spacing": 63,
+              "below-detail": 478
+            }
+          },
+          {
+            "profile": "Grand Canyon Village",
+            "targetMetersPerPixel": 3,
+            "counts": {
+              "outside-view": 2783,
+              "placed": 152,
+              "collision": 154,
+              "no-valid-candidate": 565,
+              "repeat-spacing": 8,
+              "below-detail": 28
+            }
+          },
+          {
+            "profile": "Bright Angel Creek",
+            "targetMetersPerPixel": 32,
+            "counts": {
+              "placed": 369,
+              "no-valid-candidate": 661,
+              "repeat-spacing": 100,
+              "collision": 448,
+              "below-detail": 2112
+            }
+          },
+          {
+            "profile": "Bright Angel Creek",
+            "targetMetersPerPixel": 12,
+            "counts": {
+              "placed": 175,
+              "outside-view": 2646,
+              "collision": 158,
+              "no-valid-candidate": 209,
+              "repeat-spacing": 40,
+              "below-detail": 462
+            }
+          },
+          {
+            "profile": "Bright Angel Creek",
+            "targetMetersPerPixel": 3,
+            "counts": {
+              "outside-view": 3470,
+              "placed": 30,
+              "collision": 2,
+              "repeat-spacing": 2,
+              "no-valid-candidate": 183,
+              "below-detail": 3
+            }
+          }
+        ],
+        "meaning": "Outcome counts partition annotations, including repeats and off-camera content; they are not unique missing physical features or missing sources. No aggregate of repeated overview states is claimed as coverage."
       },
       "profiles": [
         {
@@ -1137,31 +1246,397 @@
             }
           },
           "missingExpectedKindsInCatalogNeighborhood": [],
-          "status": "source-existence-confirmed; final-paint-pending",
+          "status": "source-existence-confirmed; three Chromium viewport images inspected",
           "groundScaleReviews": [
             {
               "targetMetersPerPixel": 32,
-              "status": "pending",
-              "artifactSha256": null,
-              "paintedSourceIds": null,
-              "detailOmissions": null,
-              "collisionOmissions": null
+              "actualMetersPerPixel": 25.24923685433084,
+              "status": "image-inspected; expected-kind omissions explained",
+              "artifactSha256": "b65f2f3b03628b6978891111846f8e276ffed8d3180bebbaafd388b6ec49feba",
+              "screenshot": {
+                "path": "artifacts/cartography/grand-canyon-release-coverage-1.png",
+                "sha256": "ba358cb8c5d30c45f866822436bb8037820bf73b585ce1e16446f5e337085091",
+                "bytes": 2732643
+              },
+              "browserVersion": "140.0.7339.186",
+              "runtimeStatus": "ready",
+              "view": {
+                "x": 0,
+                "y": 0,
+                "w": 1300,
+                "h": 1070
+              },
+              "cameraVisibleGeometryCounts": {
+                "landcover": 1,
+                "boundary": 11,
+                "waterway": 862,
+                "waterbody": 24,
+                "road": 355,
+                "railway": 12,
+                "trail": 254,
+                "poi": 148
+              },
+              "cameraMissingExpectedKinds": [],
+              "expectedKindDisposition": {
+                "trail": {
+                  "status": "visible-geometry-present",
+                  "catalogCountWithin500m": 29,
+                  "runtimeVisibleSourceIdsWithin500m": [
+                    "osm:way:1181824234",
+                    "osm:way:1181829814",
+                    "osm:way:1181829815",
+                    "osm:way:1181829816",
+                    "osm:way:1181829817",
+                    "osm:way:1181829819",
+                    "osm:way:1181829821",
+                    "osm:way:1181829824",
+                    "osm:way:1181829831",
+                    "osm:way:1181829832",
+                    "osm:way:230992582",
+                    "osm:way:230992583",
+                    "osm:way:230997054",
+                    "osm:way:230997060",
+                    "osm:way:230997061",
+                    "osm:way:230997063",
+                    "osm:way:230997064",
+                    "osm:way:230997065",
+                    "osm:way:230997066",
+                    "osm:way:230997068",
+                    "osm:way:39703739",
+                    "osm:way:587451271"
+                  ],
+                  "neighborhoodPointLabelPaintedSourceIds": [],
+                  "meaning": "Physical source identities; POI visible IDs are symbols, with point-label identities recorded separately."
+                },
+                "waterway": {
+                  "status": "visible-geometry-present",
+                  "catalogCountWithin500m": 6,
+                  "runtimeVisibleSourceIdsWithin500m": [
+                    "3dhp:50:AO557",
+                    "osm:way:230421690",
+                    "osm:way:321019526"
+                  ],
+                  "neighborhoodPointLabelPaintedSourceIds": [],
+                  "meaning": "Physical source identities; POI visible IDs are symbols, with point-label identities recorded separately."
+                },
+                "poi": {
+                  "status": "visible-geometry-present",
+                  "catalogCountWithin500m": 53,
+                  "runtimeVisibleSourceIdsWithin500m": [],
+                  "neighborhoodPointLabelPaintedSourceIds": [
+                    "osm:relation:15973307"
+                  ],
+                  "meaning": "Physical source identities; POI visible IDs are symbols, with point-label identities recorded separately."
+                }
+              },
+              "neighborhoodAnnotationOutcomeCounts": {
+                "no-valid-candidate": 16,
+                "placed": 8,
+                "repeat-spacing": 9,
+                "collision": 22,
+                "below-detail": 73
+              },
+              "paintedNeighborhoodPointLabelSourceIds": [
+                "osm:relation:15973307",
+                "osm:relation:15975689"
+              ],
+              "namedProfileOutcomes": [
+                {
+                  "id": "label-2bda34b9e33d8e10",
+                  "kind": "point-label",
+                  "style": "l-major",
+                  "text": "Phantom Ranch",
+                  "reason": "placed",
+                  "candidates": 34
+                },
+                {
+                  "id": "label-3b94d224cc553b2a",
+                  "sourceId": "osm:way:1014985806",
+                  "kind": "point-label",
+                  "style": "l-place",
+                  "text": "Phantom Ranch",
+                  "reason": "repeat-spacing",
+                  "candidates": 34
+                }
+              ],
+              "visualNotes": "Full-map overview: canyon destinations, hydro hierarchy and roads/railway are visible; equivalent authored/source campground and resthouse names still consume extra space. The authored Phantom Ranch name paints; the duplicate OSM name loses repeat spacing. No normalized physical-POI symbol ID within the independent 500 m source neighborhood paints at overview, although the nearby building-facility role has a painted name and the authored destination remains visible. Symbol-only source joins therefore do not measure total POI destination visibility."
             },
             {
               "targetMetersPerPixel": 12,
-              "status": "pending",
-              "artifactSha256": null,
-              "paintedSourceIds": null,
-              "detailOmissions": null,
-              "collisionOmissions": null
+              "actualMetersPerPixel": 12.000000000000002,
+              "status": "image-inspected; expected-kind omissions explained",
+              "artifactSha256": "b65f2f3b03628b6978891111846f8e276ffed8d3180bebbaafd388b6ec49feba",
+              "screenshot": {
+                "path": "artifacts/cartography/grand-canyon-release-coverage-2.png",
+                "sha256": "c5d75dada6ad09afee4c4e437c8f2f1c2827b9d603c4de39bceb176d553f5768",
+                "bytes": 2753326
+              },
+              "browserVersion": "140.0.7339.186",
+              "runtimeStatus": "ready",
+              "view": {
+                "x": 289.2797722323193,
+                "y": 305.034889452755,
+                "w": 617.8404555353615,
+                "h": 508.53022109448983
+              },
+              "cameraVisibleGeometryCounts": {
+                "landcover": 1,
+                "boundary": 9,
+                "waterway": 222,
+                "waterbody": 5,
+                "road": 251,
+                "railway": 4,
+                "trail": 166,
+                "poi": 149
+              },
+              "cameraMissingExpectedKinds": [],
+              "expectedKindDisposition": {
+                "trail": {
+                  "status": "visible-geometry-present",
+                  "catalogCountWithin500m": 29,
+                  "runtimeVisibleSourceIdsWithin500m": [
+                    "osm:way:1181824234",
+                    "osm:way:1181829814",
+                    "osm:way:1181829815",
+                    "osm:way:1181829816",
+                    "osm:way:1181829817",
+                    "osm:way:1181829819",
+                    "osm:way:1181829821",
+                    "osm:way:1181829824",
+                    "osm:way:1181829831",
+                    "osm:way:1181829832",
+                    "osm:way:230992582",
+                    "osm:way:230992583",
+                    "osm:way:230997054",
+                    "osm:way:230997060",
+                    "osm:way:230997061",
+                    "osm:way:230997063",
+                    "osm:way:230997064",
+                    "osm:way:230997065",
+                    "osm:way:230997066",
+                    "osm:way:230997068",
+                    "osm:way:39703739",
+                    "osm:way:587451271"
+                  ],
+                  "neighborhoodPointLabelPaintedSourceIds": [],
+                  "meaning": "Physical source identities; POI visible IDs are symbols, with point-label identities recorded separately."
+                },
+                "waterway": {
+                  "status": "visible-geometry-present",
+                  "catalogCountWithin500m": 6,
+                  "runtimeVisibleSourceIdsWithin500m": [
+                    "3dhp:50:AO557",
+                    "osm:way:230421690",
+                    "osm:way:321019526"
+                  ],
+                  "neighborhoodPointLabelPaintedSourceIds": [],
+                  "meaning": "Physical source identities; POI visible IDs are symbols, with point-label identities recorded separately."
+                },
+                "poi": {
+                  "status": "visible-geometry-present",
+                  "catalogCountWithin500m": 53,
+                  "runtimeVisibleSourceIdsWithin500m": [
+                    "osm:node:5621640754",
+                    "osm:node:8427194163"
+                  ],
+                  "neighborhoodPointLabelPaintedSourceIds": [
+                    "osm:node:10974591238",
+                    "osm:node:1467620526",
+                    "osm:relation:15973307"
+                  ],
+                  "meaning": "Physical source identities; POI visible IDs are symbols, with point-label identities recorded separately."
+                }
+              },
+              "neighborhoodAnnotationOutcomeCounts": {
+                "collision": 60,
+                "placed": 22,
+                "outside-view": 13,
+                "repeat-spacing": 12,
+                "no-valid-candidate": 14,
+                "below-detail": 7
+              },
+              "paintedNeighborhoodPointLabelSourceIds": [
+                "osm:node:10974591238",
+                "osm:node:1467620526",
+                "osm:relation:15973307",
+                "osm:relation:15975689",
+                "osm:way:175763645"
+              ],
+              "namedProfileOutcomes": [
+                {
+                  "id": "label-2bda34b9e33d8e10",
+                  "kind": "point-label",
+                  "style": "l-major",
+                  "text": "Phantom Ranch",
+                  "reason": "placed",
+                  "candidates": 34
+                },
+                {
+                  "id": "label-3b94d224cc553b2a",
+                  "sourceId": "osm:way:1014985806",
+                  "kind": "point-label",
+                  "style": "l-place",
+                  "text": "Phantom Ranch",
+                  "reason": "repeat-spacing",
+                  "candidates": 34
+                }
+              ],
+              "visualNotes": "Phantom Ranch destination and surrounding creek/trail names are readable in dense canyon context. Building footprints are intentionally hidden above 8 m/px."
             },
             {
               "targetMetersPerPixel": 3,
-              "status": "pending",
-              "artifactSha256": null,
-              "paintedSourceIds": null,
-              "detailOmissions": null,
-              "collisionOmissions": null
+              "actualMetersPerPixel": 3.0000000000000004,
+              "status": "image-inspected; expected-kind omissions explained",
+              "artifactSha256": "b65f2f3b03628b6978891111846f8e276ffed8d3180bebbaafd388b6ec49feba",
+              "screenshot": {
+                "path": "artifacts/cartography/grand-canyon-release-coverage-3.png",
+                "sha256": "a732b94811297f712d6f4078abec7032a840c6120da24f4ed0783ba40683f3c6",
+                "bytes": 1877027
+              },
+              "browserVersion": "140.0.7339.186",
+              "runtimeStatus": "ready",
+              "view": {
+                "x": 520.9699430580798,
+                "y": 495.73372236318875,
+                "w": 154.46011388384036,
+                "h": 127.13255527362246
+              },
+              "cameraVisibleGeometryCounts": {
+                "landcover": 1,
+                "boundary": 6,
+                "building": 44,
+                "waterway": 26,
+                "waterbody": 3,
+                "road": 4,
+                "barrier": 5,
+                "trail": 44,
+                "poi": 23
+              },
+              "cameraMissingExpectedKinds": [],
+              "expectedKindDisposition": {
+                "trail": {
+                  "status": "visible-geometry-present",
+                  "catalogCountWithin500m": 29,
+                  "runtimeVisibleSourceIdsWithin500m": [
+                    "osm:way:1181824234",
+                    "osm:way:1181829814",
+                    "osm:way:1181829815",
+                    "osm:way:1181829816",
+                    "osm:way:1181829817",
+                    "osm:way:1181829819",
+                    "osm:way:1181829821",
+                    "osm:way:1181829824",
+                    "osm:way:1181829831",
+                    "osm:way:1181829832",
+                    "osm:way:133322143",
+                    "osm:way:133326475",
+                    "osm:way:133335855",
+                    "osm:way:133336577",
+                    "osm:way:230992582",
+                    "osm:way:230992583",
+                    "osm:way:230992584",
+                    "osm:way:230997054",
+                    "osm:way:230997060",
+                    "osm:way:230997061",
+                    "osm:way:230997063",
+                    "osm:way:230997064",
+                    "osm:way:230997065",
+                    "osm:way:230997066",
+                    "osm:way:230997068",
+                    "osm:way:39703739",
+                    "osm:way:39703740",
+                    "osm:way:587451271",
+                    "osm:way:588615329"
+                  ],
+                  "neighborhoodPointLabelPaintedSourceIds": [],
+                  "meaning": "Physical source identities; POI visible IDs are symbols, with point-label identities recorded separately."
+                },
+                "waterway": {
+                  "status": "visible-geometry-present",
+                  "catalogCountWithin500m": 6,
+                  "runtimeVisibleSourceIdsWithin500m": [
+                    "3dhp:50:AO557",
+                    "osm:way:230421690",
+                    "osm:way:321019526"
+                  ],
+                  "neighborhoodPointLabelPaintedSourceIds": [],
+                  "meaning": "Physical source identities; POI visible IDs are symbols, with point-label identities recorded separately."
+                },
+                "poi": {
+                  "status": "visible-geometry-present",
+                  "catalogCountWithin500m": 53,
+                  "runtimeVisibleSourceIdsWithin500m": [
+                    "osm:node:1467648247",
+                    "osm:node:5621640754",
+                    "osm:node:5928228847",
+                    "osm:node:8427194163",
+                    "osm:relation:15973307"
+                  ],
+                  "neighborhoodPointLabelPaintedSourceIds": [
+                    "osm:node:10974591214",
+                    "osm:node:10974591215",
+                    "osm:node:10974591222",
+                    "osm:node:10974591223",
+                    "osm:node:10974591225",
+                    "osm:node:10974591226",
+                    "osm:node:10974591235",
+                    "osm:node:10974591240",
+                    "osm:node:10974591243",
+                    "osm:node:1467620526",
+                    "osm:node:150980731",
+                    "osm:node:5621640755",
+                    "osm:relation:15973307"
+                  ],
+                  "meaning": "Physical source identities; POI visible IDs are symbols, with point-label identities recorded separately."
+                }
+              },
+              "neighborhoodAnnotationOutcomeCounts": {
+                "placed": 36,
+                "no-valid-candidate": 11,
+                "outside-view": 36,
+                "repeat-spacing": 4,
+                "collision": 41
+              },
+              "paintedNeighborhoodPointLabelSourceIds": [
+                "osm:node:10974591214",
+                "osm:node:10974591215",
+                "osm:node:10974591222",
+                "osm:node:10974591223",
+                "osm:node:10974591225",
+                "osm:node:10974591226",
+                "osm:node:10974591235",
+                "osm:node:10974591240",
+                "osm:node:10974591243",
+                "osm:node:1467620526",
+                "osm:node:150980731",
+                "osm:node:5621640755",
+                "osm:relation:15973307",
+                "osm:relation:15975689",
+                "osm:way:1014985809",
+                "osm:way:175763645",
+                "osm:way:230992574",
+                "osm:way:230992579"
+              ],
+              "namedProfileOutcomes": [
+                {
+                  "id": "label-2bda34b9e33d8e10",
+                  "kind": "point-label",
+                  "style": "l-major",
+                  "text": "Phantom Ranch",
+                  "reason": "placed",
+                  "candidates": 34
+                },
+                {
+                  "id": "label-3b94d224cc553b2a",
+                  "sourceId": "osm:way:1014985806",
+                  "kind": "point-label",
+                  "style": "l-place",
+                  "text": "Phantom Ranch",
+                  "reason": "repeat-spacing",
+                  "candidates": 34
+                }
+              ],
+              "visualNotes": "Detailed campground footprints, services, footpaths and bridges visibly paint with river/trail names and segment distances. Duplicate destination aliases remain a composition limitation."
             }
           ],
           "semanticPoiNeighborhood": {
@@ -1305,31 +1780,816 @@
             }
           },
           "missingExpectedKindsInCatalogNeighborhood": [],
-          "status": "source-existence-confirmed; final-paint-pending",
+          "status": "source-existence-confirmed; three Chromium viewport images inspected",
           "groundScaleReviews": [
             {
               "targetMetersPerPixel": 32,
-              "status": "pending",
-              "artifactSha256": null,
-              "paintedSourceIds": null,
-              "detailOmissions": null,
-              "collisionOmissions": null
+              "actualMetersPerPixel": 25.24923685433084,
+              "status": "image-inspected; expected-kind omissions explained",
+              "artifactSha256": "b65f2f3b03628b6978891111846f8e276ffed8d3180bebbaafd388b6ec49feba",
+              "screenshot": {
+                "path": "artifacts/cartography/grand-canyon-release-coverage-4.png",
+                "sha256": "815ca8920e3117b3be60a5137cbafa0901f4426bbf8a11572fffb5a6bc785138",
+                "bytes": 2732782
+              },
+              "browserVersion": "140.0.7339.186",
+              "runtimeStatus": "ready",
+              "view": {
+                "x": 0,
+                "y": 0,
+                "w": 1300,
+                "h": 1070
+              },
+              "cameraVisibleGeometryCounts": {
+                "landcover": 1,
+                "boundary": 11,
+                "waterway": 862,
+                "waterbody": 24,
+                "road": 355,
+                "railway": 12,
+                "trail": 254,
+                "poi": 148
+              },
+              "cameraMissingExpectedKinds": [
+                "building"
+              ],
+              "expectedKindDisposition": {
+                "road": {
+                  "status": "visible-geometry-present",
+                  "catalogCountWithin500m": 122,
+                  "runtimeVisibleSourceIdsWithin500m": [
+                    "osm:way:1118231075",
+                    "osm:way:1118231076",
+                    "osm:way:1118231077",
+                    "osm:way:1118231078",
+                    "osm:way:1214460271",
+                    "osm:way:126706766",
+                    "osm:way:127571101",
+                    "osm:way:1378071977",
+                    "osm:way:1414105219",
+                    "osm:way:1416804367",
+                    "osm:way:1416804371",
+                    "osm:way:1416804374",
+                    "osm:way:1416804375",
+                    "osm:way:1416808050",
+                    "osm:way:1416808051",
+                    "osm:way:1416808052",
+                    "osm:way:1416808053",
+                    "osm:way:1416808054",
+                    "osm:way:1416808055",
+                    "osm:way:1416808056",
+                    "osm:way:1417059613",
+                    "osm:way:1417059614",
+                    "osm:way:1417059617",
+                    "osm:way:1417070314",
+                    "osm:way:1417070315",
+                    "osm:way:1417070317",
+                    "osm:way:1417070319",
+                    "osm:way:1418766280",
+                    "osm:way:1418769888",
+                    "osm:way:1418769889",
+                    "osm:way:1418770279",
+                    "osm:way:1418771074",
+                    "osm:way:1418771234",
+                    "osm:way:1418771235",
+                    "osm:way:1418771237",
+                    "osm:way:1421615561",
+                    "osm:way:1422129560",
+                    "osm:way:1422129563",
+                    "osm:way:1422130348",
+                    "osm:way:1422130349",
+                    "osm:way:1422132358",
+                    "osm:way:16798895",
+                    "osm:way:16856345",
+                    "osm:way:16857156",
+                    "osm:way:16857904",
+                    "osm:way:16861968",
+                    "osm:way:16864054",
+                    "osm:way:16864056",
+                    "osm:way:16869233",
+                    "osm:way:170991004",
+                    "osm:way:170991009",
+                    "osm:way:170991019",
+                    "osm:way:170991024",
+                    "osm:way:170991028",
+                    "osm:way:170991033",
+                    "osm:way:170991034",
+                    "osm:way:170991036",
+                    "osm:way:170991039",
+                    "osm:way:170991040",
+                    "osm:way:170991044",
+                    "osm:way:170991045",
+                    "osm:way:170991047",
+                    "osm:way:171107565",
+                    "osm:way:204081553",
+                    "osm:way:204081561",
+                    "osm:way:215228393",
+                    "osm:way:223583781",
+                    "osm:way:223583782",
+                    "osm:way:31136338",
+                    "osm:way:397365757",
+                    "osm:way:397365761"
+                  ],
+                  "neighborhoodPointLabelPaintedSourceIds": [],
+                  "meaning": "Physical source identities; POI visible IDs are symbols, with point-label identities recorded separately."
+                },
+                "building": {
+                  "status": "intentional-building-detail-gate-max-8-mpp",
+                  "catalogCountWithin500m": 240,
+                  "runtimeVisibleSourceIdsWithin500m": [],
+                  "neighborhoodPointLabelPaintedSourceIds": [
+                    "osm:way:181148106"
+                  ],
+                  "meaning": "Physical source identities; POI visible IDs are symbols, with point-label identities recorded separately."
+                },
+                "poi": {
+                  "status": "visible-geometry-present",
+                  "catalogCountWithin500m": 120,
+                  "runtimeVisibleSourceIdsWithin500m": [
+                    "osm:node:3241200192"
+                  ],
+                  "neighborhoodPointLabelPaintedSourceIds": [],
+                  "meaning": "Physical source identities; POI visible IDs are symbols, with point-label identities recorded separately."
+                }
+              },
+              "neighborhoodAnnotationOutcomeCounts": {
+                "collision": 24,
+                "placed": 5,
+                "below-detail": 167,
+                "no-valid-candidate": 55,
+                "repeat-spacing": 2
+              },
+              "paintedNeighborhoodPointLabelSourceIds": [
+                "osm:way:181148106"
+              ],
+              "namedProfileOutcomes": [
+                {
+                  "id": "label-860b26a40b6e65d9",
+                  "sourceId": "osm:node:150952317",
+                  "kind": "point-label",
+                  "style": "l-place",
+                  "text": "Grand Canyon Village",
+                  "reason": "collision",
+                  "candidates": 68
+                }
+              ],
+              "visualNotes": "Full-map overview retains road and railway context. The expected building kind is absent from visible geometry only because footprints require 8 m/px or closer. The exact Grand Canyon Village settlement name loses collision placement at overview; it paints in both closer reviewed views."
             },
             {
               "targetMetersPerPixel": 12,
-              "status": "pending",
-              "artifactSha256": null,
-              "paintedSourceIds": null,
-              "detailOmissions": null,
-              "collisionOmissions": null
+              "actualMetersPerPixel": 12.000000000000002,
+              "status": "image-inspected; expected-kind omissions explained",
+              "artifactSha256": "b65f2f3b03628b6978891111846f8e276ffed8d3180bebbaafd388b6ec49feba",
+              "screenshot": {
+                "path": "artifacts/cartography/grand-canyon-release-coverage-5.png",
+                "sha256": "aa68e73ca743a29dc6a7411760352e4de9240b6a08bd4f5ee96d9892bd5ab056",
+                "bytes": 2142790
+              },
+              "browserVersion": "140.0.7339.186",
+              "runtimeStatus": "ready",
+              "view": {
+                "x": 124.57977223231927,
+                "y": 530.4348894527551,
+                "w": 617.8404555353615,
+                "h": 508.53022109448983
+              },
+              "cameraVisibleGeometryCounts": {
+                "landcover": 1,
+                "boundary": 9,
+                "waterway": 239,
+                "waterbody": 16,
+                "road": 306,
+                "railway": 8,
+                "trail": 184,
+                "poi": 148
+              },
+              "cameraMissingExpectedKinds": [
+                "building"
+              ],
+              "expectedKindDisposition": {
+                "road": {
+                  "status": "visible-geometry-present",
+                  "catalogCountWithin500m": 122,
+                  "runtimeVisibleSourceIdsWithin500m": [
+                    "osm:way:1118231075",
+                    "osm:way:1118231076",
+                    "osm:way:1118231077",
+                    "osm:way:1118231078",
+                    "osm:way:1214460271",
+                    "osm:way:126706766",
+                    "osm:way:127571101",
+                    "osm:way:1378071977",
+                    "osm:way:1414105219",
+                    "osm:way:1416804367",
+                    "osm:way:1416804371",
+                    "osm:way:1416804374",
+                    "osm:way:1416804375",
+                    "osm:way:1416808050",
+                    "osm:way:1416808051",
+                    "osm:way:1416808052",
+                    "osm:way:1416808053",
+                    "osm:way:1416808054",
+                    "osm:way:1416808055",
+                    "osm:way:1416808056",
+                    "osm:way:1417059613",
+                    "osm:way:1417059614",
+                    "osm:way:1417059617",
+                    "osm:way:1417070314",
+                    "osm:way:1417070315",
+                    "osm:way:1417070317",
+                    "osm:way:1417070319",
+                    "osm:way:1418766280",
+                    "osm:way:1418769888",
+                    "osm:way:1418769889",
+                    "osm:way:1418770279",
+                    "osm:way:1418771074",
+                    "osm:way:1418771234",
+                    "osm:way:1418771235",
+                    "osm:way:1418771237",
+                    "osm:way:1421615561",
+                    "osm:way:1422129560",
+                    "osm:way:1422129563",
+                    "osm:way:1422130348",
+                    "osm:way:1422130349",
+                    "osm:way:1422132358",
+                    "osm:way:16798895",
+                    "osm:way:16856345",
+                    "osm:way:16857156",
+                    "osm:way:16857904",
+                    "osm:way:16861968",
+                    "osm:way:16864054",
+                    "osm:way:16864056",
+                    "osm:way:16869233",
+                    "osm:way:170991004",
+                    "osm:way:170991009",
+                    "osm:way:170991019",
+                    "osm:way:170991024",
+                    "osm:way:170991028",
+                    "osm:way:170991033",
+                    "osm:way:170991034",
+                    "osm:way:170991036",
+                    "osm:way:170991039",
+                    "osm:way:170991040",
+                    "osm:way:170991044",
+                    "osm:way:170991045",
+                    "osm:way:170991047",
+                    "osm:way:171107565",
+                    "osm:way:204081553",
+                    "osm:way:204081561",
+                    "osm:way:215228393",
+                    "osm:way:223583781",
+                    "osm:way:223583782",
+                    "osm:way:31136338",
+                    "osm:way:397365757",
+                    "osm:way:397365761"
+                  ],
+                  "neighborhoodPointLabelPaintedSourceIds": [],
+                  "meaning": "Physical source identities; POI visible IDs are symbols, with point-label identities recorded separately."
+                },
+                "building": {
+                  "status": "intentional-building-detail-gate-max-8-mpp",
+                  "catalogCountWithin500m": 240,
+                  "runtimeVisibleSourceIdsWithin500m": [],
+                  "neighborhoodPointLabelPaintedSourceIds": [],
+                  "meaning": "Physical source identities; POI visible IDs are symbols, with point-label identities recorded separately."
+                },
+                "poi": {
+                  "status": "visible-geometry-present",
+                  "catalogCountWithin500m": 120,
+                  "runtimeVisibleSourceIdsWithin500m": [
+                    "osm:node:3241200192",
+                    "osm:node:4303896183",
+                    "osm:node:4303929591",
+                    "osm:node:5890413494",
+                    "osm:way:1209266498",
+                    "osm:way:181147435"
+                  ],
+                  "neighborhoodPointLabelPaintedSourceIds": [
+                    "osm:node:150952317",
+                    "osm:node:3241200192",
+                    "osm:node:4001577322",
+                    "osm:node:8267466256"
+                  ],
+                  "meaning": "Physical source identities; POI visible IDs are symbols, with point-label identities recorded separately."
+                }
+              },
+              "neighborhoodAnnotationOutcomeCounts": {
+                "placed": 18,
+                "collision": 125,
+                "no-valid-candidate": 90,
+                "repeat-spacing": 2,
+                "below-detail": 16,
+                "outside-view": 2
+              },
+              "paintedNeighborhoodPointLabelSourceIds": [
+                "osm:node:150952317",
+                "osm:node:3241200192",
+                "osm:node:4001577322",
+                "osm:node:8267466256"
+              ],
+              "namedProfileOutcomes": [
+                {
+                  "id": "label-860b26a40b6e65d9",
+                  "sourceId": "osm:node:150952317",
+                  "kind": "point-label",
+                  "style": "l-place",
+                  "text": "Grand Canyon Village",
+                  "reason": "placed",
+                  "candidates": 68
+                }
+              ],
+              "visualNotes": "Developed rim roads, railway ties and destination labels are visible; building detail remains intentionally gated."
             },
             {
               "targetMetersPerPixel": 3,
-              "status": "pending",
-              "artifactSha256": null,
-              "paintedSourceIds": null,
-              "detailOmissions": null,
-              "collisionOmissions": null
+              "actualMetersPerPixel": 3.0000000000000004,
+              "status": "image-inspected; expected-kind omissions explained",
+              "artifactSha256": "b65f2f3b03628b6978891111846f8e276ffed8d3180bebbaafd388b6ec49feba",
+              "screenshot": {
+                "path": "artifacts/cartography/grand-canyon-release-coverage-6.png",
+                "sha256": "44e0e30acb6cf11ea9c4a8a9a9a8ec12d8536b1e787875252c13b1764aadb7f0",
+                "bytes": 1309895
+              },
+              "browserVersion": "140.0.7339.186",
+              "runtimeStatus": "ready",
+              "view": {
+                "x": 356.26994305807983,
+                "y": 721.1337223631888,
+                "w": 154.46011388384036,
+                "h": 127.13255527362246
+              },
+              "cameraVisibleGeometryCounts": {
+                "landcover": 1,
+                "boundary": 9,
+                "building": 598,
+                "waterway": 25,
+                "waterbody": 1,
+                "road": 391,
+                "railway": 14,
+                "barrier": 2,
+                "trail": 252,
+                "poi": 99
+              },
+              "cameraMissingExpectedKinds": [],
+              "expectedKindDisposition": {
+                "road": {
+                  "status": "visible-geometry-present",
+                  "catalogCountWithin500m": 122,
+                  "runtimeVisibleSourceIdsWithin500m": [
+                    "osm:way:1078338803",
+                    "osm:way:1078359035",
+                    "osm:way:1118231050",
+                    "osm:way:1118231071",
+                    "osm:way:1118231073",
+                    "osm:way:1118231074",
+                    "osm:way:1118231075",
+                    "osm:way:1118231076",
+                    "osm:way:1118231077",
+                    "osm:way:1118231078",
+                    "osm:way:1118490392",
+                    "osm:way:1118490393",
+                    "osm:way:1214460271",
+                    "osm:way:126706766",
+                    "osm:way:127569463",
+                    "osm:way:127569464",
+                    "osm:way:127570381",
+                    "osm:way:127571101",
+                    "osm:way:1378071977",
+                    "osm:way:1414105219",
+                    "osm:way:1416804367",
+                    "osm:way:1416804370",
+                    "osm:way:1416804371",
+                    "osm:way:1416804374",
+                    "osm:way:1416804375",
+                    "osm:way:1416804376",
+                    "osm:way:1416804377",
+                    "osm:way:1416808049",
+                    "osm:way:1416808050",
+                    "osm:way:1416808051",
+                    "osm:way:1416808052",
+                    "osm:way:1416808053",
+                    "osm:way:1416808054",
+                    "osm:way:1416808055",
+                    "osm:way:1416808056",
+                    "osm:way:1417059613",
+                    "osm:way:1417059614",
+                    "osm:way:1417059617",
+                    "osm:way:1417070314",
+                    "osm:way:1417070315",
+                    "osm:way:1417070316",
+                    "osm:way:1417070317",
+                    "osm:way:1417070319",
+                    "osm:way:1418766280",
+                    "osm:way:1418769888",
+                    "osm:way:1418769889",
+                    "osm:way:1418770278",
+                    "osm:way:1418770279",
+                    "osm:way:1418771074",
+                    "osm:way:1418771234",
+                    "osm:way:1418771235",
+                    "osm:way:1418771237",
+                    "osm:way:1421615556",
+                    "osm:way:1421615559",
+                    "osm:way:1421615561",
+                    "osm:way:1422129560",
+                    "osm:way:1422129563",
+                    "osm:way:1422130347",
+                    "osm:way:1422130348",
+                    "osm:way:1422130349",
+                    "osm:way:1422132358",
+                    "osm:way:144433054",
+                    "osm:way:144433056",
+                    "osm:way:144433061",
+                    "osm:way:144433062",
+                    "osm:way:144433063",
+                    "osm:way:144433064",
+                    "osm:way:147843011",
+                    "osm:way:147843012",
+                    "osm:way:147843013",
+                    "osm:way:16798895",
+                    "osm:way:16835292",
+                    "osm:way:16843378",
+                    "osm:way:16856345",
+                    "osm:way:16857156",
+                    "osm:way:16857904",
+                    "osm:way:16861968",
+                    "osm:way:16864054",
+                    "osm:way:16864056",
+                    "osm:way:16869233",
+                    "osm:way:170991004",
+                    "osm:way:170991009",
+                    "osm:way:170991012",
+                    "osm:way:170991019",
+                    "osm:way:170991024",
+                    "osm:way:170991028",
+                    "osm:way:170991029",
+                    "osm:way:170991032",
+                    "osm:way:170991033",
+                    "osm:way:170991034",
+                    "osm:way:170991036",
+                    "osm:way:170991037",
+                    "osm:way:170991039",
+                    "osm:way:170991040",
+                    "osm:way:170991044",
+                    "osm:way:170991045",
+                    "osm:way:170991047",
+                    "osm:way:170991048",
+                    "osm:way:171107561",
+                    "osm:way:171107564",
+                    "osm:way:171107565",
+                    "osm:way:171107567",
+                    "osm:way:171107569",
+                    "osm:way:174997868",
+                    "osm:way:181147436",
+                    "osm:way:181147506",
+                    "osm:way:181148105",
+                    "osm:way:204081548",
+                    "osm:way:204081553",
+                    "osm:way:204081561",
+                    "osm:way:204644400",
+                    "osm:way:204644410",
+                    "osm:way:204644412",
+                    "osm:way:215228393",
+                    "osm:way:223583781",
+                    "osm:way:223583782",
+                    "osm:way:31136338",
+                    "osm:way:366856479",
+                    "osm:way:366856480",
+                    "osm:way:366856482",
+                    "osm:way:397365757",
+                    "osm:way:397365761"
+                  ],
+                  "neighborhoodPointLabelPaintedSourceIds": [],
+                  "meaning": "Physical source identities; POI visible IDs are symbols, with point-label identities recorded separately."
+                },
+                "building": {
+                  "status": "visible-geometry-present",
+                  "catalogCountWithin500m": 240,
+                  "runtimeVisibleSourceIdsWithin500m": [
+                    "osm:way:1118231069",
+                    "osm:way:122426183",
+                    "osm:way:122426184",
+                    "osm:way:122426185",
+                    "osm:way:1239680159",
+                    "osm:way:144432994",
+                    "osm:way:144433041",
+                    "osm:way:164577576",
+                    "osm:way:164580569",
+                    "osm:way:164580572",
+                    "osm:way:164580573",
+                    "osm:way:164657874",
+                    "osm:way:164657885",
+                    "osm:way:171107563",
+                    "osm:way:171147657",
+                    "osm:way:171147658",
+                    "osm:way:171147659",
+                    "osm:way:171147660",
+                    "osm:way:171147866",
+                    "osm:way:174997463",
+                    "osm:way:174997464",
+                    "osm:way:181148106",
+                    "osm:way:199053252",
+                    "osm:way:199053253",
+                    "osm:way:199053255",
+                    "osm:way:199053257",
+                    "osm:way:199053258",
+                    "osm:way:199053259",
+                    "osm:way:199053260",
+                    "osm:way:199053261",
+                    "osm:way:199053262",
+                    "osm:way:199053263",
+                    "osm:way:199053264",
+                    "osm:way:199053265",
+                    "osm:way:199053267",
+                    "osm:way:203964274",
+                    "osm:way:204057109",
+                    "osm:way:204057110",
+                    "osm:way:204057111",
+                    "osm:way:204057112",
+                    "osm:way:204057113",
+                    "osm:way:204057114",
+                    "osm:way:204057115",
+                    "osm:way:204057116",
+                    "osm:way:204057117",
+                    "osm:way:204057119",
+                    "osm:way:204057120",
+                    "osm:way:204057122",
+                    "osm:way:204057124",
+                    "osm:way:204057125",
+                    "osm:way:204085287",
+                    "osm:way:204085288",
+                    "osm:way:204085289",
+                    "osm:way:204085290",
+                    "osm:way:204085291",
+                    "osm:way:204085292",
+                    "osm:way:204085293",
+                    "osm:way:204085294",
+                    "osm:way:204085295",
+                    "osm:way:204085296",
+                    "osm:way:204085297",
+                    "osm:way:204085298",
+                    "osm:way:204085299",
+                    "osm:way:204085300",
+                    "osm:way:204085301",
+                    "osm:way:204085302",
+                    "osm:way:204085786",
+                    "osm:way:204085787",
+                    "osm:way:204085788",
+                    "osm:way:204085789",
+                    "osm:way:204085790",
+                    "osm:way:204085791",
+                    "osm:way:204085792",
+                    "osm:way:204085793",
+                    "osm:way:204085794",
+                    "osm:way:204085795",
+                    "osm:way:204085796",
+                    "osm:way:204085797",
+                    "osm:way:204085798",
+                    "osm:way:204085799",
+                    "osm:way:204085800",
+                    "osm:way:204085801",
+                    "osm:way:204085802",
+                    "osm:way:204085803",
+                    "osm:way:204085804",
+                    "osm:way:204085805",
+                    "osm:way:204085806",
+                    "osm:way:204085807",
+                    "osm:way:204085808",
+                    "osm:way:204086482",
+                    "osm:way:204086483",
+                    "osm:way:204086484",
+                    "osm:way:204086485",
+                    "osm:way:204086486",
+                    "osm:way:204086487",
+                    "osm:way:204086488",
+                    "osm:way:204086489",
+                    "osm:way:204086490",
+                    "osm:way:204086491",
+                    "osm:way:204086492",
+                    "osm:way:204086493",
+                    "osm:way:204086494",
+                    "osm:way:204086495",
+                    "osm:way:204086496",
+                    "osm:way:204086497",
+                    "osm:way:204086498",
+                    "osm:way:204086499",
+                    "osm:way:204086500",
+                    "osm:way:204086501",
+                    "osm:way:204086502",
+                    "osm:way:204086503",
+                    "osm:way:204086504",
+                    "osm:way:204086505",
+                    "osm:way:204086506",
+                    "osm:way:204086507",
+                    "osm:way:204086508",
+                    "osm:way:204086509",
+                    "osm:way:204086510",
+                    "osm:way:204086511",
+                    "osm:way:204086512",
+                    "osm:way:204086513",
+                    "osm:way:204086514",
+                    "osm:way:204086515",
+                    "osm:way:204086516",
+                    "osm:way:204086517",
+                    "osm:way:204086518",
+                    "osm:way:204086519",
+                    "osm:way:204086520",
+                    "osm:way:204086521",
+                    "osm:way:204086522",
+                    "osm:way:204086523",
+                    "osm:way:204086524",
+                    "osm:way:204086525",
+                    "osm:way:204086526",
+                    "osm:way:204086528",
+                    "osm:way:204086529",
+                    "osm:way:204086530",
+                    "osm:way:204086531",
+                    "osm:way:204086532",
+                    "osm:way:204086533",
+                    "osm:way:204086534",
+                    "osm:way:204086535",
+                    "osm:way:204086536",
+                    "osm:way:204086537",
+                    "osm:way:204086538",
+                    "osm:way:204086539",
+                    "osm:way:204086540",
+                    "osm:way:204086541",
+                    "osm:way:204086542",
+                    "osm:way:204086543",
+                    "osm:way:204086544",
+                    "osm:way:204086545",
+                    "osm:way:204086546",
+                    "osm:way:204086547",
+                    "osm:way:204086548",
+                    "osm:way:204086549",
+                    "osm:way:204086550",
+                    "osm:way:204086551",
+                    "osm:way:204086552",
+                    "osm:way:204086964",
+                    "osm:way:204086979",
+                    "osm:way:204086982",
+                    "osm:way:204086983",
+                    "osm:way:204086984",
+                    "osm:way:204086989",
+                    "osm:way:204086991",
+                    "osm:way:204086997",
+                    "osm:way:204086998",
+                    "osm:way:204087000",
+                    "osm:way:204087001",
+                    "osm:way:204087002",
+                    "osm:way:204087006",
+                    "osm:way:204087010",
+                    "osm:way:204087017",
+                    "osm:way:204087020",
+                    "osm:way:204087022",
+                    "osm:way:204087028",
+                    "osm:way:204087030",
+                    "osm:way:204087031",
+                    "osm:way:204631925",
+                    "osm:way:204631926",
+                    "osm:way:204644401",
+                    "osm:way:204644402",
+                    "osm:way:204644403",
+                    "osm:way:204644404",
+                    "osm:way:204644405",
+                    "osm:way:204644406",
+                    "osm:way:204720638",
+                    "osm:way:204720642",
+                    "osm:way:204720648",
+                    "osm:way:204720698",
+                    "osm:way:204720705",
+                    "osm:way:204720708",
+                    "osm:way:204720713",
+                    "osm:way:204720716",
+                    "osm:way:204720720",
+                    "osm:way:204720722",
+                    "osm:way:204720729",
+                    "osm:way:204720731",
+                    "osm:way:204720735",
+                    "osm:way:204720736",
+                    "osm:way:205175691",
+                    "osm:way:230499292",
+                    "osm:way:230499293",
+                    "osm:way:230499299",
+                    "osm:way:230499300",
+                    "osm:way:230499302",
+                    "osm:way:231088018",
+                    "osm:way:431141391",
+                    "osm:way:431141392",
+                    "osm:way:431141393",
+                    "osm:way:431141394",
+                    "osm:way:431141395",
+                    "osm:way:431141396",
+                    "osm:way:444765203",
+                    "osm:way:444765205",
+                    "osm:way:444765207",
+                    "osm:way:444765208",
+                    "osm:way:444765209",
+                    "osm:way:444765210",
+                    "osm:way:444765211",
+                    "osm:way:444765213",
+                    "osm:way:444765214",
+                    "osm:way:444765215",
+                    "osm:way:444765216",
+                    "osm:way:444765217",
+                    "osm:way:444765219",
+                    "osm:way:444765221",
+                    "osm:way:444765222",
+                    "osm:way:444765224",
+                    "osm:way:444765225",
+                    "osm:way:444765226",
+                    "osm:way:444765227",
+                    "osm:way:444765229",
+                    "osm:way:444765230",
+                    "osm:way:444765232",
+                    "osm:way:643841249",
+                    "osm:way:643841251",
+                    "osm:way:643841252",
+                    "osm:way:643841254"
+                  ],
+                  "neighborhoodPointLabelPaintedSourceIds": [
+                    "osm:way:144432994",
+                    "osm:way:144433041",
+                    "osm:way:164580573",
+                    "osm:way:171147659",
+                    "osm:way:181148106"
+                  ],
+                  "meaning": "Physical source identities; POI visible IDs are symbols, with point-label identities recorded separately."
+                },
+                "poi": {
+                  "status": "visible-geometry-present",
+                  "catalogCountWithin500m": 120,
+                  "runtimeVisibleSourceIdsWithin500m": [
+                    "osm:node:10226995368",
+                    "osm:node:11034251159",
+                    "osm:node:11252163622",
+                    "osm:node:11252163624",
+                    "osm:node:11887747024",
+                    "osm:node:13038185560",
+                    "osm:node:13360381409",
+                    "osm:node:1820961627",
+                    "osm:node:1820961786",
+                    "osm:node:2140969714",
+                    "osm:node:3241200190",
+                    "osm:node:3241200192",
+                    "osm:node:4303896183",
+                    "osm:node:4303896184",
+                    "osm:node:4303929591",
+                    "osm:node:5442925999",
+                    "osm:node:5442961065",
+                    "osm:node:5774153453",
+                    "osm:node:5890413494",
+                    "osm:node:6920747596",
+                    "osm:node:9433838318",
+                    "osm:way:1078353523",
+                    "osm:way:1209266497",
+                    "osm:way:1209266498",
+                    "osm:way:144433067",
+                    "osm:way:181147435",
+                    "osm:way:533643071",
+                    "osm:way:533643072"
+                  ],
+                  "neighborhoodPointLabelPaintedSourceIds": [
+                    "osm:node:150952317",
+                    "osm:node:1820961645",
+                    "osm:node:2140969593",
+                    "osm:node:5774153553",
+                    "osm:node:8267466256"
+                  ],
+                  "meaning": "Physical source identities; POI visible IDs are symbols, with point-label identities recorded separately."
+                }
+              },
+              "neighborhoodAnnotationOutcomeCounts": {
+                "placed": 54,
+                "collision": 90,
+                "no-valid-candidate": 95,
+                "outside-view": 8,
+                "below-detail": 6
+              },
+              "paintedNeighborhoodPointLabelSourceIds": [
+                "osm:node:150952317",
+                "osm:node:1820961645",
+                "osm:node:2140969593",
+                "osm:node:5774153553",
+                "osm:node:8267466256",
+                "osm:way:144432994",
+                "osm:way:144433041",
+                "osm:way:164580573",
+                "osm:way:171147659",
+                "osm:way:181148106"
+              ],
+              "namedProfileOutcomes": [
+                {
+                  "id": "label-860b26a40b6e65d9",
+                  "sourceId": "osm:node:150952317",
+                  "kind": "point-label",
+                  "style": "l-place",
+                  "text": "Grand Canyon Village",
+                  "reason": "placed",
+                  "candidates": 68
+                }
+              ],
+              "visualNotes": "Building footprints, named streets, railway ties, service paths and facility symbols visibly paint. Text is legible but dense; equivalent authored/source resthouse labels remain."
             }
           ],
           "semanticPoiNeighborhood": {
@@ -1436,31 +2696,705 @@
             }
           },
           "missingExpectedKindsInCatalogNeighborhood": [],
-          "status": "source-existence-confirmed; final-paint-pending",
+          "status": "source-existence-confirmed; three Chromium viewport images inspected",
           "groundScaleReviews": [
             {
               "targetMetersPerPixel": 32,
-              "status": "pending",
-              "artifactSha256": null,
-              "paintedSourceIds": null,
-              "detailOmissions": null,
-              "collisionOmissions": null
+              "actualMetersPerPixel": 25.24923685433084,
+              "status": "image-inspected; expected-kind omissions explained",
+              "artifactSha256": "b65f2f3b03628b6978891111846f8e276ffed8d3180bebbaafd388b6ec49feba",
+              "screenshot": {
+                "path": "artifacts/cartography/grand-canyon-release-coverage-7.png",
+                "sha256": "815ca8920e3117b3be60a5137cbafa0901f4426bbf8a11572fffb5a6bc785138",
+                "bytes": 2732782
+              },
+              "browserVersion": "140.0.7339.186",
+              "runtimeStatus": "ready",
+              "view": {
+                "x": 0,
+                "y": 0,
+                "w": 1300,
+                "h": 1070
+              },
+              "cameraVisibleGeometryCounts": {
+                "landcover": 1,
+                "boundary": 11,
+                "waterway": 862,
+                "waterbody": 24,
+                "road": 355,
+                "railway": 12,
+                "trail": 254,
+                "poi": 148
+              },
+              "cameraMissingExpectedKinds": [],
+              "expectedKindDisposition": {
+                "waterway": {
+                  "status": "visible-geometry-present",
+                  "catalogCountWithin500m": 7,
+                  "runtimeVisibleSourceIdsWithin500m": [
+                    "3dhp:50:3URQ4",
+                    "3dhp:50:9BI84",
+                    "3dhp:50:AO56Y",
+                    "osm:way:125363306",
+                    "osm:way:229927452",
+                    "osm:way:231019387",
+                    "osm:way:321019526"
+                  ],
+                  "neighborhoodPointLabelPaintedSourceIds": [],
+                  "meaning": "Physical source identities; POI visible IDs are symbols, with point-label identities recorded separately."
+                },
+                "trail": {
+                  "status": "visible-geometry-present",
+                  "catalogCountWithin500m": 5,
+                  "runtimeVisibleSourceIdsWithin500m": [
+                    "osm:way:1315792950"
+                  ],
+                  "neighborhoodPointLabelPaintedSourceIds": [],
+                  "meaning": "Physical source identities; POI visible IDs are symbols, with point-label identities recorded separately."
+                }
+              },
+              "neighborhoodAnnotationOutcomeCounts": {
+                "placed": 3,
+                "repeat-spacing": 3,
+                "below-detail": 13,
+                "collision": 15,
+                "no-valid-candidate": 6
+              },
+              "paintedNeighborhoodPointLabelSourceIds": [],
+              "namedProfileOutcomes": [
+                {
+                  "id": "label-2b81aef7d01d9aac",
+                  "sourceId": "osm:way:321019526",
+                  "kind": "line-label",
+                  "style": "l-hydro",
+                  "text": "Bright Angel Creek",
+                  "reason": "collision",
+                  "candidates": 15
+                },
+                {
+                  "id": "label-434584ffc9963512",
+                  "sourceId": "osm:way:321019526",
+                  "kind": "line-label",
+                  "style": "l-hydro",
+                  "text": "Bright Angel Creek",
+                  "reason": "collision",
+                  "candidates": 15
+                },
+                {
+                  "id": "label-4d64e2c70277785a",
+                  "sourceId": "osm:way:321019526",
+                  "kind": "line-label",
+                  "style": "l-hydro",
+                  "text": "Bright Angel Creek",
+                  "reason": "placed",
+                  "candidates": 15
+                },
+                {
+                  "id": "label-5c9ba962d2b10899",
+                  "sourceId": "osm:way:321019526",
+                  "kind": "line-label",
+                  "style": "l-hydro",
+                  "text": "Bright Angel Creek",
+                  "reason": "collision",
+                  "candidates": 15
+                },
+                {
+                  "id": "label-6018c72a8a3b0269",
+                  "sourceId": "osm:way:321019526",
+                  "kind": "line-label",
+                  "style": "l-hydro",
+                  "text": "Bright Angel Creek",
+                  "reason": "collision",
+                  "candidates": 15
+                },
+                {
+                  "id": "label-7d00a803b8173f33",
+                  "sourceId": "3dhp:50:59NT5",
+                  "kind": "line-label",
+                  "style": "l-hydro",
+                  "text": "Bright Angel Creek",
+                  "reason": "no-valid-candidate",
+                  "candidates": 0
+                },
+                {
+                  "id": "label-85b7d963d06e7684",
+                  "sourceId": "osm:way:321019526",
+                  "kind": "line-label",
+                  "style": "l-hydro",
+                  "text": "Bright Angel Creek",
+                  "reason": "collision",
+                  "candidates": 15
+                },
+                {
+                  "id": "label-8a34df17bbc44d46",
+                  "sourceId": "osm:way:321019526",
+                  "kind": "line-label",
+                  "style": "l-hydro",
+                  "text": "Bright Angel Creek",
+                  "reason": "no-valid-candidate",
+                  "candidates": 0
+                },
+                {
+                  "id": "label-8b78ce285326a0e5",
+                  "sourceId": "osm:way:321019526",
+                  "kind": "line-label",
+                  "style": "l-hydro",
+                  "text": "Bright Angel Creek",
+                  "reason": "no-valid-candidate",
+                  "candidates": 0
+                },
+                {
+                  "id": "label-94a57455a91528b3",
+                  "sourceId": "osm:way:321019526",
+                  "kind": "line-label",
+                  "style": "l-hydro",
+                  "text": "Bright Angel Creek",
+                  "reason": "collision",
+                  "candidates": 15
+                },
+                {
+                  "id": "label-a17797b6d4001990",
+                  "sourceId": "3dhp:50:391AE",
+                  "kind": "line-label",
+                  "style": "l-hydro",
+                  "text": "Bright Angel Creek",
+                  "reason": "no-valid-candidate",
+                  "candidates": 0
+                },
+                {
+                  "id": "label-a81a867f8d23d8ed",
+                  "sourceId": "3dhp:50:7FEBT",
+                  "kind": "line-label",
+                  "style": "l-hydro",
+                  "text": "Bright Angel Creek",
+                  "reason": "no-valid-candidate",
+                  "candidates": 0
+                },
+                {
+                  "id": "label-c3aba3c3cb736022",
+                  "sourceId": "3dhp:50:P38Y",
+                  "kind": "line-label",
+                  "style": "l-hydro",
+                  "text": "Bright Angel Creek",
+                  "reason": "no-valid-candidate",
+                  "candidates": 0
+                },
+                {
+                  "id": "label-c845219a2741f0d2",
+                  "sourceId": "osm:way:321019526",
+                  "kind": "line-label",
+                  "style": "l-hydro",
+                  "text": "Bright Angel Creek",
+                  "reason": "collision",
+                  "candidates": 15
+                },
+                {
+                  "id": "label-cf1b2d34083444c2",
+                  "sourceId": "3dhp:50:4BRUR",
+                  "kind": "line-label",
+                  "style": "l-hydro",
+                  "text": "Bright Angel Creek",
+                  "reason": "no-valid-candidate",
+                  "candidates": 0
+                },
+                {
+                  "id": "label-d4d11998006acb80",
+                  "sourceId": "3dhp:50:AO56Y",
+                  "kind": "line-label",
+                  "style": "l-hydro",
+                  "text": "Bright Angel Creek",
+                  "reason": "no-valid-candidate",
+                  "candidates": 0
+                },
+                {
+                  "id": "label-d5bcea5e4fd64a6f",
+                  "sourceId": "3dhp:50:8N5EZ",
+                  "kind": "line-label",
+                  "style": "l-hydro",
+                  "text": "Bright Angel Creek",
+                  "reason": "no-valid-candidate",
+                  "candidates": 0
+                },
+                {
+                  "id": "label-fb9ed73cd966d1ff",
+                  "sourceId": "osm:way:321019526",
+                  "kind": "line-label",
+                  "style": "l-hydro",
+                  "text": "Bright Angel Creek",
+                  "reason": "collision",
+                  "candidates": 15
+                }
+              ],
+              "visualNotes": "Overview shows the blue drainage network and canyon trail hierarchy with major destinations."
             },
             {
               "targetMetersPerPixel": 12,
-              "status": "pending",
-              "artifactSha256": null,
-              "paintedSourceIds": null,
-              "detailOmissions": null,
-              "collisionOmissions": null
+              "actualMetersPerPixel": 12.000000000000002,
+              "status": "image-inspected; expected-kind omissions explained",
+              "artifactSha256": "b65f2f3b03628b6978891111846f8e276ffed8d3180bebbaafd388b6ec49feba",
+              "screenshot": {
+                "path": "artifacts/cartography/grand-canyon-release-coverage-8.png",
+                "sha256": "321e578fb87679c501c1210dff50118001a5cc2554fbc6467a5f0911a141a53b",
+                "bytes": 2688434
+              },
+              "browserVersion": "140.0.7339.186",
+              "runtimeStatus": "ready",
+              "view": {
+                "x": 422.1797722323193,
+                "y": 95.5348894527551,
+                "w": 617.8404555353615,
+                "h": 508.53022109448983
+              },
+              "cameraVisibleGeometryCounts": {
+                "landcover": 1,
+                "boundary": 6,
+                "waterway": 226,
+                "waterbody": 3,
+                "road": 15,
+                "trail": 52,
+                "poi": 66
+              },
+              "cameraMissingExpectedKinds": [],
+              "expectedKindDisposition": {
+                "waterway": {
+                  "status": "visible-geometry-present",
+                  "catalogCountWithin500m": 7,
+                  "runtimeVisibleSourceIdsWithin500m": [
+                    "3dhp:50:3URQ4",
+                    "3dhp:50:9BI84",
+                    "3dhp:50:AO56Y",
+                    "osm:way:125363306",
+                    "osm:way:229927452",
+                    "osm:way:231019387",
+                    "osm:way:321019526"
+                  ],
+                  "neighborhoodPointLabelPaintedSourceIds": [],
+                  "meaning": "Physical source identities; POI visible IDs are symbols, with point-label identities recorded separately."
+                },
+                "trail": {
+                  "status": "visible-geometry-present",
+                  "catalogCountWithin500m": 5,
+                  "runtimeVisibleSourceIdsWithin500m": [
+                    "osm:way:1315792950"
+                  ],
+                  "neighborhoodPointLabelPaintedSourceIds": [],
+                  "meaning": "Physical source identities; POI visible IDs are symbols, with point-label identities recorded separately."
+                }
+              },
+              "neighborhoodAnnotationOutcomeCounts": {
+                "placed": 10,
+                "repeat-spacing": 6,
+                "no-valid-candidate": 5,
+                "collision": 15,
+                "outside-view": 1,
+                "below-detail": 3
+              },
+              "paintedNeighborhoodPointLabelSourceIds": [],
+              "namedProfileOutcomes": [
+                {
+                  "id": "label-2b81aef7d01d9aac",
+                  "sourceId": "osm:way:321019526",
+                  "kind": "line-label",
+                  "style": "l-hydro",
+                  "text": "Bright Angel Creek",
+                  "reason": "placed",
+                  "candidates": 20
+                },
+                {
+                  "id": "label-434584ffc9963512",
+                  "sourceId": "osm:way:321019526",
+                  "kind": "line-label",
+                  "style": "l-hydro",
+                  "text": "Bright Angel Creek",
+                  "reason": "placed",
+                  "candidates": 20
+                },
+                {
+                  "id": "label-4d64e2c70277785a",
+                  "sourceId": "osm:way:321019526",
+                  "kind": "line-label",
+                  "style": "l-hydro",
+                  "text": "Bright Angel Creek",
+                  "reason": "placed",
+                  "candidates": 20
+                },
+                {
+                  "id": "label-5c9ba962d2b10899",
+                  "sourceId": "osm:way:321019526",
+                  "kind": "line-label",
+                  "style": "l-hydro",
+                  "text": "Bright Angel Creek",
+                  "reason": "collision",
+                  "candidates": 20
+                },
+                {
+                  "id": "label-6018c72a8a3b0269",
+                  "sourceId": "osm:way:321019526",
+                  "kind": "line-label",
+                  "style": "l-hydro",
+                  "text": "Bright Angel Creek",
+                  "reason": "repeat-spacing",
+                  "candidates": 20
+                },
+                {
+                  "id": "label-7d00a803b8173f33",
+                  "sourceId": "3dhp:50:59NT5",
+                  "kind": "line-label",
+                  "style": "l-hydro",
+                  "text": "Bright Angel Creek",
+                  "reason": "no-valid-candidate",
+                  "candidates": 0
+                },
+                {
+                  "id": "label-85b7d963d06e7684",
+                  "sourceId": "osm:way:321019526",
+                  "kind": "line-label",
+                  "style": "l-hydro",
+                  "text": "Bright Angel Creek",
+                  "reason": "collision",
+                  "candidates": 20
+                },
+                {
+                  "id": "label-8a34df17bbc44d46",
+                  "sourceId": "osm:way:321019526",
+                  "kind": "line-label",
+                  "style": "l-hydro",
+                  "text": "Bright Angel Creek",
+                  "reason": "collision",
+                  "candidates": 20
+                },
+                {
+                  "id": "label-8b78ce285326a0e5",
+                  "sourceId": "osm:way:321019526",
+                  "kind": "line-label",
+                  "style": "l-hydro",
+                  "text": "Bright Angel Creek",
+                  "reason": "no-valid-candidate",
+                  "candidates": 20
+                },
+                {
+                  "id": "label-94a57455a91528b3",
+                  "sourceId": "osm:way:321019526",
+                  "kind": "line-label",
+                  "style": "l-hydro",
+                  "text": "Bright Angel Creek",
+                  "reason": "collision",
+                  "candidates": 20
+                },
+                {
+                  "id": "label-a17797b6d4001990",
+                  "sourceId": "3dhp:50:391AE",
+                  "kind": "line-label",
+                  "style": "l-hydro",
+                  "text": "Bright Angel Creek",
+                  "reason": "no-valid-candidate",
+                  "candidates": 0
+                },
+                {
+                  "id": "label-a81a867f8d23d8ed",
+                  "sourceId": "3dhp:50:7FEBT",
+                  "kind": "line-label",
+                  "style": "l-hydro",
+                  "text": "Bright Angel Creek",
+                  "reason": "no-valid-candidate",
+                  "candidates": 0
+                },
+                {
+                  "id": "label-c3aba3c3cb736022",
+                  "sourceId": "3dhp:50:P38Y",
+                  "kind": "line-label",
+                  "style": "l-hydro",
+                  "text": "Bright Angel Creek",
+                  "reason": "no-valid-candidate",
+                  "candidates": 0
+                },
+                {
+                  "id": "label-c845219a2741f0d2",
+                  "sourceId": "osm:way:321019526",
+                  "kind": "line-label",
+                  "style": "l-hydro",
+                  "text": "Bright Angel Creek",
+                  "reason": "repeat-spacing",
+                  "candidates": 20
+                },
+                {
+                  "id": "label-cf1b2d34083444c2",
+                  "sourceId": "3dhp:50:4BRUR",
+                  "kind": "line-label",
+                  "style": "l-hydro",
+                  "text": "Bright Angel Creek",
+                  "reason": "no-valid-candidate",
+                  "candidates": 0
+                },
+                {
+                  "id": "label-d4d11998006acb80",
+                  "sourceId": "3dhp:50:AO56Y",
+                  "kind": "line-label",
+                  "style": "l-hydro",
+                  "text": "Bright Angel Creek",
+                  "reason": "no-valid-candidate",
+                  "candidates": 0
+                },
+                {
+                  "id": "label-d5bcea5e4fd64a6f",
+                  "sourceId": "3dhp:50:8N5EZ",
+                  "kind": "line-label",
+                  "style": "l-hydro",
+                  "text": "Bright Angel Creek",
+                  "reason": "no-valid-candidate",
+                  "candidates": 0
+                },
+                {
+                  "id": "label-fb9ed73cd966d1ff",
+                  "sourceId": "osm:way:321019526",
+                  "kind": "line-label",
+                  "style": "l-hydro",
+                  "text": "Bright Angel Creek",
+                  "reason": "repeat-spacing",
+                  "candidates": 20
+                }
+              ],
+              "visualNotes": "Bright Angel Creek and North Kaibab Trail are labeled along the canyon axis; springs, falls and terrain names provide context."
             },
             {
               "targetMetersPerPixel": 3,
-              "status": "pending",
-              "artifactSha256": null,
-              "paintedSourceIds": null,
-              "detailOmissions": null,
-              "collisionOmissions": null
+              "actualMetersPerPixel": 3.0000000000000004,
+              "status": "image-inspected; expected-kind omissions explained",
+              "artifactSha256": "b65f2f3b03628b6978891111846f8e276ffed8d3180bebbaafd388b6ec49feba",
+              "screenshot": {
+                "path": "artifacts/cartography/grand-canyon-release-coverage-9.png",
+                "sha256": "109981090c911f4f7c8ea541a0778187087511df93762fe377137de8a1f571f3",
+                "bytes": 1761166
+              },
+              "browserVersion": "140.0.7339.186",
+              "runtimeStatus": "ready",
+              "view": {
+                "x": 653.8699430580798,
+                "y": 286.2337223631888,
+                "w": 154.46011388384036,
+                "h": 127.13255527362246
+              },
+              "cameraVisibleGeometryCounts": {
+                "landcover": 1,
+                "boundary": 4,
+                "waterway": 31,
+                "road": 1,
+                "barrier": 1,
+                "trail": 5,
+                "poi": 11
+              },
+              "cameraMissingExpectedKinds": [],
+              "expectedKindDisposition": {
+                "waterway": {
+                  "status": "visible-geometry-present",
+                  "catalogCountWithin500m": 7,
+                  "runtimeVisibleSourceIdsWithin500m": [
+                    "3dhp:50:3URQ4",
+                    "3dhp:50:9BI84",
+                    "3dhp:50:AO56Y",
+                    "osm:way:125363306",
+                    "osm:way:229927452",
+                    "osm:way:231019387",
+                    "osm:way:321019526"
+                  ],
+                  "neighborhoodPointLabelPaintedSourceIds": [],
+                  "meaning": "Physical source identities; POI visible IDs are symbols, with point-label identities recorded separately."
+                },
+                "trail": {
+                  "status": "visible-geometry-present",
+                  "catalogCountWithin500m": 5,
+                  "runtimeVisibleSourceIdsWithin500m": [
+                    "osm:way:1181810353",
+                    "osm:way:1242586957",
+                    "osm:way:1315792950",
+                    "osm:way:133337522",
+                    "osm:way:39704573"
+                  ],
+                  "neighborhoodPointLabelPaintedSourceIds": [],
+                  "meaning": "Physical source identities; POI visible IDs are symbols, with point-label identities recorded separately."
+                }
+              },
+              "neighborhoodAnnotationOutcomeCounts": {
+                "collision": 2,
+                "repeat-spacing": 1,
+                "no-valid-candidate": 11,
+                "placed": 13,
+                "outside-view": 10,
+                "below-detail": 3
+              },
+              "paintedNeighborhoodPointLabelSourceIds": [],
+              "namedProfileOutcomes": [
+                {
+                  "id": "label-2b81aef7d01d9aac",
+                  "sourceId": "osm:way:321019526",
+                  "kind": "line-label",
+                  "style": "l-hydro",
+                  "text": "Bright Angel Creek",
+                  "reason": "outside-view",
+                  "candidates": 0,
+                  "preparationReason": "outside-view"
+                },
+                {
+                  "id": "label-434584ffc9963512",
+                  "sourceId": "osm:way:321019526",
+                  "kind": "line-label",
+                  "style": "l-hydro",
+                  "text": "Bright Angel Creek",
+                  "reason": "outside-view",
+                  "candidates": 0,
+                  "preparationReason": "outside-view"
+                },
+                {
+                  "id": "label-4d64e2c70277785a",
+                  "sourceId": "osm:way:321019526",
+                  "kind": "line-label",
+                  "style": "l-hydro",
+                  "text": "Bright Angel Creek",
+                  "reason": "placed",
+                  "candidates": 20
+                },
+                {
+                  "id": "label-5c9ba962d2b10899",
+                  "sourceId": "osm:way:321019526",
+                  "kind": "line-label",
+                  "style": "l-hydro",
+                  "text": "Bright Angel Creek",
+                  "reason": "outside-view",
+                  "candidates": 0,
+                  "preparationReason": "outside-view"
+                },
+                {
+                  "id": "label-6018c72a8a3b0269",
+                  "sourceId": "osm:way:321019526",
+                  "kind": "line-label",
+                  "style": "l-hydro",
+                  "text": "Bright Angel Creek",
+                  "reason": "placed",
+                  "candidates": 20
+                },
+                {
+                  "id": "label-7d00a803b8173f33",
+                  "sourceId": "3dhp:50:59NT5",
+                  "kind": "line-label",
+                  "style": "l-hydro",
+                  "text": "Bright Angel Creek",
+                  "reason": "no-valid-candidate",
+                  "candidates": 0
+                },
+                {
+                  "id": "label-85b7d963d06e7684",
+                  "sourceId": "osm:way:321019526",
+                  "kind": "line-label",
+                  "style": "l-hydro",
+                  "text": "Bright Angel Creek",
+                  "reason": "no-valid-candidate",
+                  "candidates": 20
+                },
+                {
+                  "id": "label-8a34df17bbc44d46",
+                  "sourceId": "osm:way:321019526",
+                  "kind": "line-label",
+                  "style": "l-hydro",
+                  "text": "Bright Angel Creek",
+                  "reason": "outside-view",
+                  "candidates": 0,
+                  "preparationReason": "outside-view"
+                },
+                {
+                  "id": "label-8b78ce285326a0e5",
+                  "sourceId": "osm:way:321019526",
+                  "kind": "line-label",
+                  "style": "l-hydro",
+                  "text": "Bright Angel Creek",
+                  "reason": "outside-view",
+                  "candidates": 0,
+                  "preparationReason": "outside-view"
+                },
+                {
+                  "id": "label-94a57455a91528b3",
+                  "sourceId": "osm:way:321019526",
+                  "kind": "line-label",
+                  "style": "l-hydro",
+                  "text": "Bright Angel Creek",
+                  "reason": "outside-view",
+                  "candidates": 0,
+                  "preparationReason": "outside-view"
+                },
+                {
+                  "id": "label-a17797b6d4001990",
+                  "sourceId": "3dhp:50:391AE",
+                  "kind": "line-label",
+                  "style": "l-hydro",
+                  "text": "Bright Angel Creek",
+                  "reason": "no-valid-candidate",
+                  "candidates": 0
+                },
+                {
+                  "id": "label-a81a867f8d23d8ed",
+                  "sourceId": "3dhp:50:7FEBT",
+                  "kind": "line-label",
+                  "style": "l-hydro",
+                  "text": "Bright Angel Creek",
+                  "reason": "repeat-spacing",
+                  "candidates": 15
+                },
+                {
+                  "id": "label-c3aba3c3cb736022",
+                  "sourceId": "3dhp:50:P38Y",
+                  "kind": "line-label",
+                  "style": "l-hydro",
+                  "text": "Bright Angel Creek",
+                  "reason": "no-valid-candidate",
+                  "candidates": 0
+                },
+                {
+                  "id": "label-c845219a2741f0d2",
+                  "sourceId": "osm:way:321019526",
+                  "kind": "line-label",
+                  "style": "l-hydro",
+                  "text": "Bright Angel Creek",
+                  "reason": "outside-view",
+                  "candidates": 0,
+                  "preparationReason": "outside-view"
+                },
+                {
+                  "id": "label-cf1b2d34083444c2",
+                  "sourceId": "3dhp:50:4BRUR",
+                  "kind": "line-label",
+                  "style": "l-hydro",
+                  "text": "Bright Angel Creek",
+                  "reason": "no-valid-candidate",
+                  "candidates": 0
+                },
+                {
+                  "id": "label-d4d11998006acb80",
+                  "sourceId": "3dhp:50:AO56Y",
+                  "kind": "line-label",
+                  "style": "l-hydro",
+                  "text": "Bright Angel Creek",
+                  "reason": "no-valid-candidate",
+                  "candidates": 0
+                },
+                {
+                  "id": "label-d5bcea5e4fd64a6f",
+                  "sourceId": "3dhp:50:8N5EZ",
+                  "kind": "line-label",
+                  "style": "l-hydro",
+                  "text": "Bright Angel Creek",
+                  "reason": "no-valid-candidate",
+                  "candidates": 0
+                },
+                {
+                  "id": "label-fb9ed73cd966d1ff",
+                  "sourceId": "osm:way:321019526",
+                  "kind": "line-label",
+                  "style": "l-hydro",
+                  "text": "Bright Angel Creek",
+                  "reason": "no-valid-candidate",
+                  "candidates": 20
+                }
+              ],
+              "visualNotes": "Creek and trail names follow geometry, ford symbols paint, and index contour elevations are legible. The sparse canyon view shows coherent terrain/hydro registration."
             }
           ],
           "semanticPoiNeighborhood": {
@@ -1522,13 +3456,18 @@
         },
         "interactiveCandidate": {
           "path": "pipeline/sequoia_trails_interactive.html",
-          "sha256": "ae854218f227235ea4814f8080110625d46569d363c9ccad4f2b003918c4063c",
-          "bytes": 38360351
+          "sha256": "aa377ea8818b52a57dc19349a940600868b58b1f58b37925ad348c452c131d61",
+          "bytes": 38360711
         },
         "previousInteractiveCandidate": {
           "path": "pipeline/sequoia_trails_interactive.html",
           "sha256": "3b84262536ad42b7256c9022aea40be7a5ca04e4e1446c23754f7cbcf28ea2cc",
           "bytes": 37579036
+        },
+        "paintAudit": {
+          "path": "artifacts/cartography/sequoia-release-coverage.json",
+          "sha256": "b17d24b22b520d82df7d0ae830b11468fb3c2b57e021e816d9a573c4475036ea",
+          "bytes": 16451522
         }
       },
       "sourceToCatalog": {
@@ -1763,7 +3702,7 @@
             ],
             "sha256": "6862dd264082e9474af278fe15d331b3fd565381bf9ddb18201ea7598e842505",
             "bytes": 22907046,
-            "attribution": "© OpenStreetMap contributors, ODbL"
+            "attribution": "\u00a9 OpenStreetMap contributors, ODbL"
           },
           {
             "provider": "USGS PAD-US 4.1",
@@ -2225,10 +4164,9 @@
             "viewpoint": 9
           },
           "primaryPointLabelCount": 50,
-          "explicitRequiredPointLabels": [],
-          "status": "current-candidate; painted-visibility-not-established"
+          "explicitRequiredPointLabels": []
         },
-        "status": "current-generated-scene; independent-paint-review-pending",
+        "status": "current-generated-scene; bounded Chromium paint review recorded below",
         "facilitySymbolCounts": {
           "peak": 87,
           "bus": 11,
@@ -2312,11 +4250,146 @@
         "reason": "These snapshots cannot enumerate features absent from all retained sources; cache availability is not geographic completeness or currency."
       },
       "runtimeOmissions": {
-        "collisionCounts": null,
-        "detailGateCounts": null,
-        "unpreparedLabelCounts": null,
-        "paintedExpectedFeatureCounts": null,
-        "status": "pending-post-fix-browser-review; source or scene omission counts are not collision counts"
+        "status": "measured per camera below; source and scene omissions remain separate",
+        "outcomeReasonCountsByView": [
+          {
+            "profile": "Giant Forest Museum",
+            "targetMetersPerPixel": 32,
+            "counts": {
+              "no-valid-candidate": 1292,
+              "placed": 316,
+              "collision": 209,
+              "below-detail": 1049,
+              "repeat-spacing": 67
+            }
+          },
+          {
+            "profile": "Giant Forest Museum",
+            "targetMetersPerPixel": 12,
+            "counts": {
+              "outside-view": 1826,
+              "no-valid-candidate": 431,
+              "placed": 214,
+              "collision": 253,
+              "repeat-spacing": 35,
+              "below-detail": 174
+            }
+          },
+          {
+            "profile": "Giant Forest Museum",
+            "targetMetersPerPixel": 3,
+            "counts": {
+              "outside-view": 2634,
+              "no-valid-candidate": 119,
+              "placed": 114,
+              "collision": 41,
+              "repeat-spacing": 8,
+              "below-detail": 17
+            }
+          },
+          {
+            "profile": "General Sherman Tree",
+            "targetMetersPerPixel": 32,
+            "counts": {
+              "no-valid-candidate": 1292,
+              "placed": 316,
+              "collision": 209,
+              "below-detail": 1049,
+              "repeat-spacing": 67
+            }
+          },
+          {
+            "profile": "General Sherman Tree",
+            "targetMetersPerPixel": 12,
+            "counts": {
+              "outside-view": 1776,
+              "no-valid-candidate": 467,
+              "placed": 218,
+              "collision": 256,
+              "repeat-spacing": 37,
+              "below-detail": 179
+            }
+          },
+          {
+            "profile": "General Sherman Tree",
+            "targetMetersPerPixel": 3,
+            "counts": {
+              "outside-view": 2685,
+              "no-valid-candidate": 112,
+              "placed": 82,
+              "collision": 38,
+              "repeat-spacing": 4,
+              "below-detail": 12
+            }
+          },
+          {
+            "profile": "Pear Lake",
+            "targetMetersPerPixel": 32,
+            "counts": {
+              "no-valid-candidate": 1292,
+              "placed": 316,
+              "collision": 209,
+              "below-detail": 1049,
+              "repeat-spacing": 67
+            }
+          },
+          {
+            "profile": "Pear Lake",
+            "targetMetersPerPixel": 12,
+            "counts": {
+              "outside-view": 1953,
+              "no-valid-candidate": 444,
+              "placed": 162,
+              "collision": 175,
+              "repeat-spacing": 28,
+              "below-detail": 171
+            }
+          },
+          {
+            "profile": "Pear Lake",
+            "targetMetersPerPixel": 3,
+            "counts": {
+              "outside-view": 2876,
+              "no-valid-candidate": 34,
+              "placed": 22,
+              "collision": 1
+            }
+          },
+          {
+            "profile": "Alta Peak",
+            "targetMetersPerPixel": 32,
+            "counts": {
+              "no-valid-candidate": 1292,
+              "placed": 316,
+              "collision": 209,
+              "below-detail": 1049,
+              "repeat-spacing": 67
+            }
+          },
+          {
+            "profile": "Alta Peak",
+            "targetMetersPerPixel": 12,
+            "counts": {
+              "outside-view": 2035,
+              "no-valid-candidate": 435,
+              "placed": 160,
+              "collision": 112,
+              "repeat-spacing": 30,
+              "below-detail": 161
+            }
+          },
+          {
+            "profile": "Alta Peak",
+            "targetMetersPerPixel": 3,
+            "counts": {
+              "outside-view": 2882,
+              "no-valid-candidate": 24,
+              "placed": 26,
+              "collision": 1
+            }
+          }
+        ],
+        "meaning": "Outcome counts partition annotations, including repeats and off-camera content; they are not unique missing physical features or missing sources. No aggregate of repeated overview states is claimed as coverage."
       },
       "profiles": [
         {
@@ -2453,31 +4526,334 @@
             }
           },
           "missingExpectedKindsInCatalogNeighborhood": [],
-          "status": "source-existence-confirmed; final-paint-pending",
+          "status": "source-existence-confirmed; three Chromium viewport images inspected",
           "groundScaleReviews": [
             {
               "targetMetersPerPixel": 32,
-              "status": "pending",
-              "artifactSha256": null,
-              "paintedSourceIds": null,
-              "detailOmissions": null,
-              "collisionOmissions": null
+              "actualMetersPerPixel": 26.209940620434857,
+              "status": "image-inspected; expected-kind omissions explained",
+              "artifactSha256": "aa377ea8818b52a57dc19349a940600868b58b1f58b37925ad348c452c131d61",
+              "screenshot": {
+                "path": "artifacts/cartography/sequoia-release-coverage-1.png",
+                "sha256": "16b8c525351b4437a8710bd1382504cb978f381df89410310a0a4083fb461a90",
+                "bytes": 3053213
+              },
+              "browserVersion": "140.0.7339.186",
+              "runtimeStatus": "ready",
+              "view": {
+                "x": 0,
+                "y": 0,
+                "w": 1300,
+                "h": 1140
+              },
+              "cameraVisibleGeometryCounts": {
+                "landcover": 1,
+                "boundary": 23,
+                "waterway": 4853,
+                "waterbody": 576,
+                "road": 165,
+                "trail": 313,
+                "poi": 136
+              },
+              "cameraMissingExpectedKinds": [
+                "building"
+              ],
+              "expectedKindDisposition": {
+                "road": {
+                  "status": "visible-geometry-present",
+                  "catalogCountWithin500m": 9,
+                  "runtimeVisibleSourceIdsWithin500m": [
+                    "osm:way:1051778357",
+                    "osm:way:1051778358",
+                    "osm:way:1101850323",
+                    "osm:way:163024574",
+                    "osm:way:163024577",
+                    "osm:way:163024579"
+                  ],
+                  "neighborhoodPointLabelPaintedSourceIds": [],
+                  "meaning": "Physical source identities; POI visible IDs are symbols, with point-label identities recorded separately."
+                },
+                "building": {
+                  "status": "intentional-building-detail-gate-max-8-mpp",
+                  "catalogCountWithin500m": 4,
+                  "runtimeVisibleSourceIdsWithin500m": [],
+                  "neighborhoodPointLabelPaintedSourceIds": [],
+                  "meaning": "Physical source identities; POI visible IDs are symbols, with point-label identities recorded separately."
+                },
+                "poi": {
+                  "status": "visible-geometry-present",
+                  "catalogCountWithin500m": 31,
+                  "runtimeVisibleSourceIdsWithin500m": [
+                    "osm:node:1902011129",
+                    "osm:node:358806066"
+                  ],
+                  "neighborhoodPointLabelPaintedSourceIds": [
+                    "gnis:1667518"
+                  ],
+                  "meaning": "Physical source identities; POI visible IDs are symbols, with point-label identities recorded separately."
+                }
+              },
+              "neighborhoodAnnotationOutcomeCounts": {
+                "below-detail": 52,
+                "placed": 4,
+                "no-valid-candidate": 21,
+                "collision": 3,
+                "repeat-spacing": 1
+              },
+              "paintedNeighborhoodPointLabelSourceIds": [
+                "gnis:1667518"
+              ],
+              "namedProfileOutcomes": [
+                {
+                  "id": "label-e5099952ab37279c",
+                  "sourceId": "osm:way:229138120",
+                  "kind": "point-label",
+                  "style": "l-place",
+                  "text": "Giant Forest Museum",
+                  "reason": "below-detail",
+                  "candidates": 0,
+                  "preparationReason": "below-detail"
+                },
+                {
+                  "id": "label-bae348f4176eeb1c",
+                  "sourceId": "osm:node:3557301621",
+                  "kind": "point-label",
+                  "style": "l-place",
+                  "text": "Giant Forest Museum",
+                  "reason": "below-detail",
+                  "candidates": 0,
+                  "preparationReason": "below-detail"
+                }
+              ],
+              "visualNotes": "Full-map overview shows source-backed peaks/elevations, rivers, trail names and services. Museum building footprints are intentionally hidden above 8 m/px. The exact museum name is below its detail threshold at overview; both source identities have explicit below-detail outcomes, and a museum name paints at 12 and 3 m/px."
             },
             {
               "targetMetersPerPixel": 12,
-              "status": "pending",
-              "artifactSha256": null,
-              "paintedSourceIds": null,
-              "detailOmissions": null,
-              "collisionOmissions": null
+              "actualMetersPerPixel": 11.999999999999998,
+              "status": "image-inspected; expected-kind omissions explained",
+              "artifactSha256": "aa377ea8818b52a57dc19349a940600868b58b1f58b37925ad348c452c131d61",
+              "screenshot": {
+                "path": "artifacts/cartography/sequoia-release-coverage-2.png",
+                "sha256": "dd919fa8b2b1b60e380667c92d62dff006c84e0d5a0bf93e7c3212435901c625",
+                "bytes": 2847904
+              },
+              "browserVersion": "140.0.7339.186",
+              "runtimeStatus": "ready",
+              "view": {
+                "x": 101.90298850892293,
+                "y": 270.4303130001324,
+                "w": 595.1940229821541,
+                "h": 521.9393739997352
+              },
+              "cameraVisibleGeometryCounts": {
+                "landcover": 1,
+                "boundary": 10,
+                "waterway": 1117,
+                "waterbody": 2,
+                "road": 66,
+                "trail": 126,
+                "poi": 102
+              },
+              "cameraMissingExpectedKinds": [
+                "building"
+              ],
+              "expectedKindDisposition": {
+                "road": {
+                  "status": "visible-geometry-present",
+                  "catalogCountWithin500m": 9,
+                  "runtimeVisibleSourceIdsWithin500m": [
+                    "osm:way:1051778357",
+                    "osm:way:1051778358",
+                    "osm:way:1101850323",
+                    "osm:way:163024574",
+                    "osm:way:163024577",
+                    "osm:way:163024579"
+                  ],
+                  "neighborhoodPointLabelPaintedSourceIds": [],
+                  "meaning": "Physical source identities; POI visible IDs are symbols, with point-label identities recorded separately."
+                },
+                "building": {
+                  "status": "intentional-building-detail-gate-max-8-mpp",
+                  "catalogCountWithin500m": 4,
+                  "runtimeVisibleSourceIdsWithin500m": [],
+                  "neighborhoodPointLabelPaintedSourceIds": [
+                    "osm:way:229138120"
+                  ],
+                  "meaning": "Physical source identities; POI visible IDs are symbols, with point-label identities recorded separately."
+                },
+                "poi": {
+                  "status": "visible-geometry-present",
+                  "catalogCountWithin500m": 31,
+                  "runtimeVisibleSourceIdsWithin500m": [
+                    "osm:node:1902011129",
+                    "osm:node:358806066",
+                    "osm:node:3591533236",
+                    "osm:node:3700503845"
+                  ],
+                  "neighborhoodPointLabelPaintedSourceIds": [
+                    "gnis:1667518",
+                    "osm:node:1751781798"
+                  ],
+                  "meaning": "Physical source identities; POI visible IDs are symbols, with point-label identities recorded separately."
+                }
+              },
+              "neighborhoodAnnotationOutcomeCounts": {
+                "placed": 8,
+                "collision": 30,
+                "no-valid-candidate": 20,
+                "repeat-spacing": 1,
+                "below-detail": 22
+              },
+              "paintedNeighborhoodPointLabelSourceIds": [
+                "gnis:1667518",
+                "osm:node:1751781798",
+                "osm:way:229138120"
+              ],
+              "namedProfileOutcomes": [
+                {
+                  "id": "label-e5099952ab37279c",
+                  "sourceId": "osm:way:229138120",
+                  "kind": "point-label",
+                  "style": "l-place",
+                  "text": "Giant Forest Museum",
+                  "reason": "placed",
+                  "candidates": 68
+                },
+                {
+                  "id": "label-bae348f4176eeb1c",
+                  "sourceId": "osm:node:3557301621",
+                  "kind": "point-label",
+                  "style": "l-place",
+                  "text": "Giant Forest Museum",
+                  "reason": "repeat-spacing",
+                  "candidates": 68
+                }
+              ],
+              "visualNotes": "Museum destination and developed-road context visibly paint, with facilities and named trees. Building footprints remain intentionally gated."
             },
             {
               "targetMetersPerPixel": 3,
-              "status": "pending",
-              "artifactSha256": null,
-              "paintedSourceIds": null,
-              "detailOmissions": null,
-              "collisionOmissions": null
+              "actualMetersPerPixel": 2.9999999999999996,
+              "status": "image-inspected; expected-kind omissions explained",
+              "artifactSha256": "aa377ea8818b52a57dc19349a940600868b58b1f58b37925ad348c452c131d61",
+              "screenshot": {
+                "path": "artifacts/cartography/sequoia-release-coverage-3.png",
+                "sha256": "6975bccbaf6e01a5e3a5b324f513d3bbded0ff434cd8e22403d4f8edc33bba1a",
+                "bytes": 1500725
+              },
+              "browserVersion": "140.0.7339.186",
+              "runtimeStatus": "ready",
+              "view": {
+                "x": 325.10074712723076,
+                "y": 466.1575782500331,
+                "w": 148.79850574553853,
+                "h": 130.4848434999338
+              },
+              "cameraVisibleGeometryCounts": {
+                "landcover": 1,
+                "boundary": 4,
+                "building": 5,
+                "waterway": 87,
+                "road": 26,
+                "trail": 72,
+                "poi": 50
+              },
+              "cameraMissingExpectedKinds": [],
+              "expectedKindDisposition": {
+                "road": {
+                  "status": "visible-geometry-present",
+                  "catalogCountWithin500m": 9,
+                  "runtimeVisibleSourceIdsWithin500m": [
+                    "osm:way:1051778357",
+                    "osm:way:1051778358",
+                    "osm:way:1101850323",
+                    "osm:way:163024574",
+                    "osm:way:163024577",
+                    "osm:way:163024579",
+                    "osm:way:163231395",
+                    "osm:way:400532917",
+                    "osm:way:485433987"
+                  ],
+                  "neighborhoodPointLabelPaintedSourceIds": [],
+                  "meaning": "Physical source identities; POI visible IDs are symbols, with point-label identities recorded separately."
+                },
+                "building": {
+                  "status": "visible-geometry-present",
+                  "catalogCountWithin500m": 4,
+                  "runtimeVisibleSourceIdsWithin500m": [
+                    "osm:way:1151998551",
+                    "osm:way:179757985",
+                    "osm:way:229138120",
+                    "osm:way:485536683"
+                  ],
+                  "neighborhoodPointLabelPaintedSourceIds": [
+                    "osm:way:229138120"
+                  ],
+                  "meaning": "Physical source identities; POI visible IDs are symbols, with point-label identities recorded separately."
+                },
+                "poi": {
+                  "status": "visible-geometry-present",
+                  "catalogCountWithin500m": 31,
+                  "runtimeVisibleSourceIdsWithin500m": [
+                    "osm:node:1413101543",
+                    "osm:node:1902011129",
+                    "osm:node:2470450146",
+                    "osm:node:3557301624",
+                    "osm:node:3591533236",
+                    "osm:node:3700503845",
+                    "osm:node:412055757",
+                    "osm:node:4782024224",
+                    "osm:node:4783165728",
+                    "osm:node:4796842932",
+                    "osm:node:9916124705",
+                    "osm:node:9916130629",
+                    "osm:node:9916131177",
+                    "osm:node:9916132552",
+                    "osm:way:163095322",
+                    "osm:way:353379022",
+                    "osm:way:485433984",
+                    "osm:way:485433985"
+                  ],
+                  "neighborhoodPointLabelPaintedSourceIds": [
+                    "gnis:1667518",
+                    "osm:node:358806066"
+                  ],
+                  "meaning": "Physical source identities; POI visible IDs are symbols, with point-label identities recorded separately."
+                }
+              },
+              "neighborhoodAnnotationOutcomeCounts": {
+                "placed": 36,
+                "collision": 26,
+                "no-valid-candidate": 11,
+                "outside-view": 2,
+                "below-detail": 6
+              },
+              "paintedNeighborhoodPointLabelSourceIds": [
+                "gnis:1667518",
+                "osm:node:358806066",
+                "osm:way:229138120"
+              ],
+              "namedProfileOutcomes": [
+                {
+                  "id": "label-e5099952ab37279c",
+                  "sourceId": "osm:way:229138120",
+                  "kind": "point-label",
+                  "style": "l-place",
+                  "text": "Giant Forest Museum",
+                  "reason": "placed",
+                  "candidates": 68
+                },
+                {
+                  "id": "label-bae348f4176eeb1c",
+                  "sourceId": "osm:node:3557301621",
+                  "kind": "point-label",
+                  "style": "l-place",
+                  "text": "Giant Forest Museum",
+                  "reason": "collision",
+                  "candidates": 68
+                }
+              ],
+              "visualNotes": "Museum footprint, nearby facilities, trail/road distinctions, contour labels and segment distances visibly paint. Dense interpreted-site labels use substantial space."
             }
           ],
           "semanticPoiNeighborhood": {
@@ -2584,31 +4960,291 @@
             }
           },
           "missingExpectedKindsInCatalogNeighborhood": [],
-          "status": "source-existence-confirmed; final-paint-pending",
+          "status": "source-existence-confirmed; three Chromium viewport images inspected",
           "groundScaleReviews": [
             {
               "targetMetersPerPixel": 32,
-              "status": "pending",
-              "artifactSha256": null,
-              "paintedSourceIds": null,
-              "detailOmissions": null,
-              "collisionOmissions": null
+              "actualMetersPerPixel": 26.209940620434857,
+              "status": "image-inspected; expected-kind omissions explained",
+              "artifactSha256": "aa377ea8818b52a57dc19349a940600868b58b1f58b37925ad348c452c131d61",
+              "screenshot": {
+                "path": "artifacts/cartography/sequoia-release-coverage-4.png",
+                "sha256": "6a888eda270e7fa7c20845f098759c7d3802f5319540d0c6f65c59b7425fe0b2",
+                "bytes": 3053207
+              },
+              "browserVersion": "140.0.7339.186",
+              "runtimeStatus": "ready",
+              "view": {
+                "x": 0,
+                "y": 0,
+                "w": 1300,
+                "h": 1140
+              },
+              "cameraVisibleGeometryCounts": {
+                "landcover": 1,
+                "boundary": 23,
+                "waterway": 4853,
+                "waterbody": 576,
+                "road": 165,
+                "trail": 313,
+                "poi": 136
+              },
+              "cameraMissingExpectedKinds": [],
+              "expectedKindDisposition": {
+                "trail": {
+                  "status": "visible-geometry-present",
+                  "catalogCountWithin500m": 16,
+                  "runtimeVisibleSourceIdsWithin500m": [
+                    "osm:way:434311109",
+                    "osm:way:434311188"
+                  ],
+                  "neighborhoodPointLabelPaintedSourceIds": [],
+                  "meaning": "Physical source identities; POI visible IDs are symbols, with point-label identities recorded separately."
+                },
+                "poi": {
+                  "status": "visible-geometry-present",
+                  "catalogCountWithin500m": 29,
+                  "runtimeVisibleSourceIdsWithin500m": [
+                    "osm:node:13122005277",
+                    "osm:node:13447326801",
+                    "osm:node:3781763842"
+                  ],
+                  "neighborhoodPointLabelPaintedSourceIds": [
+                    "osm:node:13122005277",
+                    "osm:node:3781763842"
+                  ],
+                  "meaning": "Physical source identities; POI visible IDs are symbols, with point-label identities recorded separately."
+                }
+              },
+              "neighborhoodAnnotationOutcomeCounts": {
+                "placed": 6,
+                "below-detail": 55,
+                "no-valid-candidate": 13,
+                "collision": 2
+              },
+              "paintedNeighborhoodPointLabelSourceIds": [
+                "osm:node:13122005277",
+                "osm:node:3781763842"
+              ],
+              "namedProfileOutcomes": [
+                {
+                  "id": "label-3d9314c48252b930",
+                  "sourceId": "osm:node:313753662",
+                  "kind": "point-label",
+                  "style": "l-place",
+                  "text": "General Sherman Tree",
+                  "reason": "below-detail",
+                  "candidates": 0,
+                  "preparationReason": "below-detail"
+                }
+              ],
+              "visualNotes": "Full-map overview includes Sherman Tree Trailhead/View context; the General Sherman Tree point name is not universally visible at this scale. The exact tree name is below its detail threshold at overview and paints at 12 and 3 m/px."
             },
             {
               "targetMetersPerPixel": 12,
-              "status": "pending",
-              "artifactSha256": null,
-              "paintedSourceIds": null,
-              "detailOmissions": null,
-              "collisionOmissions": null
+              "actualMetersPerPixel": 11.999999999999998,
+              "status": "image-inspected; expected-kind omissions explained",
+              "artifactSha256": "aa377ea8818b52a57dc19349a940600868b58b1f58b37925ad348c452c131d61",
+              "screenshot": {
+                "path": "artifacts/cartography/sequoia-release-coverage-5.png",
+                "sha256": "31aa9f3865b32f951f5bde09e58d580292de1a5440e94a9ea198ad26b2adcf2a",
+                "bytes": 2778426
+              },
+              "browserVersion": "140.0.7339.186",
+              "runtimeStatus": "ready",
+              "view": {
+                "x": 176.40298850892293,
+                "y": 196.53031300013242,
+                "w": 595.1940229821541,
+                "h": 521.9393739997352
+              },
+              "cameraVisibleGeometryCounts": {
+                "landcover": 1,
+                "boundary": 10,
+                "waterway": 1085,
+                "waterbody": 24,
+                "road": 67,
+                "trail": 132,
+                "poi": 103
+              },
+              "cameraMissingExpectedKinds": [],
+              "expectedKindDisposition": {
+                "trail": {
+                  "status": "visible-geometry-present",
+                  "catalogCountWithin500m": 16,
+                  "runtimeVisibleSourceIdsWithin500m": [
+                    "osm:way:434311109",
+                    "osm:way:434311188"
+                  ],
+                  "neighborhoodPointLabelPaintedSourceIds": [],
+                  "meaning": "Physical source identities; POI visible IDs are symbols, with point-label identities recorded separately."
+                },
+                "poi": {
+                  "status": "visible-geometry-present",
+                  "catalogCountWithin500m": 29,
+                  "runtimeVisibleSourceIdsWithin500m": [
+                    "osm:node:13122005277",
+                    "osm:node:13447326801",
+                    "osm:node:4796895723",
+                    "osm:way:163159384"
+                  ],
+                  "neighborhoodPointLabelPaintedSourceIds": [
+                    "osm:node:13122005277",
+                    "osm:node:313753662",
+                    "osm:node:3781763842",
+                    "osm:node:4796895723",
+                    "osm:way:163159384"
+                  ],
+                  "meaning": "Physical source identities; POI visible IDs are symbols, with point-label identities recorded separately."
+                }
+              },
+              "neighborhoodAnnotationOutcomeCounts": {
+                "placed": 9,
+                "collision": 33,
+                "no-valid-candidate": 17,
+                "repeat-spacing": 1,
+                "below-detail": 14,
+                "outside-view": 2
+              },
+              "paintedNeighborhoodPointLabelSourceIds": [
+                "osm:node:13122005277",
+                "osm:node:313753662",
+                "osm:node:3781763842",
+                "osm:node:4796895723",
+                "osm:way:163159384"
+              ],
+              "namedProfileOutcomes": [
+                {
+                  "id": "label-3d9314c48252b930",
+                  "sourceId": "osm:node:313753662",
+                  "kind": "point-label",
+                  "style": "l-place",
+                  "text": "General Sherman Tree",
+                  "reason": "placed",
+                  "candidates": 68
+                }
+              ],
+              "visualNotes": "General Sherman Tree and trailhead/parking context visibly paint. Dense named-tree and interpreted-site content remains subject to collision selection."
             },
             {
               "targetMetersPerPixel": 3,
-              "status": "pending",
-              "artifactSha256": null,
-              "paintedSourceIds": null,
-              "detailOmissions": null,
-              "collisionOmissions": null
+              "actualMetersPerPixel": 2.9999999999999996,
+              "status": "image-inspected; expected-kind omissions explained",
+              "artifactSha256": "aa377ea8818b52a57dc19349a940600868b58b1f58b37925ad348c452c131d61",
+              "screenshot": {
+                "path": "artifacts/cartography/sequoia-release-coverage-6.png",
+                "sha256": "154be7074fbe8896b28fa1aefb11199b3ad8351657a3a1b1d7922a42d3c48072",
+                "bytes": 1298910
+              },
+              "browserVersion": "140.0.7339.186",
+              "runtimeStatus": "ready",
+              "view": {
+                "x": 399.60074712723076,
+                "y": 392.25757825003313,
+                "w": 148.79850574553853,
+                "h": 130.4848434999338
+              },
+              "cameraVisibleGeometryCounts": {
+                "landcover": 1,
+                "boundary": 6,
+                "building": 16,
+                "waterway": 90,
+                "road": 22,
+                "trail": 57,
+                "poi": 25
+              },
+              "cameraMissingExpectedKinds": [],
+              "expectedKindDisposition": {
+                "trail": {
+                  "status": "visible-geometry-present",
+                  "catalogCountWithin500m": 16,
+                  "runtimeVisibleSourceIdsWithin500m": [
+                    "osm:way:118956803",
+                    "osm:way:118956804",
+                    "osm:way:118956805",
+                    "osm:way:1233648313",
+                    "osm:way:134189308",
+                    "osm:way:163159385",
+                    "osm:way:163224218",
+                    "osm:way:434311109",
+                    "osm:way:434311188",
+                    "osm:way:487180900",
+                    "osm:way:487180901",
+                    "osm:way:487180902",
+                    "osm:way:487180904",
+                    "osm:way:73532160",
+                    "osm:way:73532162",
+                    "osm:way:73532163"
+                  ],
+                  "neighborhoodPointLabelPaintedSourceIds": [],
+                  "meaning": "Physical source identities; POI visible IDs are symbols, with point-label identities recorded separately."
+                },
+                "poi": {
+                  "status": "visible-geometry-present",
+                  "catalogCountWithin500m": 29,
+                  "runtimeVisibleSourceIdsWithin500m": [
+                    "osm:node:13122005277",
+                    "osm:node:13447326801",
+                    "osm:node:2377697846",
+                    "osm:node:313753662",
+                    "osm:node:3700503883",
+                    "osm:node:3781763842",
+                    "osm:node:4796895723",
+                    "osm:node:4796913724",
+                    "osm:node:4796913733",
+                    "osm:node:4796915222",
+                    "osm:node:4796915224",
+                    "osm:way:163159384"
+                  ],
+                  "neighborhoodPointLabelPaintedSourceIds": [
+                    "osm:node:13122005277",
+                    "osm:node:2377697340",
+                    "osm:node:2377697342",
+                    "osm:node:313753662",
+                    "osm:node:3700503884",
+                    "osm:node:3781763842",
+                    "osm:node:4796895723",
+                    "osm:node:4796913724",
+                    "osm:node:4796915223",
+                    "osm:way:163159384",
+                    "osm:way:163224217"
+                  ],
+                  "meaning": "Physical source identities; POI visible IDs are symbols, with point-label identities recorded separately."
+                }
+              },
+              "neighborhoodAnnotationOutcomeCounts": {
+                "placed": 33,
+                "collision": 22,
+                "no-valid-candidate": 13,
+                "repeat-spacing": 2,
+                "outside-view": 4,
+                "below-detail": 2
+              },
+              "paintedNeighborhoodPointLabelSourceIds": [
+                "osm:node:13122005277",
+                "osm:node:2377697340",
+                "osm:node:2377697342",
+                "osm:node:313753662",
+                "osm:node:3700503884",
+                "osm:node:3781763842",
+                "osm:node:4796895723",
+                "osm:node:4796913724",
+                "osm:node:4796915223",
+                "osm:way:163159384",
+                "osm:way:163224217"
+              ],
+              "namedProfileOutcomes": [
+                {
+                  "id": "label-3d9314c48252b930",
+                  "sourceId": "osm:node:313753662",
+                  "kind": "point-label",
+                  "style": "l-place",
+                  "text": "General Sherman Tree",
+                  "reason": "placed",
+                  "candidates": 68
+                }
+              ],
+              "visualNotes": "General Sherman Tree, parking, named trees and trails are readable with public facility symbols and segment distances. Nearby labels are dense and multiple distinct source names remain."
             }
           ],
           "semanticPoiNeighborhood": {
@@ -2685,31 +5321,244 @@
             }
           },
           "missingExpectedKindsInCatalogNeighborhood": [],
-          "status": "source-existence-confirmed; final-paint-pending",
+          "status": "source-existence-confirmed; three Chromium viewport images inspected",
           "groundScaleReviews": [
             {
               "targetMetersPerPixel": 32,
-              "status": "pending",
-              "artifactSha256": null,
-              "paintedSourceIds": null,
-              "detailOmissions": null,
-              "collisionOmissions": null
+              "actualMetersPerPixel": 26.209940620434857,
+              "status": "image-inspected; expected-kind omissions explained",
+              "artifactSha256": "aa377ea8818b52a57dc19349a940600868b58b1f58b37925ad348c452c131d61",
+              "screenshot": {
+                "path": "artifacts/cartography/sequoia-release-coverage-7.png",
+                "sha256": "6a888eda270e7fa7c20845f098759c7d3802f5319540d0c6f65c59b7425fe0b2",
+                "bytes": 3053207
+              },
+              "browserVersion": "140.0.7339.186",
+              "runtimeStatus": "ready",
+              "view": {
+                "x": 0,
+                "y": 0,
+                "w": 1300,
+                "h": 1140
+              },
+              "cameraVisibleGeometryCounts": {
+                "landcover": 1,
+                "boundary": 23,
+                "waterway": 4853,
+                "waterbody": 576,
+                "road": 165,
+                "trail": 313,
+                "poi": 136
+              },
+              "cameraMissingExpectedKinds": [],
+              "expectedKindDisposition": {
+                "waterbody": {
+                  "status": "visible-geometry-present",
+                  "catalogCountWithin500m": 2,
+                  "runtimeVisibleSourceIdsWithin500m": [
+                    "3dhp:60:L15D1",
+                    "osm:way:79588449"
+                  ],
+                  "neighborhoodPointLabelPaintedSourceIds": [],
+                  "meaning": "Physical source identities; POI visible IDs are symbols, with point-label identities recorded separately."
+                },
+                "trail": {
+                  "status": "visible-geometry-present",
+                  "catalogCountWithin500m": 1,
+                  "runtimeVisibleSourceIdsWithin500m": [
+                    "osm:way:179839893"
+                  ],
+                  "neighborhoodPointLabelPaintedSourceIds": [],
+                  "meaning": "Physical source identities; POI visible IDs are symbols, with point-label identities recorded separately."
+                }
+              },
+              "neighborhoodAnnotationOutcomeCounts": {
+                "placed": 2,
+                "collision": 1,
+                "below-detail": 4,
+                "no-valid-candidate": 6
+              },
+              "paintedNeighborhoodPointLabelSourceIds": [],
+              "namedProfileOutcomes": [
+                {
+                  "id": "label-34ec5fdc143f3b8b",
+                  "sourceId": "osm:way:79588449",
+                  "kind": "point-label",
+                  "style": "l-hydro",
+                  "text": "Pear Lake",
+                  "reason": "no-valid-candidate",
+                  "candidates": 36
+                },
+                {
+                  "id": "label-4dd30b7a5e7ea391",
+                  "sourceId": "3dhp:60:L15D1",
+                  "kind": "point-label",
+                  "style": "l-hydro",
+                  "text": "Pear Lake",
+                  "reason": "no-valid-candidate",
+                  "candidates": 36
+                }
+              ],
+              "visualNotes": "Lake fills and hiking network are visible in full-map context. Pear Lake name candidates fail area containment at this small lake footprint, rather than being absent from the source."
             },
             {
               "targetMetersPerPixel": 12,
-              "status": "pending",
-              "artifactSha256": null,
-              "paintedSourceIds": null,
-              "detailOmissions": null,
-              "collisionOmissions": null
+              "actualMetersPerPixel": 11.999999999999998,
+              "status": "image-inspected; expected-kind omissions explained",
+              "artifactSha256": "aa377ea8818b52a57dc19349a940600868b58b1f58b37925ad348c452c131d61",
+              "screenshot": {
+                "path": "artifacts/cartography/sequoia-release-coverage-8.png",
+                "sha256": "5549caeeb0f95ed0cd7302972a2f358e3e41d7d3e7bce5fd5172ca182a0d0ca5",
+                "bytes": 2642565
+              },
+              "browserVersion": "140.0.7339.186",
+              "runtimeStatus": "ready",
+              "view": {
+                "x": 456.7029885089229,
+                "y": 107.03031300013242,
+                "w": 595.1940229821541,
+                "h": 521.9393739997352
+              },
+              "cameraVisibleGeometryCounts": {
+                "landcover": 1,
+                "boundary": 7,
+                "waterway": 1008,
+                "waterbody": 194,
+                "road": 31,
+                "trail": 110,
+                "poi": 76
+              },
+              "cameraMissingExpectedKinds": [],
+              "expectedKindDisposition": {
+                "waterbody": {
+                  "status": "visible-geometry-present",
+                  "catalogCountWithin500m": 2,
+                  "runtimeVisibleSourceIdsWithin500m": [
+                    "3dhp:60:L15D1",
+                    "osm:way:79588449"
+                  ],
+                  "neighborhoodPointLabelPaintedSourceIds": [],
+                  "meaning": "Physical source identities; POI visible IDs are symbols, with point-label identities recorded separately."
+                },
+                "trail": {
+                  "status": "visible-geometry-present",
+                  "catalogCountWithin500m": 1,
+                  "runtimeVisibleSourceIdsWithin500m": [
+                    "osm:way:179839893"
+                  ],
+                  "neighborhoodPointLabelPaintedSourceIds": [],
+                  "meaning": "Physical source identities; POI visible IDs are symbols, with point-label identities recorded separately."
+                }
+              },
+              "neighborhoodAnnotationOutcomeCounts": {
+                "placed": 2,
+                "collision": 2,
+                "no-valid-candidate": 6,
+                "below-detail": 3
+              },
+              "paintedNeighborhoodPointLabelSourceIds": [],
+              "namedProfileOutcomes": [
+                {
+                  "id": "label-34ec5fdc143f3b8b",
+                  "sourceId": "osm:way:79588449",
+                  "kind": "point-label",
+                  "style": "l-hydro",
+                  "text": "Pear Lake",
+                  "reason": "no-valid-candidate",
+                  "candidates": 36
+                },
+                {
+                  "id": "label-4dd30b7a5e7ea391",
+                  "sourceId": "3dhp:60:L15D1",
+                  "kind": "point-label",
+                  "style": "l-hydro",
+                  "text": "Pear Lake",
+                  "reason": "no-valid-candidate",
+                  "candidates": 36
+                }
+              ],
+              "visualNotes": "Pear Lake geometry, trails and ranger station are present. The lake name still cannot fit its polygon; both OSM and 3DHP label candidates report area-boundary rejection."
             },
             {
               "targetMetersPerPixel": 3,
-              "status": "pending",
-              "artifactSha256": null,
-              "paintedSourceIds": null,
-              "detailOmissions": null,
-              "collisionOmissions": null
+              "actualMetersPerPixel": 2.9999999999999996,
+              "status": "image-inspected; expected-kind omissions explained",
+              "artifactSha256": "aa377ea8818b52a57dc19349a940600868b58b1f58b37925ad348c452c131d61",
+              "screenshot": {
+                "path": "artifacts/cartography/sequoia-release-coverage-9.png",
+                "sha256": "0407aefdebad711079ee7c92fb9239947f92dd3ef062db52f5a82b7daf804fbb",
+                "bytes": 1351538
+              },
+              "browserVersion": "140.0.7339.186",
+              "runtimeStatus": "ready",
+              "view": {
+                "x": 679.9007471272307,
+                "y": 302.75757825003313,
+                "w": 148.79850574553853,
+                "h": 130.4848434999338
+              },
+              "cameraVisibleGeometryCounts": {
+                "landcover": 1,
+                "boundary": 6,
+                "building": 3,
+                "waterway": 54,
+                "waterbody": 28,
+                "trail": 8,
+                "poi": 8
+              },
+              "cameraMissingExpectedKinds": [],
+              "expectedKindDisposition": {
+                "waterbody": {
+                  "status": "visible-geometry-present",
+                  "catalogCountWithin500m": 2,
+                  "runtimeVisibleSourceIdsWithin500m": [
+                    "3dhp:60:L15D1",
+                    "osm:way:79588449"
+                  ],
+                  "neighborhoodPointLabelPaintedSourceIds": [
+                    "osm:way:79588449"
+                  ],
+                  "meaning": "Physical source identities; POI visible IDs are symbols, with point-label identities recorded separately."
+                },
+                "trail": {
+                  "status": "visible-geometry-present",
+                  "catalogCountWithin500m": 1,
+                  "runtimeVisibleSourceIdsWithin500m": [
+                    "osm:way:179839893"
+                  ],
+                  "neighborhoodPointLabelPaintedSourceIds": [],
+                  "meaning": "Physical source identities; POI visible IDs are symbols, with point-label identities recorded separately."
+                }
+              },
+              "neighborhoodAnnotationOutcomeCounts": {
+                "placed": 8,
+                "no-valid-candidate": 1,
+                "outside-view": 4
+              },
+              "paintedNeighborhoodPointLabelSourceIds": [
+                "osm:way:79588449"
+              ],
+              "namedProfileOutcomes": [
+                {
+                  "id": "label-34ec5fdc143f3b8b",
+                  "sourceId": "osm:way:79588449",
+                  "kind": "point-label",
+                  "style": "l-hydro",
+                  "text": "Pear Lake",
+                  "reason": "placed",
+                  "candidates": 36
+                },
+                {
+                  "id": "label-4dd30b7a5e7ea391",
+                  "sourceId": "3dhp:60:L15D1",
+                  "kind": "point-label",
+                  "style": "l-hydro",
+                  "text": "Pear Lake",
+                  "reason": "no-valid-candidate",
+                  "candidates": 36
+                }
+              ],
+              "visualNotes": "Pear Lake name paints within the lake fill; ranger station, camping, paths and segment distances visibly paint. Nearby source peak elevations and index contours are clear."
             }
           ],
           "semanticPoiNeighborhood": {
@@ -2776,31 +5625,220 @@
             }
           },
           "missingExpectedKindsInCatalogNeighborhood": [],
-          "status": "source-existence-confirmed; final-paint-pending",
+          "status": "source-existence-confirmed; three Chromium viewport images inspected",
           "groundScaleReviews": [
             {
               "targetMetersPerPixel": 32,
-              "status": "pending",
-              "artifactSha256": null,
-              "paintedSourceIds": null,
-              "detailOmissions": null,
-              "collisionOmissions": null
+              "actualMetersPerPixel": 26.209940620434857,
+              "status": "image-inspected; expected-kind omissions explained",
+              "artifactSha256": "aa377ea8818b52a57dc19349a940600868b58b1f58b37925ad348c452c131d61",
+              "screenshot": {
+                "path": "artifacts/cartography/sequoia-release-coverage-10.png",
+                "sha256": "6a888eda270e7fa7c20845f098759c7d3802f5319540d0c6f65c59b7425fe0b2",
+                "bytes": 3053207
+              },
+              "browserVersion": "140.0.7339.186",
+              "runtimeStatus": "ready",
+              "view": {
+                "x": 0,
+                "y": 0,
+                "w": 1300,
+                "h": 1140
+              },
+              "cameraVisibleGeometryCounts": {
+                "landcover": 1,
+                "boundary": 23,
+                "waterway": 4853,
+                "waterbody": 576,
+                "road": 165,
+                "trail": 313,
+                "poi": 136
+              },
+              "cameraMissingExpectedKinds": [],
+              "expectedKindDisposition": {
+                "trail": {
+                  "status": "visible-geometry-present",
+                  "catalogCountWithin500m": 1,
+                  "runtimeVisibleSourceIdsWithin500m": [
+                    "osm:way:1127839519"
+                  ],
+                  "neighborhoodPointLabelPaintedSourceIds": [],
+                  "meaning": "Physical source identities; POI visible IDs are symbols, with point-label identities recorded separately."
+                },
+                "poi": {
+                  "status": "visible-geometry-present",
+                  "catalogCountWithin500m": 1,
+                  "runtimeVisibleSourceIdsWithin500m": [
+                    "osm:node:358796609"
+                  ],
+                  "neighborhoodPointLabelPaintedSourceIds": [
+                    "osm:node:358796609"
+                  ],
+                  "meaning": "Physical source identities; POI visible IDs are symbols, with point-label identities recorded separately."
+                }
+              },
+              "neighborhoodAnnotationOutcomeCounts": {
+                "no-valid-candidate": 6,
+                "placed": 2,
+                "below-detail": 1
+              },
+              "paintedNeighborhoodPointLabelSourceIds": [
+                "osm:node:358796609"
+              ],
+              "namedProfileOutcomes": [
+                {
+                  "id": "label-dc6cb68826f1fd19",
+                  "sourceId": "osm:node:358796609",
+                  "kind": "point-label",
+                  "style": "l-peak",
+                  "text": "Alta Peak",
+                  "reason": "placed",
+                  "candidates": 34
+                }
+              ],
+              "visualNotes": "Alta Peak name and source elevation visibly paint in the full-map overview; trail geometry is present even where its own name candidates fail clearance."
             },
             {
               "targetMetersPerPixel": 12,
-              "status": "pending",
-              "artifactSha256": null,
-              "paintedSourceIds": null,
-              "detailOmissions": null,
-              "collisionOmissions": null
+              "actualMetersPerPixel": 11.999999999999998,
+              "status": "image-inspected; expected-kind omissions explained",
+              "artifactSha256": "aa377ea8818b52a57dc19349a940600868b58b1f58b37925ad348c452c131d61",
+              "screenshot": {
+                "path": "artifacts/cartography/sequoia-release-coverage-11.png",
+                "sha256": "925b7c3e14b11439c2aa4fbb670cd9effa48bf4c80a1e0cfef3a13cdcc5f39cf",
+                "bytes": 2707638
+              },
+              "browserVersion": "140.0.7339.186",
+              "runtimeStatus": "ready",
+              "view": {
+                "x": 477.7029885089229,
+                "y": 158.83031300013243,
+                "w": 595.1940229821541,
+                "h": 521.9393739997352
+              },
+              "cameraVisibleGeometryCounts": {
+                "landcover": 1,
+                "boundary": 7,
+                "waterway": 1018,
+                "waterbody": 180,
+                "road": 22,
+                "trail": 107,
+                "poi": 67
+              },
+              "cameraMissingExpectedKinds": [],
+              "expectedKindDisposition": {
+                "trail": {
+                  "status": "visible-geometry-present",
+                  "catalogCountWithin500m": 1,
+                  "runtimeVisibleSourceIdsWithin500m": [
+                    "osm:way:1127839519"
+                  ],
+                  "neighborhoodPointLabelPaintedSourceIds": [],
+                  "meaning": "Physical source identities; POI visible IDs are symbols, with point-label identities recorded separately."
+                },
+                "poi": {
+                  "status": "visible-geometry-present",
+                  "catalogCountWithin500m": 1,
+                  "runtimeVisibleSourceIdsWithin500m": [
+                    "osm:node:358796609"
+                  ],
+                  "neighborhoodPointLabelPaintedSourceIds": [
+                    "osm:node:358796609"
+                  ],
+                  "meaning": "Physical source identities; POI visible IDs are symbols, with point-label identities recorded separately."
+                }
+              },
+              "neighborhoodAnnotationOutcomeCounts": {
+                "no-valid-candidate": 5,
+                "placed": 2,
+                "collision": 1,
+                "below-detail": 1
+              },
+              "paintedNeighborhoodPointLabelSourceIds": [
+                "osm:node:358796609"
+              ],
+              "namedProfileOutcomes": [
+                {
+                  "id": "label-dc6cb68826f1fd19",
+                  "sourceId": "osm:node:358796609",
+                  "kind": "point-label",
+                  "style": "l-peak",
+                  "text": "Alta Peak",
+                  "reason": "placed",
+                  "candidates": 34
+                }
+              ],
+              "visualNotes": "Alta Peak name/elevation and surrounding terrain/hydro/trail context visibly paint. Alta Peak Trail name candidates fail clearance against trail geometry."
             },
             {
               "targetMetersPerPixel": 3,
-              "status": "pending",
-              "artifactSha256": null,
-              "paintedSourceIds": null,
-              "detailOmissions": null,
-              "collisionOmissions": null
+              "actualMetersPerPixel": 2.9999999999999996,
+              "status": "image-inspected; expected-kind omissions explained",
+              "artifactSha256": "aa377ea8818b52a57dc19349a940600868b58b1f58b37925ad348c452c131d61",
+              "screenshot": {
+                "path": "artifacts/cartography/sequoia-release-coverage-12.png",
+                "sha256": "e73b50910c2c576b55b53788b9bbfff2a42e006ce0bf3c46a94c9ad4a62482af",
+                "bytes": 1398035
+              },
+              "browserVersion": "140.0.7339.186",
+              "runtimeStatus": "ready",
+              "view": {
+                "x": 700.9007471272307,
+                "y": 354.5575782500331,
+                "w": 148.79850574553853,
+                "h": 130.4848434999338
+              },
+              "cameraVisibleGeometryCounts": {
+                "landcover": 1,
+                "boundary": 6,
+                "building": 2,
+                "waterway": 50,
+                "waterbody": 18,
+                "trail": 9,
+                "poi": 8
+              },
+              "cameraMissingExpectedKinds": [],
+              "expectedKindDisposition": {
+                "trail": {
+                  "status": "visible-geometry-present",
+                  "catalogCountWithin500m": 1,
+                  "runtimeVisibleSourceIdsWithin500m": [
+                    "osm:way:1127839519"
+                  ],
+                  "neighborhoodPointLabelPaintedSourceIds": [],
+                  "meaning": "Physical source identities; POI visible IDs are symbols, with point-label identities recorded separately."
+                },
+                "poi": {
+                  "status": "visible-geometry-present",
+                  "catalogCountWithin500m": 1,
+                  "runtimeVisibleSourceIdsWithin500m": [
+                    "osm:node:358796609"
+                  ],
+                  "neighborhoodPointLabelPaintedSourceIds": [
+                    "osm:node:358796609"
+                  ],
+                  "meaning": "Physical source identities; POI visible IDs are symbols, with point-label identities recorded separately."
+                }
+              },
+              "neighborhoodAnnotationOutcomeCounts": {
+                "placed": 5,
+                "outside-view": 4
+              },
+              "paintedNeighborhoodPointLabelSourceIds": [
+                "osm:node:358796609"
+              ],
+              "namedProfileOutcomes": [
+                {
+                  "id": "label-dc6cb68826f1fd19",
+                  "sourceId": "osm:node:358796609",
+                  "kind": "point-label",
+                  "style": "l-peak",
+                  "text": "Alta Peak",
+                  "reason": "placed",
+                  "candidates": 34
+                }
+              ],
+              "visualNotes": "Alta Peak and Winter Alta elevations, Alta Peak Trail names, segment distances and index contours visibly paint. The sparse alpine view shows coherent lake/terrain placement."
             }
           ],
           "semanticPoiNeighborhood": {
@@ -2812,5 +5850,29 @@
         }
       ]
     }
+  },
+  "visualReviewScope": {
+    "reviewedAt": "2026-09-09T13:47:54.553699+00:00",
+    "engine": "chromium",
+    "viewport": {
+      "width": 1440,
+      "height": 1200
+    },
+    "theme": "light",
+    "devicePixelRatio": 1,
+    "neighborhoods": 7,
+    "viewportScreenshotsInspected": 21,
+    "targetGroundScalesMetersPerPixel": [
+      32,
+      12,
+      3
+    ],
+    "scope": "All 21 actual-viewport images were inspected against their source/catalog/scene identities and runtime outcomes. This is bounded qualitative content/style evidence, not the separate all-engine collision, typography, interaction or promotion gate. Overview zoom clamps to the full map; actual ground scales are recorded per view.",
+    "limitations": [
+      "Source retrieval/version records establish snapshots, not present-day geographic accuracy, access, seasonal conditions or universal source completeness.",
+      "Equivalent provider/editor destination names can remain as separate labels and add clutter.",
+      "Not every named feature can be painted at every camera state; area containment, path clearance, collisions, repeat spacing and detail gates intentionally omit labels.",
+      "Visible geometry IDs describe renderer visibility eligibility; screenshots substantiate the reviewed composition, not independent per-feature pixel detection."
+    ]
   }
 }

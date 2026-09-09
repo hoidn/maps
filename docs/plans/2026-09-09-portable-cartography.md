@@ -393,7 +393,7 @@ separate. Preserve worktrees until their evidence and needed artifacts are retai
 - [x] 5. Feature topology/attributes
 - [x] 6. Transport styling
 - [x] 7. Hydrography/gazetteer
-- [ ] 8. Facilities and route distances — final glyph/elevation/segment-label review
+- [x] 8. Facilities and route distances — glyph/elevation/segment-label review
 - [x] 9. Land cover/boundaries
 - [x] 10. Furniture
 - [ ] 11. Portability/performance validation
@@ -438,9 +438,10 @@ passing camera-state fuzz checks alone does not establish label correctness.
 See [implementation record](../CARTOGRAPHY_IMPLEMENTATION.md) for evidence/status.
 
 Tasks 3–10 have shared semantics, source provenance, regression cases and
-both-region builds. Final source review is completing missing facility glyphs,
-source-backed peak elevations and on-map segment distances. Portability/paint review and release remain
-Tasks 11–12; their pending status is not a claim that implementation is absent.
+both-region builds. Final source review completed facility glyphs, source-backed
+peak elevations and on-map segment distances. Twenty-one matched-scale source/paint
+scenes have been inspected. Final fuzz and release validation remain Tasks 11–12;
+their pending status is not a claim that implementation is absent.
 POI priorities now derive from navigation categories; ordinary services and scenic
 features remain available as secondary detail. Static visual review also found
 interaction hit paths painting black; the static scene now omits that interaction

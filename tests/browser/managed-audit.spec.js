@@ -165,7 +165,7 @@ test("managed protected trail permits only local geographic symbol crossings", a
     ).overlaps.some((x) => x.obstacleKind === "trail"),
   ).toBe(true);
 });
-test("managed audit counts hidden eligible point names and required route groups independently", async ({
+test("managed audit preserves static required names and declared interactive coverage", async ({
   page,
 }) => {
   const { collectManagedInventory, checkManagedInventory } = await import(
@@ -178,9 +178,30 @@ test("managed audit counts hidden eligible point names and required route groups
       .missingRequired,
   ).toEqual(["label-a", "route:Route A"]);
   data.manifest.map.mode = "interactive";
-  expect(checkManagedInventory(data, policy).missingRequired).toEqual([
-    "interactive-visible-point-name",
+  expect(checkManagedInventory(data, policy).missingRequired).toEqual([]);
+  const { checkSceneCoverage } = await import("../../scripts/release-browser-audit.js");
+  expect(checkSceneCoverage(data, { minima: { 'point-label': 1 } })).toEqual([
+    {kind:'point-label', minimum:1, visible:0},
   ]);
+});
+test("arbitrary interactive geometry permits a visible line with an unplaceable optional point", async ({page}) => {
+  const { checkManagedInventory } = await import("../support/managed-map-adapter.js");
+  const { summarizePointNameCoverage } = await import("../../scripts/release-browser-audit.js");
+  await page.setContent(html({hidden:true,overlap:true}));
+  await page.evaluate(() => {
+    const source=document.getElementById('map-label-manifest'),m=JSON.parse(source.textContent);
+    m.map.mode='interactive';m.annotations[0].requiredProfiles=[];
+    // This optional name cannot fit even in an otherwise empty 500 px map.
+    document.querySelector('#label-a text').setAttribute('textLength','700');
+    document.querySelector('#label-a text').setAttribute('lengthAdjust','spacingAndGlyphs');
+    m.annotations[1].kind='line-label';m.annotations[1].text='Example River';
+    const line=document.querySelector('#label-b text');line.textContent='Example River';line.setAttribute('x','200');line.setAttribute('y','180');
+    source.textContent=JSON.stringify(m);
+  });
+  const data=await page.evaluate(collectManagedInventory);
+  expect(data.visible).toEqual(['label-b']);
+  expect(checkManagedInventory(data,policy).missingRequired).toEqual([]);
+  expect(summarizePointNameCoverage(data)).toEqual({eligible:1,visibleEligible:0,missingEligibleCount:1,missingEligibleIds:['label-a'],reviewRequired:true});
 });
 test("managed zooms use the controller transaction rather than mutating the view directly", async ({
   browserName,

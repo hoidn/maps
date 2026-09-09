@@ -214,6 +214,13 @@ not the hidden measurement SVG. Pure pan translates accepted screen-size text
 without relayout. Fast camera frames do not mutate the measurement SVG camera.
 Settled layout can update it to obtain fresh typography metrics after zoom.
 
+`whenSettled()` also waits for asynchronous Canvas/WebGL theme scene preparation
+and the resulting scheduled paint. The renderer counts all pending refresh
+generations through completion or failure; an obsolete refresh cannot replace
+the latest scene. Font-dependent sprite invalidation does not cancel a pending
+theme scene; renderer destruction does. A preparation failure restores SVG rendering and drains the
+controller through its normal scheduled fallback layout.
+
 Independent Canvas collectors measure paint commands and draw offsets, glyph font
 metrics and symbol ink; SVG collectors still apply to static, frozen and explicit
 SVG mode. Consumers that equated SVG visibility with interactive map visibility

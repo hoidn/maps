@@ -333,6 +333,33 @@ finalization audits. The resulting HTML hashes are in
 `artifacts/cartography/text-hierarchy-inputs.json`. Full-resolution review, the
 updated fuzz matrix, performance acceptance and local promotion remain pending.
 The first matrix on these bytes exposed Firefox idle timeouts during interrupted
-gestures/resizes; those failures are under investigation. A headed Metal warm
+gestures/resizes. A minimal no-map reproduction traced them to automation losing
+an out-of-viewport mouse release after resize. The harness now returns the held
+pointer to a visible map point and verifies delivery; 21 focused cases pass.
+Replays on current candidate bytes remain pending. A headed Metal warm
 preflight measured 20.2 ms transaction p95, above the unchanged 8 ms gate, and
 22.9 ms frame p95. Neither a promotion pass nor a 3× startup gain is established.
+
+Further user feedback is tracked in the plan's live follow-up checklist. The new
+candidate adds primary/context/detail label rounds with intermediate paint and
+complete idle accounting; semantic 18 px settlement, 12 px local-road and 14 px
+major-road/trail fonts; and marker-before-own-optional-name ordering. The two
+unlabeled peaks in the user's crop were confirmed as unnamed source records,
+not missing annotations. No names have been invented.
+
+Land cover previously combined very pale class colors with 145/255 image alpha and
+.65 layer opacity, leaving only 37% effective color. Shared light/dark palettes now
+separate forest greens from shrub/scrub, grassland and warm barren-ground hues at
+about 56% effective color, retaining neutral relief. Both theme images use the same
+categorical grid and nodata mask; Canvas paints only the current theme, and the key
+explains the classes. This does not classify all shrubland as desert. Real-map
+light/dark review and promotion of this new source remain pending.
+
+The 10× label-placement target is additional to the original 3× startup-camera
+target. Progressive rounds improve early useful paint but do not establish that
+throughput gain. Algorithm prototypes must report complete preparation+solving,
+useful label coverage, worst uninterrupted work and exact-quality regressions.
+
+The follow-up cached build passed all six static finalization audits. Its input
+hashes are retained in `artifacts/cartography/rounds-hierarchy-landcover-inputs.json`;
+real-map review and full release validation remain separate.

@@ -20,6 +20,10 @@
   ],
   "sizes": {
     "place": 14,
+    "settlement": 18,
+    "road": 12,
+    "roadMajor": 14,
+    "roadRef": 14,
     "secondary": 12,
     "trail": 14,
     "region": 16,

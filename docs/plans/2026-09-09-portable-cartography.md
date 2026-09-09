@@ -25,6 +25,84 @@ It improves gesture drawing substantially, but does not meet the original 3× st
 responsiveness target. Its measured [performance](../PERFORMANCE.md) is the baseline
 for this work, not an estimate of future gains.
 
+## Current follow-up checklist (updated 2026-09-09)
+
+This is the live ledger for later user feedback. Source implementation, candidate
+validation and promotion are separate states; do not infer release completion
+from a checked source item. Keep it updated as requests and evidence arrive.
+
+- [x] Fix scattered/folded street and trail glyphs generically. Constant screen
+  baseline offset plus glyph continuity validation; source regressions for Pima
+  Street, Cave Creek and High Sierra Trail. High Sierra scan: 26 windows ×3 scales,
+  1,737 broken joins before and zero after. Rebuilt-map review still required.
+- [x] Keep optional point text within 16 CSS px of its feature; hide invalid retained
+  zoom placements, preserve pure-pan layout. Required static names retain 32 px.
+- [x] Apply semantic text importance before measurement; preserve geometry/symbol
+  rules, full words and explicit omission reasons. Remove redundant named-trail
+  reference text and symbol-only basic-service names.
+- [x] Group unambiguous campground/trailhead display aliases; include a unique
+  same-role/name area covering the true anchor. This resolves the remaining
+  Bright Angel CG/Campground pair without moving or merging source features.
+- [x] Unify campground tents and explain campgrounds/campsites and toilets in key.
+- [x] Implement a bounded useful startup label seed and separate complete base
+  camera paint from label completion. Earlier tolerance for long label latency
+  is superseded; final startup timing and usefulness remain acceptance work.
+- [x] Implement successive primary/context/detail placement rounds with actual
+  intermediate paint, stable accepted placements, cancellation and complete idle
+  accounting. Focused source tests pass; new candidate measurements pending.
+- [ ] **At least 10× faster label placement:** dedicated algorithm investigation
+  must measure preparation plus solving at comparable useful coverage, both regions
+  and overview/dense zoom. Earlier partial paint, suppressed names or worker-only
+  speed do not establish 10×. Arc-indexed windows and shared path/side measurements
+  reached approximately 3.1× in a Grand Canyon dense-view diagnostic, with 1.2–1.5×
+  in the other sampled views at unchanged placement counts. Demand-wrap/domain
+  prototypes did not meet target. Immutable worker geometry/index reuse is next;
+  the 10× complete-placement objective remains open.
+  Owner: `label_algorithm`; measured scope and rejected approaches are recorded in
+  [startup investigation](../STARTUP_INVESTIGATION.md#tenfold-label-placement-investigation-on-current-cartography).
+- [x] Identify unlabeled-peak screenshot. The two pictured OSM peaks are unnamed;
+  all 124 named peaks across both candidates have paired annotations at exact anchors.
+  Do not invent names. Source-backed elevation-only labels are a separate choice.
+- [ ] Fix a separate peak/facility association defect: optional text must not
+  suppress its own true-anchor marker because its importance sorts first. Reserve
+  a paired marker before its name, retaining all clearance checks and testing
+  unrelated features, static required content and pan stability. Owner: `review_startup`.
+  Source ordering/dependency-cache regressions now pass; real-map recheck pending.
+- [ ] Make forest visibly distinct from shrub/scrub, grassland and barren ground.
+  Correct pale palette/double opacity, retain categorical data and nodata, verify
+  light/dark relief blending and legend in both regions. Do not relabel all scrub
+  as desert. Owner: root.
+  Source implementation now uses distinct light/dark palettes, stronger forest
+  greens and dry-ground hues, 190/255 raster alpha ×.75 layer opacity (previously
+  145/255 ×.65), and explained swatches. Theme-selection pixel tests and categorical
+  nodata tests pass; both-region real-map visual review remains pending.
+- [x] Give settlements stronger typography than local streets (Grand Canyon Village
+  versus Boulder Alley screenshot), from portable settlement/network classes.
+  Defaults 18/12/14 px distinguish settlements/local roads/major roads and refs;
+  zoom growth and 100–150% preference remain. Nine SVG/Canvas/WebGL browser cases
+  across three engines preserve full names and hierarchy; source renaming and
+  independent minimum checks pass. Actual cached Village/Alley records generate
+  the expected roles. Rebuilt-map coverage/visual review remains pending.
+- [ ] Complete final visual review: whole views plus full-resolution dense/curved
+  crops, repeated names, marker association, text density, proximity, clipping,
+  symbol-only services and key consistency. Cover Grand Canyon and Sequoia.
+- [ ] Rerun seeded lifecycle fuzz on final bytes. First updated matrix found
+  Firefox automation dropping an out-of-viewport release after resize; minimal
+  no-map reproduction confirms it. Harness now returns the held pointer to the
+  visible map and verifies actual release; 21 focused cases pass. Preserve failed
+  originals and rerun affected seeds with the corrected harness.
+- [ ] Meet unchanged warm 8 ms CPU /33 ms frame gates and separate original 3×
+  initial camera-response target. Latest warm preflight 20.2 ms CPU p95 fails;
+  investigate immutable area geometry/indexing (`review_startup`) and initial
+  contour preparation (`startup_investigation`) with unchanged correctness checks.
+  10× label placement is an additional objective, not a substitute.
+- [ ] Rebuild current candidates, run complete release gate/static audits, promote
+  both local outputs through verified atomic promotion, then merge into main.
+  Latest cached rebuild completed with six static audits; frozen input hashes:
+  `artifacts/cartography/rounds-hierarchy-landcover-inputs.json`. This is candidate
+  evidence only, not promotion or the complete release gate.
+  No manual output copies; no hosted publication authorized.
+
 ## Execution rules and order
 
 Read the [data contract](../specs/map-data.md), [layout contract](../specs/map-layout.md),
@@ -413,6 +491,11 @@ separate. Preserve worktrees until their evidence and needed artifacts are retai
    Adopt only changes with real latency gains and correct progressive rendering.
    The minimum desired ratio is ≥3× for the agreed initial-response metric; it remains
    a target, not a predicted outcome. Revise this task's implementation details after tracing.
+Current trace: 80% of Grand Canyon contour path data belongs to tiers invisible
+at overview, yet current readiness waits for parsing, Canvas paths and GPU upload
+of all tiers. Implement current-tier-first preparation with correct initial-hash
+and zoom-transition behavior; readiness must follow completed visible geometry.
+
 5. Compare faster label-placement approaches against measured remaining costs:
    importance selection before measurement; inexpensive ranking of candidate
    positions and wraps followed by precise measurement of promising choices;
@@ -422,6 +505,51 @@ separate. Preserve worktrees until their evidence and needed artifacts are retai
    Benchmark candidate/measurement counts, first useful label batch, final useful
    coverage and main-thread stalls separately. Adopt only demonstrated gains;
    additional workers alone do not remove DOM-dependent measurement work.
+6. Paint interactive labels in successive importance rounds after the bounded
+   startup seed: primary destinations/context (score ≥800), other routes and
+   waterways (≥700), then remaining eligible detail. Do not premeasure lower
+   rounds. Preserve accepted higher-priority placements, allow an actual browser
+   paint between rounds, and keep completion pending until the final round.
+   Camera, typography, controls, scroll or gesture changes invalidate obsolete
+   rounds; pure pans retain their accepted text. Symbols and physical geometry
+   keep their independent rules, and static exhaustive placement is unchanged.
+   Verify intermediate pixels, deferred measurements, cancellation and eventual
+   full eligible inventory; compare first/each/final round timings on exact bytes.
+
+## Task 14: At least 10× faster complete label placement
+
+**Status:** Active additional user target. This is separate from Task 13 camera
+responsiveness and from the unchanged warm interaction release limits.
+
+1. Compare complete preparation plus solving on frozen, equal-content inputs in
+   both regions, at overview and dense zoom. Report accepted names/symbols, omitted
+   reasons, uninterrupted work, first useful paint and final completion separately.
+   State which measured views reach 10×; do not substitute a component benchmark.
+2. Eliminate repeated full-path scans with cumulative arc indexes and local window
+   traversal. Verify exact seeded window parity, mutation invalidation and curved
+   glyph continuity before adoption.
+3. Reuse immutable path indexes across repeated annotations and equivalent glyph
+   footprints across translated sides. Preserve the full candidate domain and
+   candidate ordering; check source-derived paths across all three browser engines.
+4. Remove repeated immutable obstacle transfer/index construction between placement
+   rounds and worker requests. Cache identity must include geometry revisions;
+   cancellation, worker fallback and changed layers/camera must stay correct.
+5. Reprofile the remaining preparation/solver floor. Evaluate demand-driven exact
+   measurement and reusable text metrics only with equal useful coverage and the
+   existing independent paint/clearance checks. Reject prototypes that add repeated
+   failed domains across rounds or merely hide the work behind partial readiness.
+6. Rebuild, run focused regression and visual/fuzz checks, then repeat the quiet
+   benchmark on final bytes. Record adopted and rejected approaches in the
+   [startup investigation](../STARTUP_INVESTIGATION.md). Performance acceptance
+   and verified promotion remain separate steps.
+
+Current diagnostic: indexed windows plus shared path indexes and translated-side
+footprints reduce Grand Canyon dense-view preparation/solving from 4,775 to
+1,554 ms (3.07×). Grand Canyon overview improves 1.45×, Sequoia overview 1.22×,
+and Sequoia dense view 1.33×. Placement counts are unchanged in all four views;
+72 cross-engine candidate checks pass with footprint differences below 0.00043
+CSS px. These are prototype measurements, not a 10× pass or release evidence.
+The earlier lazy-wrap prototype was rejected because overview became slower.
 
 ## Completion criteria for the useful first release
 
@@ -454,6 +582,7 @@ separate. Preserve worktrees until their evidence and needed artifacts are retai
 - [ ] 12. Release and promotion
 - [ ] 13. Separate production 3× startup target
   - [x] Corrected probes, trace investigation and diagnostic ablations
+- [ ] 14. At least 10× complete label-placement improvement
 
 Earlier user steering said the camera was already smooth and tolerated idle label
 latency. Subsequent steering supersedes that tolerance: initial names must appear

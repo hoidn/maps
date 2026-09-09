@@ -40,3 +40,21 @@ for(const backend of ['svg','canvas']){
   expect(state.status).toBe('ready');expect(state.count).toBeGreaterThan(0);expect(state.painted).toEqual(state.view);expect(errors).toEqual([]);
  });
 }
+
+test('wide-map interruption releases the real held pointer after shrinking the viewport',async({page})=>{
+ await page.setViewportSize({width:1440,height:1200});await mount(page,'canvas');
+ await page.locator('.map-wrap').evaluate(e=>e.style.width='100%');
+ await page.evaluate(()=>{
+  const svg=mapLayout.svg;svg.addEventListener('pointerdown',e=>svg.setPointerCapture(e.pointerId));
+  window.fuzzPointerEvents=[];for(const type of ['pointerdown','pointermove','pointerup','lostpointercapture'])window.addEventListener(type,e=>fuzzPointerEvents.push({type,x:e.clientX,y:e.clientY,buttons:e.buttons}),true);
+ });
+ const action={u:.825389,v:.889399,w:.096817};await lifecycleBurst(page,action);
+ const state=await page.evaluate(()=>({gestures:mapLayout.gestures.size,events:fuzzPointerEvents}));
+ expect(state.events.find(e=>e.type==='pointerdown').x).toBeGreaterThan(430);
+ expect(state.events.some(e=>e.type==='pointermove'&&e.buttons===1&&e.x<430)).toBe(true);
+ expect(state.events.some(e=>e.type==='pointerup'&&e.buttons===0&&e.x<430)).toBe(true);
+ expect(state.gestures).toBe(0);
+ expect(action.burst.release.event.type).toBe('pointerup');
+ expect(action.burst.release.event.x).toBeLessThan(430);
+ await idle(page);
+});

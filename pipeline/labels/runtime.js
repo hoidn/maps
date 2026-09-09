@@ -1,3 +1,4 @@
+import {PLACEMENT_ROUNDS,roundEligibility} from './placement-rounds.js';
 import {initialBatch} from './initial-batch.js';
 import {textEligibility} from './text-importance.js';
 import {projectAreaPolygons} from './geometry.js';
@@ -162,13 +163,14 @@ export class LayoutController {
     if(!this.frame)this.frame=requestAnimationFrame(()=>{this.frame=null;this.render(false);});
     this.scheduleSettled();
   }
-  cancelSettling(){
+  cancelSettling(preserveRound=null){
+    if(this.roundJob&&this.roundJob!==preserveRound){this.roundJob.cancelled=true;this.roundJob=null;}
     const job=this.settleJob;if(!job)return;
     job.cancelled=true;job.cleanup?.();this.settleJob=null;this.initialPlacer?.cancel();
   }
   invalidateLayout(){this.revision++;this.panLayout=null;this.cancelSettling();}
   beginGesture(kind){
-    if(this.settleJob)this.settlePending=true;
+    if(this.settleJob||this.roundJob)this.settlePending=true;
     this.gestures.add(kind);this.cancelSettling();
     clearTimeout(this.settleTimer);cancelAnimationFrame(this.quietFrame);
     this.settleTimer=null;this.quietFrame=null;this.settleGeneration=(this.settleGeneration??0)+1;
@@ -198,8 +200,8 @@ export class LayoutController {
       });
     },delay);
   }
-  whenSettled(){return this.ready.then(()=>this.fontReady).then(()=>this.frame||this.settlePending||this.settleJob||this.gestures.size||this.renderer?.refreshPending?new Promise(resolve=>this.waiters.push(resolve)):this.getReport());}
-  resolveWaiters(){if(this.frame||this.settlePending||this.settleJob||this.gestures.size||this.renderer?.refreshPending)return;for(const resolve of this.waiters.splice(0))resolve(this.getReport());}
+  whenSettled(){return this.ready.then(()=>this.fontReady).then(()=>this.frame||this.settlePending||this.settleJob||this.roundJob||this.gestures.size||this.renderer?.refreshPending?new Promise(resolve=>this.waiters.push(resolve)):this.getReport());}
+  resolveWaiters(){if(this.frame||this.settlePending||this.settleJob||this.roundJob||this.gestures.size||this.renderer?.refreshPending)return;for(const resolve of this.waiters.splice(0))resolve(this.getReport());}
   getReport(){return {textScale:this.textScale,renderer:{requested:this.renderer?.requestedBackend||'svg',active:this.renderer?.backend||'svg',fallback:this.renderer?.fallbackReason||this.rendererError,rgbaBytes:this.renderer?.rgbaBytes,gpuBufferBytes:this.renderer?.gpu?.bufferBytes},status:this.status,error:this.error,view:{...this.view},diagnostics:this.result?.diagnostics,outcomes:this.result?.outcomes||[],missingRequired:this.result?.missingRequired||[],placements:this.result?.placements||[],timings:this.timings.slice(-200),samples:this.samples.slice(-200),transactionKind:this.transactionKind};}
   camera(readAfter=true){
     if(this.renderer?.active&&this.transactionKind==='fast')return this.renderer.camera(this.view);
@@ -245,7 +247,7 @@ export class LayoutController {
   normalize(a,e,s){
     if(this.mode!=='interactive')return;
     const t=e.querySelector('text');if(!t)return;
-    const sizes=this.textSizes(s),size=a.style?.startsWith('l-contour')?sizes.contour:a.kind==='region-label'?sizes.region:a.style?.startsWith('l-trail')?sizes.trail:a.style==='l-major'?(sizes.major??sizes.region):a.style==='l-minor'||a.style==='l-peak'?sizes.secondary:sizes.place;
+    const sizes=this.textSizes(s),size=a.style?.startsWith('l-contour')?sizes.contour:a.kind==='region-label'?sizes.region:a.style?.startsWith('l-trail')?sizes.trail:a.style==='l-settlement'?(sizes.settlement??sizes.place):a.style==='l-road'?(sizes.road??sizes.secondary):a.style==='l-road-major'?(sizes.roadMajor??sizes.trail):a.style==='l-road-ref'?(sizes.roadRef??sizes.trail):a.style==='l-major'?(sizes.major??sizes.region):a.style==='l-minor'||a.style==='l-peak'?sizes.secondary:sizes.place;
     t.style.fontSize=(a.geometryId?size/s:size)+'px';t.style.strokeWidth=(a.geometryId?2.8/s:2.8)+'px';
     for(const sub of t.querySelectorAll('tspan:not([data-layout-primary])')){sub.style.fontSize=sizes.secondary+'px';sub.setAttribute('dy',String(sizes.secondary*1.3));}
   }
@@ -369,11 +371,36 @@ export class LayoutController {
   }
   pickTrail(x,y){return this.renderer?.pickTrail(x,y)||null;}
   async render(includeCurves){
+    if(!includeCurves||this.mode!=='interactive'||this.starting)return this.renderPass(includeCurves);
+    if(this.status!=='ready'||this.rendering||this.roundJob)return false;
+    this.cancelSettling();
+    const token={revision:this.revision,fontGeneration:this.fontGeneration};this.roundJob=token;let completed=false;
+    const current=()=>this.roundJob===token&&!token.cancelled&&this.revision===token.revision&&this.fontGeneration===token.fontGeneration&&this.status==='ready'&&!this.gestures.size&&(!token.snapshot||token.snapshot===this.startupSnapshot());
+    try{
+      for(const [index,round] of PLACEMENT_ROUNDS.entries()){
+        if(!current())return false;
+        if(!await this.renderPass(true,round,token)||!current())return false;
+        token.snapshot=this.startupSnapshot();
+        // Two animation boundaries leave a real browser paint opportunity before
+        // the next tier performs DOM measurements. Idle stays pending throughout.
+        if(index<PLACEMENT_ROUNDS.length-1){await new Promise(requestAnimationFrame);await new Promise(requestAnimationFrame);}
+      }
+      completed=true;return true;
+    }finally{
+      const owned=this.roundJob===token;if(owned)this.roundJob=null;
+      // A direct settled request (for example font recovery) may lack the usual
+      // settle timer. A changed scroll/control snapshot must not resolve idle
+      // with only earlier tiers painted; arrange a current retry when unowned.
+      if(!completed&&owned&&this.status==='ready'&&!this.settlePending)this.scheduleSettled(0);
+      this.resolveWaiters();
+    }
+  }
+  async renderPass(includeCurves,round=null,roundJob=null){
     if(this.status!=='ready'||this.rendering)return;
     this.rendering=true;const started=performance.now(),settled=includeCurves||this.mode==='static';
     this.transactionKind=settled?'settled':'fast';
     const cooperative=settled&&this.mode==='interactive',asyncSettled=cooperative&&!this.starting;
-    let job;if(cooperative){this.cancelSettling();job={revision:this.revision};if(this.starting)job.fonts=[...document.fonts].map(face=>[face,face.status]);this.settleJob=job;}
+    let job;if(cooperative){this.cancelSettling(roundJob);job={revision:this.revision};if(this.starting)job.fonts=[...document.fonts].map(face=>[face,face.status]);this.settleJob=job;}
     const current=()=>!job||!job.cancelled&&job.revision===this.revision;
     const validSnapshot=()=>{
       if(!current())return false;
@@ -433,6 +460,7 @@ export class LayoutController {
         let deadline=performance.now()+8;
         for(const a of this.starting?[]:this.manifest.annotations){
           if(cooperative){
+            if(roundEligibility(a,round,fixed?.has(a.id)))continue;
             if(!this.eligible(a,project(m,a.anchor),viewport,z)&&!fixed?.has(a.id)&&a.kind!=='line-label'&&!this.cache.entries.has(a.id))measurementElement(a);
             if(performance.now()>=deadline){await pause();deadline=performance.now()+8;}
             continue;
@@ -458,7 +486,7 @@ export class LayoutController {
           const anchor=project(m,a.anchor),item={...a,anchor,candidates:[],required:this.mode==='static'&&a.requiredProfiles.includes('static-default')};
           if(a.kind==='symbol'){item.anchorTrailRadius=6;item.anchorTrailFootprint=true;}
           if(a.kind==='line-label')item.repeatDistance=this.policy.repeatDistance;
-          item.eligibleReason=this.eligible(a,anchor,viewport,z);
+          item.eligibleReason=this.eligible(a,anchor,viewport,z)||roundEligibility(a,round,fixed?.has(a.id));
           if(item.eligibleReason){prepared.push(item);continue;}
           item.areaPolygons=projectAreaPolygons(a.areaPolygons,m);
           if(fixed?.has(a.id)){
@@ -527,7 +555,7 @@ export class LayoutController {
         }
         if(settled)this.rememberPlacements(result,m,key);
         this.phases={camera:cameraDone-started,prepare:preparedDone-cameraDone,solve:solvedDone-preparedDone,commit:performance.now()-solvedDone};
-        const elapsed=performance.now()-started;this.timings.push(elapsed);this.samples.push({kind:this.transactionKind,total:elapsed,...this.phases,placements:this.result.placements.length,candidates:prepared.reduce((n,a)=>n+a.candidates.length,0)});
+        const elapsed=performance.now()-started;this.timings.push(elapsed);this.samples.push({kind:this.transactionKind,...(round?{round:round.name}:{}),total:elapsed,...this.phases,placements:this.result.placements.length,candidates:prepared.reduce((n,a)=>n+a.candidates.length,0)});
         if(this.timings.length>500)this.timings.shift();if(this.samples.length>500)this.samples.shift();
         this.lastViewport=viewport;
         this.svg.dataset.layoutState=this.result.missingRequired.length?'missing-required':'ready';

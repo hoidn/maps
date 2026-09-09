@@ -164,7 +164,7 @@ def render_scene(features,routes,spec,M,existing=(),distances=()):
    selected['poi']+=1
    return
   elevation=source_peak_elevation(f) if st['symbol']=='peak' else None
-  raw=annotate(f,name,'l-peak' if st['symbol']=='peak' else 'l-minor' if fc else 'l-place',xy,max_mpp=st['maxMetersPerPixel'],importance=importance,secondary=f'{elevation["valueMeters"]/.3048:,.0f} ft' if elevation else None)
+  raw=annotate(f,name,'l-peak' if st['symbol']=='peak' else 'l-settlement' if importance['priorityReason']=='settlement' else 'l-minor' if fc else 'l-place',xy,max_mpp=st['maxMetersPerPixel'],importance=importance,secondary=f'{elevation["valueMeters"]/.3048:,.0f} ft' if elevation else None)
   if raw and elevation:M.annotations[-1]['elevation']=elevation
   if raw:groups['peaks' if st['symbol']=='peak' else 'labels'].append(raw)
   selected['poi']+=1
@@ -196,7 +196,7 @@ def render_scene(features,routes,spec,M,existing=(),distances=()):
     if kind=='road':groups['roads'].append(f'<path class="transport-case" d="{d}"{attrs} style="fill:none;stroke:var(--road-case);stroke-width:calc({st["caseWidth"]}px * var(--s))"/>')
     groups['trails' if kind=='trail' else 'roads'].append(f'<path class="tr transport {kind}" d="{d}"{attrs} style="{base}"/>')
     if kind=='trail' and M.mode!='static':groups['hits'].append(f'<path class="hit" d="{d}"{attrs}/>')
-    line_labels(named,line,'l-trail' if kind=='trail' else 'l-road','trail-labels',limit)
+    line_labels(named,line,'l-trail' if kind=='trail' else 'l-road-major' if st['importance']>=4 else 'l-road','trail-labels',limit)
     ref=f.get('tags',{}).get('ref') or next((route_by_id[r]['tags'].get('ref') for r in f.get('routeIds',[]) if r in route_by_id and route_by_id[r]['tags'].get('ref')),None)
     shown_ref=visible_reference(kind,name,ref)
     if shown_ref:line_labels(named,line,'l-road-ref','trail-labels',limit,text=shown_ref)

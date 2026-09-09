@@ -98,7 +98,7 @@ export class MapScene{
  visible(item,layers,z,view){
   const b=item.bounds;if(b&&view){const pad=b.pad/(item.constantStroke?z:1);if(b.right+pad<view.x||b.x-pad>view.x+view.w||b.bottom+pad<view.y||b.y-pad>view.y+view.h)return false;}
   if(item.maxMpp&&this.metersPerPixel>item.maxMpp)return false;
-  if(item.layer==='landcover')return layers.landcover!==false;
+  if(item.layer==='landcover')return layers.landcover!==false&&getComputedStyle(item.element).display!=='none';
   if(['boundaries','boundary-labels'].includes(item.layer)&&layers.boundaries===false)return false;
   if(item.layer==='coordinate-grid'&&!layers.grid)return false;
   if(item.layer==='terrain')return layers.relief&&getComputedStyle(item.element).display!=='none';

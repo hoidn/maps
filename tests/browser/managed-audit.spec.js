@@ -63,6 +63,24 @@ async function audit(browserName, options = {}, extra = {}) {
     ...extra,
   });
 }
+
+test('independent point coverage applies text scale thresholds without trusting runtime outcomes',async({page})=>{
+ await page.setContent(html({hidden:true}));
+ await page.evaluate(()=>{
+  const script=document.getElementById('map-label-manifest'),m=JSON.parse(script.textContent);
+  m.map.metersPerMapUnit=20;m.annotations[0].textMaxMetersPerPixel=12;
+  script.textContent=JSON.stringify(m);
+ });
+ expect((await page.evaluate(collectManagedInventory)).outcomes.find(a=>a.id==='label-a').eligible).toBe(false);
+ await page.evaluate(()=>document.getElementById('mapsvg').setAttribute('viewBox','0 0 250 150'));
+ expect((await page.evaluate(collectManagedInventory)).outcomes.find(a=>a.id==='label-a').eligible).toBe(true);
+ await page.evaluate(()=>{
+  document.getElementById('mapsvg').setAttribute('viewBox','0 0 500 300');
+  const script=document.getElementById('map-label-manifest'),m=JSON.parse(script.textContent);
+  m.annotations[0].textMaxMetersPerPixel=null;script.textContent=JSON.stringify(m);
+ });
+ expect((await page.evaluate(collectManagedInventory)).outcomes.find(a=>a.id==='label-a').eligible).toBe(true);
+});
 test("managed audit catches real overlap despite successful solver diagnostics", async ({
   browserName,
 }) => {

@@ -316,12 +316,34 @@ paint time, eligible named-feature count, and whether at least eight names (or
 all eligible names in a smaller view) were painted. `firstUsefulLabels` records
 the first committed frame meeting that threshold; it is absent until one does.
 These are diagnostic milestones, separate from `ready` and `whenSettled()`.
+After the startup seed, interactive settled placement runs three rounds: primary
+text with importance at least 800, context text with importance at least 700,
+then all remaining eligible detail. Each successful round leaves two animation
+boundaries for browser paint before the next round starts measuring. Lower-round
+text receives a temporary `round-deferred` outcome and is not precloned or
+measured early. Symbols keep their independent eligibility in every round.
+Accepted earlier placements become fixed reservations; existing placements also
+bypass temporary round filtering during pure panning, so the round sequence does
+not remove or rewrap already placed lower-priority text. The final round considers
+the entire eligible inventory. `whenSettled()` spans all rounds and retries;
+camera, font, gesture, viewport, control or scroll changes discard obsolete work.
+Timing samples identify the round without excluding preparation, solve or commit
+work. Static placement remains the existing exhaustive single pass. This changes
+progress visibility; it does not establish an end-to-end speedup.
+
 Candidate diagnostics distinguish path/window, reverse-direction, upright-glyph
 and overflow rejection. Curved waterways with no readable path window may use a
 measured straight name beside the same geometry; source paths are unchanged.
 
 Interactive typography uses semantic minimum sizes, modest bounded growth with
-zoom/ground scale, and a persisted 1–1.5 readability multiplier. Static typography
+zoom/ground scale, and a persisted 1–1.5 readability multiplier. Source settlements
+(city, town, village, hamlet and populated-place records) use `l-settlement`;
+major roads use `l-road-major`, selected from network class rather than spelling.
+The default policy sets settlements to 18 CSS px, local roads to 12 px, and major
+roads, route references and trails to 14 px before growth/preferences. Ordinary
+place labels retain their existing 14 px size. The shared stylesheet supplies the
+same class hierarchy to static maps; the independent typography audit recognizes
+these classes without importing the production normalization function. Static typography
 retains its print profile. Zoom/font settings trigger measurement; pan retains
 accepted size, wrapping and placement.
 

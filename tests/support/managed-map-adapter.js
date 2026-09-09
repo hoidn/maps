@@ -202,6 +202,7 @@ export function collectManagedInventory() {
     const eligible =
       a.kind === "point-label" &&
       (!a.maxMetersPerPixel || !manifest.map.metersPerMapUnit || manifest.map.metersPerMapUnit / Math.hypot(matrix.a, matrix.b) <= a.maxMetersPerPixel) &&
+      (!Number.isFinite(a.textMaxMetersPerPixel) || a.textMaxMetersPerPixel <= 0 || !manifest.map.metersPerMapUnit || manifest.map.metersPerMapUnit / Math.hypot(matrix.a, matrix.b) <= a.textMaxMetersPerPixel) &&
       anchor.x >= viewport.left &&
       anchor.x <= viewport.right &&
       anchor.y >= viewport.top &&

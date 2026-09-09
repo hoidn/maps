@@ -27,7 +27,7 @@ def text_importance(annotation,feature=None):
  elif style.startswith('l-trail'):
   score=820 if a.get('featureLengthMeters',0)>=5000 else 760
   reason='long-route' if score==820 else 'trail-name'
- elif style in ('l-road','l-road-ref'):
+ elif style in ('l-road','l-road-major','l-road-ref'):
   from .transport import ROAD_RANK
   rank=ROAD_RANK.get(tags.get('highway'),0)
   score=820 if rank>=4 else 700 if rank>=2 else 600

@@ -9,7 +9,9 @@ from hillshade import multidirectional
 from path_geometry import detail_path
 from .scene import map_geometry,parts
 
-COVER={11:'#bfd5dc',12:'#eeeef0',21:'#ded9c9',22:'#dad4c6',23:'#d3ccbd',24:'#c4baaa',31:'#e7dfce',41:'#d7e1c5',42:'#c8d8bc',43:'#d0dec2',52:'#dce2ca',71:'#e6e5cd',81:'#e0e3c9',82:'#e3dfc4',90:'#c8ded0',95:'#d6e3d2'}
+COVER={11:'#a9cbd6',12:'#edf0f1',21:'#d9d0c4',22:'#cfc3b6',23:'#c2b2a4',24:'#b09c90',31:'#e1cbaa',41:'#bad09d',42:'#9fbd94',43:'#acc69a',52:'#d4ceaa',71:'#dedaaa',81:'#d0d1a0',82:'#d8c89c',90:'#a6c9b2',95:'#bfd4ad'}
+COVER_DARK={11:'#304d59',12:'#697575',21:'#514b43',22:'#5a4f43',23:'#655344',24:'#705647',31:'#716048',41:'#49603c',42:'#375133',43:'#405a37',52:'#625f40',71:'#696747',81:'#586044',82:'#6a5e3c',90:'#345b49',95:'#4a6547'}
+COVER_KEY=((42,'Forest'),(52,'Shrub / scrub'),(71,'Grassland'),(31,'Barren rock / sand'),(22,'Developed'),(90,'Wetland'),(12,'Ice / snow'))
 def uri(rgb,fmt='PNG'):
  b=io.BytesIO();Image.fromarray(np.asarray(rgb,dtype=np.uint8)).save(b,format=fmt,optimize=True)
  return 'data:image/'+fmt.lower()+';base64,'+base64.b64encode(b.getvalue()).decode()
@@ -18,24 +20,27 @@ def neutral_relief(dem,spec):
  gy,gx=np.gradient(gaussian_filter(dem,1),dy,dx);shade=multidirectional(gx,gy)
  shade=np.clip(.78+.27*shade,0,1)
  return {'uri_light':uri(np.stack([shade*238,shade*234,shade*222],axis=-1),'JPEG'),'uri_dark':uri(np.stack([shade*60,shade*66,shade*63],axis=-1),'JPEG')}
-def cover_image(spec,features,root):
+def cover_image(spec,features,root,*,theme='light'):
+ if theme not in ('light','dark'):raise ValueError('Unknown land-cover theme')
+ palette=COVER_DARK if theme=='dark' else COVER
  p=Path(root)/'landcover.npy';w,h=spec.width,spec.height
  if p.exists():
   meta=json.loads(p.with_suffix('.json').read_text());spec.validate_cache(meta)
   arr=np.load(p);arr=np.asarray(Image.fromarray(arr.astype('uint8')).resize((w,h),Image.Resampling.NEAREST))
   rgb=np.zeros((h,w,4),dtype=np.uint8)
-  for key,color in COVER.items():
-   c=tuple(bytes.fromhex(color[1:]));rgb[arr==key]=(*c,145)
+  for key,color in palette.items():
+   c=tuple(bytes.fromhex(color[1:]));rgb[arr==key]=(*c,190)
   return uri(rgb)
  # OSM is a labeled fallback, not a claim to complete vegetation coverage.
  image=Image.new('RGBA',(w,h),(0,0,0,0));draw=ImageDraw.Draw(image)
- colors={'wood':'#c8d8bc','forest':'#c8d8bc','grassland':'#e6e5cd','meadow':'#e6e5cd','scrub':'#dce2ca','wetland':'#c8ded0','glacier':'#eeeef0','bare_rock':'#e7dfce','sand':'#e7dfce'}
+ classes={'wood':42,'forest':42,'grassland':71,'grass':71,'meadow':71,'scrub':52,'wetland':90,'glacier':12,'bare_rock':31,'sand':31}
  for f in features:
   if f['kind']!='landcover':continue
-  t=f.get('tags',{});color=colors.get(t.get('natural'),colors.get(t.get('landuse')))
-  if not color:continue
+  t=f.get('tags',{});category=classes.get(t.get('natural'),classes.get(t.get('landuse')))
+  if category is None:continue
+  color=palette[category]
   for poly in parts(map_geometry(f,spec),'Polygon'):
-   draw.polygon(list(poly.exterior.coords),fill=(*bytes.fromhex(color[1:]),145))
+   draw.polygon(list(poly.exterior.coords),fill=(*bytes.fromhex(color[1:]),190))
    for ring in poly.interiors:draw.polygon(list(ring.coords),fill=(0,0,0,0))
  return uri(np.asarray(image))
 def contours(dem,spec):

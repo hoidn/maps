@@ -50,9 +50,9 @@ export function collectTypography() {
   return {mode:manifest.map.mode,items};
 }
 export function checkTypography(data,policy={}) {
-  const failures=[],sizes={place:12,secondary:10,contour:10,trail:13,region:14,...policy.sizes};
+  const failures=[],sizes={place:12,settlement:18,road:12,roadMajor:14,roadRef:14,secondary:10,contour:10,trail:13,region:14,...policy.sizes};
   for(const item of data.items){if(item.error){failures.push({id:item.id,reason:'invalid-typography',detail:item.error});continue;}
-    const minimum=item.style?.startsWith('l-contour')?sizes.contour:item.kind==='region-label'?sizes.region:item.style?.startsWith('l-trail')?sizes.trail:item.style==='l-major'?14:['l-minor','l-peak'].includes(item.style)?sizes.secondary:sizes.place;
+    const minimum=item.style?.startsWith('l-contour')?sizes.contour:item.kind==='region-label'?sizes.region:item.style?.startsWith('l-trail')?sizes.trail:item.style==='l-settlement'?sizes.settlement:item.style==='l-road'?sizes.road:item.style==='l-road-major'?sizes.roadMajor:item.style==='l-road-ref'?sizes.roadRef:item.style==='l-major'?14:['l-minor','l-peak'].includes(item.style)?sizes.secondary:sizes.place;
     for(const font of item.fonts){if(!Number.isFinite(font.size)||font.size<=0)failures.push({id:item.id,reason:'invalid-font-size',size:font.size});else if(data.mode==='interactive'&&font.size+1e-4<(font.secondary?sizes.secondary:minimum))failures.push({id:item.id,reason:'minimum-font-size',size:font.size,minimum:font.secondary?sizes.secondary:minimum});}
     if(item.kind==='line-label'&&item.angles.some(a=>!Number.isFinite(a)||Math.abs(a)>90.0001))failures.push({id:item.id,reason:'upside-down',angles:item.angles.filter(a=>!Number.isFinite(a)||Math.abs(a)>90.0001)});
     if(item.path&&(!Object.values(item.path).every(Number.isFinite)||item.path.start< -1e-4||item.path.end>item.path.length+1e-4))failures.push({id:item.id,reason:'text-path-overflow',...item.path});

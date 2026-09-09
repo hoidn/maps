@@ -40,7 +40,8 @@ export function assertStablePan(before,after){
 export async function lifecycleBurst(page,a){
  await page.locator('.map-wrap').scrollIntoViewIfNeeded();
  // Hit a visible SVG point, not an overlaid control or an offscreen map center.
- const point=await page.evaluate(()=>{const svg=mapLayout.svg,r=svg.getBoundingClientRect();for(const u of [.5,.2,.8])for(const v of [.5,.7,.3]){const x=Math.max(0,r.left)+u*(Math.min(innerWidth,r.right)-Math.max(0,r.left)),y=Math.max(0,r.top)+v*(Math.min(innerHeight,r.bottom)-Math.max(0,r.top));if(svg.contains(document.elementFromPoint(x,y)))return{x,y};}throw Error('No visible map point for interruption gesture');});
+ const visiblePoint=()=>{const svg=mapLayout.svg,r=svg.getBoundingClientRect();for(const u of [.5,.2,.8])for(const v of [.5,.7,.3]){const x=Math.max(0,r.left)+u*(Math.min(innerWidth,r.right)-Math.max(0,r.left)),y=Math.max(0,r.top)+v*(Math.min(innerHeight,r.bottom)-Math.max(0,r.top));if(svg.contains(document.elementFromPoint(x,y)))return{x,y};}throw Error('No visible map point for interruption gesture');};
+ const point=await page.evaluate(visiblePoint);
  await page.mouse.move(point.x,point.y);await page.mouse.down();
  try{
   a.burst=await page.evaluate(a=>{
@@ -54,7 +55,19 @@ export async function lifecycleBurst(page,a){
   const previous=page.viewportSize(),target={width:previous.width===430?1440:430,height:a.v<.5?900:1200};
   await page.setViewportSize(target);a.burst.viewport=target;
   a.burst.afterResize=await page.evaluate(async()=>{await new Promise(requestAnimationFrame);return {gestures:mapLayout.gestures.size,pending:!!(mapLayout.frame||mapLayout.settlePending||mapLayout.settleJob)};});
- }finally{await page.mouse.up();}
+ }finally{
+  // Firefox automation drops a mouse-up outside a resized viewport, even with
+  // pointer capture. Return the still-held pointer to the visible map before
+  // releasing it; this is real input and may legitimately pan the camera.
+  await page.locator('.map-wrap').scrollIntoViewIfNeeded();
+  const release=await page.evaluate(visiblePoint);
+  await page.mouse.move(release.x,release.y);
+  await page.evaluate(()=>{window.fuzzLastPointerRelease=null;window.addEventListener('pointerup',event=>{window.fuzzLastPointerRelease={type:event.type,x:event.clientX,y:event.clientY,buttons:event.buttons,pointerId:event.pointerId};},{once:true,capture:true});});
+  await page.mouse.up();
+  const event=await page.evaluate(()=>window.fuzzLastPointerRelease);
+  if(a.burst)a.burst.release={requested:release,event};
+  if(!event)throw Error('Interruption gesture release was not delivered');
+ }
 }
 
 export async function scrollAwayBack(page,a){
@@ -85,7 +98,7 @@ await page.addInitScript(()=>{window.fuzzCaptureState=()=>{
  const l=mapLayout,r=l.renderer,rect=l.svg.getBoundingClientRect();
  return JSON.stringify({status:l.status,error:l.error,fontStatus:document.fonts.status,fontGeneration:l.fontGeneration,
   revision:l.revision,view:l.view,layers:l.layers,textScale:l.textScale,theme:document.documentElement.dataset.theme,mapRect:[rect.x,rect.y,rect.width,rect.height],scroll:[scrollX,scrollY],viewport:[innerWidth,innerHeight],
-  frame:!!l.frame,settlePending:!!l.settlePending,settleJob:!!l.settleJob,gestures:l.gestures.size,
+  frame:!!l.frame,settlePending:!!l.settlePending,settleJob:!!l.settleJob,roundJob:!!l.roundJob,gestures:l.gestures.size,
   refreshPending:r?.refreshPending,generation:r?.generation,sprites:r?.labels.size,
   painted:r?.painted.map(p=>p.id),visible:[...l.visibleIds]});
 };});
@@ -150,7 +163,13 @@ try{
   if(report.errors.length)throw Error('Browser error captured');
  }
  report.status='passed';
-}catch(e){await writeFile(join(dir,'failed-input.html'),bytes);report.status='failed';report.failure={step:report.actions.length,message:e.message};await page.screenshot({path:join(dir,'failure.png'),fullPage:false}).catch(()=>{});process.exitCode=1;}
+}catch(e){
+ await writeFile(join(dir,'failed-input.html'),bytes);report.status='failed';report.failure={step:report.actions.length,message:e.message};
+ // Preserve pending lifecycle state as well as the last successful frame.
+ // A responsive page may be stuck waiting for a gesture/font/job indefinitely.
+ report.failure.state=await page.evaluate(()=>({snapshot:JSON.parse(fuzzCaptureState()),gestures:[...mapLayout.gestures],rendering:mapLayout.rendering,starting:mapLayout.starting,roundJob:mapLayout.roundJob?{revision:mapLayout.roundJob.revision,cancelled:mapLayout.roundJob.cancelled}:null,settleJob:mapLayout.settleJob?{revision:mapLayout.settleJob.revision,cancelled:mapLayout.settleJob.cancelled}:null,samples:mapLayout.samples.slice(-5)})).catch(error=>({unavailable:error.message}));
+ await page.screenshot({path:join(dir,'failure.png'),fullPage:false}).catch(()=>{});process.exitCode=1;
+}
 finally{
  clearTimeout(watchdog);
  report.visualReview={status:'pending',required:true,flaggedFrames:report.checks.filter(c=>c.pointNameCoverage?.reviewRequired).map(c=>c.step)};

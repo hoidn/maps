@@ -5,7 +5,7 @@ from map_spec import MapSpec
 from .catalog import load_catalog
 from .scene import augment_svg
 from .furniture import grid
-from .terrain import neutral_relief,cover_image
+from .terrain import neutral_relief,cover_image,COVER,COVER_DARK,COVER_KEY
 from sources.catalog import atomic_json
 from label_manifest import NS,safe_json
 
@@ -20,8 +20,10 @@ def improve(svg,manifest,dem,spec_name='grand_canyon'):
     if 'scale' in element.get('class','').split():parent.remove(element)
  for e in tree:
   if e.tag=='{'+NS+'}image' and 'terrain' in e.get('class','').split():e.set('href',shade['uri_dark' if 't-dark' in e.get('class','') else 'uri_light'])
- land=ET.Element('{'+NS+'}image',{'class':'landcover','href':cover_image(spec,catalog['features'],root),'x':'0','y':'0','width':str(spec.width),'height':str(spec.height),'preserveAspectRatio':'none'})
- index=max((i for i,e in enumerate(tree) if 'terrain' in e.get('class','').split()),default=0);tree.insert(index+1,land)
+ index=max((i for i,e in enumerate(tree) if 'terrain' in e.get('class','').split()),default=0)
+ for offset,theme in enumerate(('light','dark'),1):
+  land=ET.Element('{'+NS+'}image',{'class':'landcover t-'+theme,'href':cover_image(spec,catalog['features'],root,theme=theme),'x':'0','y':'0','width':str(spec.width),'height':str(spec.height),'preserveAspectRatio':'none'})
+  tree.insert(index+offset,land)
  grid_element=ET.fromstring(grid(spec))
  for c in grid_element.iter():c.tag='{'+NS+'}'+c.tag
  tree.append(grid_element)
@@ -75,5 +77,8 @@ def transport_legend(context):
  interaction='Select a trail to emphasize it. ' if context.get('mode','interactive')=='interactive' else ''
  out.append('<span class="lg-item">'+interaction+'Class, surface, access and hiking difficulty are independent attributes.</span>')
  coarse,medium,fine=context['spec'].contour_intervals
- out.append(f'<span class="lg-title">Terrain and water</span><span class="lg-item">Contours: {coarse} ft; {medium} ft and {fine} ft appear with detail. Blue: mapped water; dashed blue: explicitly intermittent. Fill: water area. Green/neutral tint: NLCD land cover. Purple dash-dot: protected area.</span>')
+ out.append('<span class="lg-title">Land cover</span>')
+ for category,label in COVER_KEY:
+  out.append(f'<span class="lg-item"><i class="cover-swatch" style="--cover-light:{COVER[category]};--cover-dark:{COVER_DARK[category]}"></i>{label}</span>')
+ out.append(f'<span class="lg-title">Terrain and water</span><span class="lg-item">Contours: {coarse} ft; {medium} ft and {fine} ft appear with detail. Blue: mapped water; dashed blue: explicitly intermittent. Fill: water area. Purple dash-dot: protected area.</span>')
  return ''.join(out)

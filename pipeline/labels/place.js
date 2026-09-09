@@ -7,7 +7,8 @@ const center=s=>[s.bounds.x+s.bounds.width/2,s.bounds.y+s.bounds.height/2];
 /** Pure CSS-pixel solver. Higher priority sorts first; required labels precede optional ones.
  * Every accepted candidate is checked, including during bounded transactional repair.
  * Optional queryObstacles(expandedBounds) is a deterministic provider of additional
- * CSS-space obstacles; it must conservatively return every nearby painted segment.
+ * CSS-space obstacles. Hard checks are cached within one solve; inputs and provider
+ * results must remain immutable/deterministic for that solve. The provider must conservatively return every nearby painted segment.
  * A symbol with anchorTrailRadius=6 permits only trail centerline portions inside
  * its true-anchor disk. Explicit allowedObstacleIds never exempt protected trails. */
 export function solveLayout({annotations,obstacles=[],viewport,previous,policy={},queryObstacles}) {
@@ -18,11 +19,14 @@ export function solveLayout({annotations,obstacles=[],viewport,previous,policy={
   const old=new Map((Array.isArray(previous)?previous:previous?.placements??[]).map(p=>[p.id,p.candidateId]));
   const obstacleIndex=new SpatialIndex(),obstacleMap=new Map();
   obstacles.forEach((o,i)=>{const key=String(i);obstacleMap.set(key,o);const b=o.shape?.bounds??{x:Math.min(o.line.a.x,o.line.b.x)-(o.line.width||0)/2,y:Math.min(o.line.a.y,o.line.b.y)-(o.line.width||0)/2,width:Math.abs(o.line.a.x-o.line.b.x)+(o.line.width||0),height:Math.abs(o.line.a.y-o.line.b.y)+(o.line.width||0)};obstacleIndex.insert(key,b);});
-  const accepted=new Map();let placedIndex=new SpatialIndex();
+  const accepted=new Map(),hardCache=new Map();let placedIndex=new SpatialIndex();
   const indexPlacement=(id,c)=>placedIndex.insert(id,c.shape.bounds);
   const candidates=a=>{const cs=[...(a.candidates??[])];const ix=cs.findIndex(c=>c.id===old.get(a.id));if(ix>0)cs.unshift(...cs.splice(ix,1));return cs;};
   function blockers(a,c) {
-    const hard=[],labels=[],repeat=[];
+    const labels=[],repeat=[];
+    let cache=hardCache.get(a.id);if(!cache){cache=new Map();hardCache.set(a.id,cache);}
+    let hard=cache.get(c);
+    if(!hard){hard=[];
     if(!validShape(c.shape)) return {hard:['invalid-geometry'],labels,repeat};
     if(!contains(frame,c.shape.bounds,padding))hard.push('frame');
     const allowed=new Set(a.allowedObstacleIds??[]);
@@ -33,6 +37,8 @@ export function solveLayout({annotations,obstacles=[],viewport,previous,policy={
       if(allowed.has(o.id)&&o.kind!=='trail')continue;
       const lines=o.line&&(o.kind==='trail'&&a.kind==='symbol'&&a.anchorTrailRadius===6?lineOutsideCircle(o.line,a.anchor,6):[o.line]);
       if(lines?lines.some(line=>c.shape.parts.some(r=>lineHitsRect(line,r,clearance))):shapeIntersects(c.shape,o.shape,clearance))hard.push(o.id);
+    }
+    cache.set(c,hard);
     }
     for(const id of placedIndex.query(expand(c.shape.bounds,clearance))){if(id===a.id)continue;const other=accepted.get(id);if(other&&shapeIntersects(c.shape,other.shape,clearance))labels.push(id);}
     // Repeat distance is a feature-level constraint, not a rectangle approximation.
@@ -51,7 +57,7 @@ export function solveLayout({annotations,obstacles=[],viewport,previous,policy={
     accepted.clear();for(const [id,v] of snapshot)accepted.set(id,v);rebuild();return false;
   }
   function place(a){if(a.eligibleReason||accepted.has(a.id))return;for(const c of candidates(a)){const b=blockers(a,c);if(!b.hard.length&&!b.labels.length&&!b.repeat.length){accept(a,c);break;}}
-    if(!accepted.has(a.id))for(const c of candidates(a)){const b=blockers(a,c);if(b.labels.length&&repair(a,c,b))break;}
+    if(!accepted.has(a.id)&&(policy.repairMaxNeighbors??2)>0)for(const c of candidates(a)){const b=blockers(a,c);if(b.labels.length&&repair(a,c,b))break;}
   }
   // Reserve just one successfully placed representative of each required group.
   for(const a of ordered.filter(a=>a.required))place(a);

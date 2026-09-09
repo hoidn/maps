@@ -61,14 +61,23 @@ export function regionCandidates(annotation,metric,policy={}) {
  * independently measured after applying each window before entering solveLayout.
  * sideCandidates supplies a zero vector and opposite perpendicular translations
  * of policy.lineOffset CSS pixels (default 8, zero disables sides). */
-export function lineWindows(points,textLength,policy={}) {
-  if(!Number.isFinite(textLength)||textLength<=0)throw new Error('Invalid text length');
+/** Immutable per-camera arc index. Callers must rebuild it when source vertices
+ * or their screen transform change. Shared repeat labels can reuse the index. */
+export function indexLinePath(points) {
   const segments=[];let total=0;
   for(let i=1;i<points.length;i++){
     const a=points[i-1],b=points[i];if(![...a,...b].every(Number.isFinite))throw new Error('Invalid path point');
     const length=Math.hypot(b[0]-a[0],b[1]-a[1]);if(!length)continue;
     segments.push({a,b,length,start:total,end:total+length,angle:Math.atan2(b[1]-a[1],b[0]-a[0])*180/Math.PI});total+=length;
   }
+  return {segments,total};
+}
+export function lineWindows(points,textLength,policy={}) {
+  if(!Number.isFinite(textLength)||textLength<=0)throw new Error('Invalid text length');
+  return indexedLineWindows(indexLinePath(points),textLength,policy);
+}
+export function indexedLineWindows({segments,total},textLength,policy={}) {
+  if(!Number.isFinite(textLength)||textLength<=0)throw new Error('Invalid text length');
   const padding=Math.max(0,policy.linePadding??6),last=total-padding-textLength;
   if(last<padding)return [];
   const limit=Math.max(1,Math.floor(policy.maxLineCandidates??24));

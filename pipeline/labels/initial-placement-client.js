@@ -1,3 +1,4 @@
+import {packTrailDataset} from './trail-dataset.js';
 import source from './dist/initial-worker.txt';
 import {solveInitialPlacementAsync} from './initial-placement.js';
 /** Embedded placement worker; cancellation terminates obsolete CPU work. */
@@ -20,10 +21,10 @@ export class InitialPlacementClient{
   return new Promise((resolve,reject)=>{
    const id=++this.next,p={resolve,reject,payload,controller:new AbortController()};this.pending.set(id,p);
    if(!this.worker){this.fallback(id,p);return;}
-   try{this.worker.postMessage({kind:'solve-initial',id,payload});}catch(error){this.pending.delete(id);reject(error);}
+   try{const packed=packTrailDataset(payload,this.sentTrailDataset);this.worker.postMessage({kind:'solve-initial',id,payload:packed.payload});this.sentTrailDataset=packed.state;}catch(error){this.pending.delete(id);reject(error);}
   });
  }
- stop(){this.worker?.terminate();if(this.url)URL.revokeObjectURL(this.url);this.worker=null;this.url=null;}
+ stop(){this.sentTrailDataset=null;this.worker?.terminate();if(this.url)URL.revokeObjectURL(this.url);this.worker=null;this.url=null;}
  cancel(){
   if(!this.pending.size)return;
   this.stop();for(const p of this.pending.values()){p.controller.abort();p.reject(new DOMException('Placement cancelled','AbortError'));}this.pending.clear();

@@ -338,3 +338,75 @@ measurements, candidates actually tested, longest uninterrupted work, first usef
 label paint and final coverage. Validate full words, curve continuity, close
 feature association, collision clearance, stable panning and cancellation before
 adopting it. Static exhaustive placement can remain unchanged.
+
+## Tenfold label-placement investigation on current cartography
+
+The user subsequently requested **at least 10× faster complete label placement**,
+including preparation and candidate construction, and suggested successive
+importance rounds. The controller now paints primary, context and detail rounds;
+this improves when useful names appear but does not itself establish a tenfold
+completion gain. The 3× initial-camera target remains a separate requirement.
+
+Current-content measurements changed the diagnosis. The importance tiers greatly
+reduced the old wrap pathology. A demand-wrap prototype retained approximately the
+same useful coverage but did not improve Grand Canyon overview completion; central
+6× preparation still spent about 2.0 seconds on 228 fine-contour labels and only
+17 ms on 50 ordinary point-name preparations. Individual slow contour paths have
+approximately 260–288 KB of coordinate text. Eager line-window enumeration was
+repeatedly scanning tens of thousands of segments for each tiny text window.
+
+The installed arc index locates window endpoints by binary search and traverses
+only the covered segment interval. It retains the original curvature summation
+order, window order, strict endpoint comparisons and exact candidate contents.
+The independent exhaustive reference agrees across 1,200 seeded cases, tiny
+vertex/epsilon cases and a 25,000-vertex contour. An isolated 40,000-vertex
+synthetic domain improved 52.24 → 4.06 ms (12.9×); **this is a hotspot result, not
+a tenfold complete-placement result**.
+
+A further prototype shares each path's projected vertices and arc index between
+repeat annotations, and measures a window's glyphs once before deriving translated
+side footprints. The candidate set, full text, curve-legibility rejection and
+protected-trail rules remain in force. In 72 cross-browser combinations of
+straight/curved/wrapped text, SVG/Canvas footprints and zoom, candidate identities
+and applications matched; maximum measured footprint variation was below
+0.00043 CSS px. Source geometry and screen-transform changes invalidated caches.
+
+The following quiet headed Chromium diagnostic used the newly rebuilt regional
+content at 1440×1000, DPR1. Values sum preparation and solve wall phases through
+all three rounds, including worker transfer and yields. These are one-run
+comparisons, not release acceptance or a distribution estimate.
+
+| View | Pre-index baseline | Arc index only | Shared index and translated sides | Final placement count in all variants |
+| --- | ---: | ---: | ---: | ---: |
+| Grand Canyon overview | 2,294 ms | 2,173 ms | 1,585 ms | 257 |
+| Grand Canyon central 6× | 4,775 ms | 2,469 ms | 1,554 ms | 65 |
+| Sequoia overview | 2,278 ms | 2,338 ms | 1,870 ms | 225 |
+| Sequoia central 6× | 496 ms | 473 ms | 372 ms | 23 |
+
+Raw inputs and reports are recorded under
+`artifacts/cartography/algorithm-prototype/`: `eager-reports.json` includes each
+rendered input SHA-256, and `side-parity.json` records the three-engine geometry
+comparison. Prototype scripts and reports remain ignored diagnostic artifacts.
+The strongest complete-label improvement in this comparison is approximately
+3.1×, with much smaller gains in the other views. **The 10× target is not met.**
+
+Two demand-driven experiments were rejected for production: lazy point wraps
+alone provided little benefit on current tiers; moving all line domains into
+main-thread solver callbacks could repeat failed domains between rounds and made
+overviews slower. Fewer eagerly materialized candidates did not imply lower
+end-to-end latency. The remaining algorithm directions are:
+
+- Keep immutable trail geometry and its source-space spatial index in the worker
+  across rounds, transferring only camera data and changed candidate domains.
+  Cancellation must clear sender/receiver state; blocked workers must retain the
+  complete source payload for their cooperative fallback.
+- Cache exhausted candidate domains and use conservative feature-repeat and
+  viewport bounds to reject impossible domains before exact glyph measurement.
+  Previously accepted labels remain fixed through subsequent rounds and panning.
+- Consider a native Canvas text-run measurement pipeline with stable CSS-font
+  shaping, cached ink metrics and analytic candidate transforms. This removes
+  repeated SVG measurement clones, but needs explicit font, halo, glyph and
+  curved-baseline parity checks and changes to the measurement/paint interface.
+
+Measure these directions against equal useful content and the existing placement
+quality checks. Their potential gains are neither established nor multiplicative.

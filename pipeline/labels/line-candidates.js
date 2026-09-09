@@ -1,4 +1,4 @@
-import {lineWindows} from './candidates.js';
+import {indexLinePath,indexedLineWindows} from './candidates.js';
 import {measureElement} from './measure.js';
 import {moveShape} from './geometry.js';
 import {measurePointVariants} from './point-variants.js';
@@ -25,10 +25,15 @@ function geometry(path,matrix,pathScale){
     }
     cached={d,points,length:length??path.getTotalLength()};pathGeometry.set(path,cached);
   }
-  if(cached.points)return {length:cached.length,points:cached.points.map(p=>project(matrix,p))};
+  // Repeat annotations on one contour share its projected vertices and arc
+  // index. Retain only one exact screen transform per immutable source path.
+  const key=[matrix.a,matrix.b,matrix.c,matrix.d,matrix.e,matrix.f].join(':');
+  if(cached.screenKey===key)return cached.screen;
+  const save=points=>{cached.screenKey=key;return cached.screen={length:cached.length,points,index:indexLinePath(points)};};
+  if(cached.points)return save(cached.points.map(p=>project(matrix,p)));
   const count=Math.max(1,Math.min(4096,Math.ceil(cached.length*pathScale/4))),points=[];
   for(let i=0;i<=count;i++)points.push(project(matrix,path.getPointAtLength(cached.length*i/count)));
-  return {length:cached.length,points};
+  return save(points);
 }
 
 /** Apply before showing the annotation. Transform is absolute in wrapper-parent SVG
@@ -89,7 +94,7 @@ export function buildLineCandidates({annotation,element,policy={},diagnostics={}
       const path=element.ownerDocument.getElementById(id);if(!path?.getTotalLength)continue;
       diagnostics.paths++;
       const pm=path.getScreenCTM(),pathScale=Math.hypot(pm.a,pm.b);
-      const {length,points}=geometry(path,pm,pathScale);
+      const {length,points,index}=geometry(path,pm,pathScale);
       const style=getComputedStyle(text),fontPixels=parseFloat(style.fontSize)*scale,halo=style.stroke==='none'?0:parseFloat(style.strokeWidth)*scale/2;
       // Glyph rectangles at diagonal angles need more room than baseline distance.
       // Keep association close to the real path and let hard obstacles reject any
@@ -114,7 +119,7 @@ export function buildLineCandidates({annotation,element,policy={},diagnostics={}
         }
       }
       if(tp&&originalOffset){const raw=originalOffset.endsWith('%')?parseFloat(originalOffset)*length/100:parseFloat(originalOffset);options.preferredOffset=raw*pathScale-advance/2;}
-      for(const window of lineWindows(points,advance,options)){
+      for(const window of indexedLineWindows(index,advance,options)){
         diagnostics.windows++;
         if(tp&&window.reverse){diagnostics.reverseWindows++;continue;}
         if(!tp&&options.lineOffset<32){
@@ -128,17 +133,25 @@ export function buildLineCandidates({annotation,element,policy={},diagnostics={}
     const limit=Math.max(1,Math.floor(policy.maxLineCandidates??24));
     windows.sort((a,b)=>a.score-b.score||a.window.curvature-b.window.curvature||(a.id<b.id?-1:a.id>b.id?1:0)||a.window.start-b.window.start);
     for(const {id,pathScale,window} of windows.slice(0,limit)){
+        let centerCandidate;const pathAnchor=tp?getComputedStyle(tp).textAnchor:null;
         for(let side=0;side<window.sideCandidates.length;side++){
           const delta=window.sideCandidates[side];let application;
           restore(element,'transform',originalTransform);
           if(tp){
-            const anchor=getComputedStyle(tp).textAnchor,shift=anchor==='middle'?advance/2:anchor==='end'?advance:0;
+            const anchor=pathAnchor,shift=anchor==='middle'?advance/2:anchor==='end'?advance:0;
             const startOffset=String((window.start+shift)/pathScale);
             application={transform:transformFor(new DOMMatrix().translate(delta.dx,delta.dy)),startOffset,...offsetApplication};
           }else{
             const metric=straightMetric,cx=metric.bounds.x+metric.bounds.width/2,cy=metric.bounds.y+metric.bounds.height/2;
             const screen=new DOMMatrix().translate(window.anchor[0]+delta.dx,window.anchor[1]+delta.dy).rotate(window.angle-textAngle).translate(-cx,-cy);
             application={transform:transformFor(screen)};
+          }
+          // Sides differ only by a screen translation. Glyph shaping, path
+          // overflow, uprightness and baseline continuity are unchanged. Reuse
+          // the exact center measurement instead of reshaping every side.
+          if(side){
+            if(centerCandidate)output.push({...centerCandidate,id:`${id}:${window.id}:side-${side}`,shape:moveShape(centerCandidate.shape,delta.dx,delta.dy),...application,application,side});
+            continue;
           }
           applyLineCandidate(element,application);
           if(tp){
@@ -160,7 +173,7 @@ export function buildLineCandidates({annotation,element,policy={},diagnostics={}
             if(!upright){diagnostics.uprightRejected++;continue;}
             if(!continuous){diagnostics.legibilityRejected++;continue;}
           }
-          try{output.push({id:`${id}:${window.id}:side-${side}`,shape:measureElement(element,0,measurement),dx:0,dy:0,...application,application,...(tp?{textHTML:originalTextHTML}:{}),geometryId:id,angle:window.angle,side,windowStart:window.start,windowEnd:window.end});}
+          try{centerCandidate={id:`${id}:${window.id}:side-${side}`,shape:measureElement(element,0,measurement),dx:0,dy:0,...application,application,...(tp?{textHTML:originalTextHTML}:{}),geometryId:id,angle:window.angle,side,windowStart:window.start,windowEnd:window.end};output.push(centerCandidate);}
           catch(error){if(!error.message.includes('overflow'))throw error;diagnostics.overflowRejected++;}
         }
     }

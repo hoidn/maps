@@ -57,6 +57,9 @@ The original hosted artifacts have not been updated by this implementation.
 
 ## Historical and exploratory context
 
+- [Product recommendation](PRODUCT_RECOMMENDATION.md): 9 September 2026 visual
+  comparison findings and proposed commercial validation; demand and willingness
+  to pay remain unproven.
 - [Session handoff](../HANDOFF.md): original delivery, owner intentions, and known
   limitations recorded at that time. Verify state before relying on it.
 - [Strategy](STRATEGY.md): exploratory product ideas and unvalidated estimates;

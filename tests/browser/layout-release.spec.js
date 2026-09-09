@@ -1,5 +1,5 @@
 import {test,expect} from '@playwright/test';
-import {mkdtemp,writeFile,rm} from 'node:fs/promises';
+import {mkdtemp,writeFile,readFile,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {releaseStates,checkSceneCoverage,runReleaseScenes,checkPinnedTrailDetails} from '../../scripts/release-scenes.mjs';
@@ -12,4 +12,13 @@ test('quick release harness independently rejects overlapping miniature map',asy
 
 test('desktop overview primary coverage uses eligible numerator and denominator',()=>{const data={manifest:{annotations:Array.from({length:10},(_,i)=>({id:String(i),kind:'point-label',priority:800}))},visible:['0','1','2'],outcomes:Array.from({length:10},(_,i)=>({id:String(i),eligible:i<8}))};const summary=summarizeCoverage(data);expect(summary['primary-point-label']).toEqual({visible:3,total:10,eligible:8,visibleEligible:3});const scene={viewportWidth:1440,fractions:[{kind:'primary-point-label',minimumFraction:.8,minViewportWidth:1200}]};expect(checkSceneCoverage(data,scene)).toEqual([{kind:'primary-point-label',minimumFraction:.8,numerator:3,denominator:8,fraction:.375}]);});
 
-test('pin verification follows visible details panel while historical tooltip stays hidden',async({page})=>{await page.setContent('<svg id="mapsvg"><path class="hit" data-name="Bright Angel Trail"/></svg><div id="ttip" hidden></div><div data-layout-details></div>');await page.evaluate(()=>document.querySelector('.hit').addEventListener('click',()=>{document.querySelector('[data-layout-details]').textContent='Bright Angel Trail · Corridor trail · 9.5 mi';}));expect(await checkPinnedTrailDetails(page)).toEqual({trail:'Bright Angel Trail'});await page.locator('[data-layout-details]').evaluate(e=>e.style.display='none');await expect(checkPinnedTrailDetails(page)).rejects.toThrow('visible details');});
+for(const backend of ['svg','canvas'])test(`pin verification natively selects visible topmost geometry in ${backend}`,async({page})=>{
+ let html=(await fixtureHTML()).replace('id="mapsvg"',`id="mapsvg" data-renderer="${backend}"`);
+ html=html.replace('<defs>', '<g class="hits" fill="none" stroke="transparent" stroke-width="14"><path class="hit" data-name="Offscreen" d="M-500,-300 L-200,-300"/><path class="hit" data-name="Underlying" d="M20,300 L480,300"/><path class="hit" data-name="Topmost" d="M20,300 L480,300"/></g><defs>');
+ await page.setContent(html);await page.addScriptTag({content:await readFile('pipeline/labels/dist/browser.js','utf8')});
+ await page.evaluate(async()=>{await mapLayout.ready;await mapLayout.whenSettled();window.nativePinClicks=0;mapLayout.svg.addEventListener('click',event=>{if(event.isTrusted)window.nativePinClicks++;const hit=mapLayout.renderer?.active?mapLayout.pickTrail(event.clientX,event.clientY):event.target.closest('.hit');if(hit)document.querySelector('[data-layout-details]').textContent=hit.dataset.name+' · Trail details';});});
+ if(backend==='canvas')await page.evaluate(async()=>{mapLayout.beginGesture('pointer');mapLayout.requestView({x:100,y:100,w:300,h:240});await new Promise(requestAnimationFrame);});
+ expect(await checkPinnedTrailDetails(page)).toEqual({trail:'Topmost'});
+ expect(await page.evaluate(()=>window.nativePinClicks)).toBe(1);
+ await page.locator('[data-layout-details]').evaluate(e=>e.style.display='none');await expect(checkPinnedTrailDetails(page)).rejects.toThrow('visible details');
+});

@@ -3,9 +3,63 @@ import { readFile, writeFile, mkdir, rename, unlink } from "node:fs/promises";
 import { resolve, dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { createHash, randomUUID } from "node:crypto";
-import { chromium } from "@playwright/test";
+import { chromium, firefox, webkit } from "@playwright/test";
 import { runAudit } from "./audit-map.mjs";
 const sha = (bytes) => createHash("sha256").update(bytes).digest("hex");
+// Probe the actual embedded typography, not a browser-name fudge factor. Each
+// engine measures identical untransformed SVG text. The largest outward bound
+// difference is reserved around every frozen annotation; independent serialized
+// audits still decide whether the result is safe to deliver.
+async function measureFontProbes(page, probes) {
+  return page.evaluate(async probes=>{
+    const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+    svg.style.cssText='position:absolute;left:-100000px;top:0;width:100000px;height:10000px;visibility:hidden;pointer-events:none';
+    document.body.append(svg);
+    try{
+      const texts=probes.map(probe=>{const text=document.createElementNS(svg.namespaceURI,'text');text.textContent=probe.text;for(const [key,value] of Object.entries(probe.style))text.style.setProperty(key,value);text.style.setProperty('transform','none');text.setAttribute('x','0');text.setAttribute('y','0');svg.append(text);return text;});
+      await Promise.all(texts.map(text=>document.fonts.load(getComputedStyle(text).font,text.textContent)));
+      await document.fonts.ready;
+      return texts.map(text=>{const b=text.getBBox();return {x:b.x,y:b.y,width:b.width,height:b.height};});
+    }finally{svg.remove();}
+  },probes);
+}
+async function staticMeasurementEnvelope(page, viewport) {
+  const {probes,css}=await page.evaluate(async()=>{
+    const controller=window.mapLayout,svg=document.getElementById('mapsvg');
+    if(!controller||!svg)throw new Error('Static layout runtime missing');
+    try{await controller.ready;await controller.whenSettled();}catch(error){throw new Error('Static layout/font initialization failed: '+error.message);}
+    const {width,height}=controller.manifest.map;
+    svg.style.width=width+'px';svg.style.height=height+'px';svg.style.maxWidth='none';svg.style.minWidth=width+'px';
+    controller.requestView({x:0,y:0,w:width,h:height});await controller.whenSettled();
+    const probes=new Map();
+    for(const text of svg.querySelectorAll('[data-layout-id] text,[data-layout-id] tspan')){
+      const computed=getComputedStyle(text),style={};
+      for(const key of ['font-family','font-size','font-weight','font-style','font-stretch','font-variant','letter-spacing','word-spacing','text-anchor','dominant-baseline'])style[key]=computed.getPropertyValue(key);
+      const probe={text:text.textContent,style};probes.set(JSON.stringify(probe),probe);
+    }
+    return {probes:[...probes.values()],css:[...document.querySelectorAll('style')].map(s=>s.textContent).join('\n')};
+  });
+  if(!probes.length)throw new Error('Static typography probes missing');
+  const reference=await measureFontProbes(page,probes),profiles=[{browser:'chromium',probeCount:probes.length,maxOutwardPx:0}];
+  let reservePx=0;
+  for(const [name,engine] of [['firefox',firefox],['webkit',webkit]]){
+    const browser=await engine.launch();
+    try{
+      const probePage=await browser.newPage({viewport});await probePage.route('**/*',route=>route.abort('blockedbyclient'));
+      await probePage.setContent('<!doctype html><style>'+css+'</style><body></body>');
+      const measured=await measureFontProbes(probePage,probes);let maxOutwardPx=0;
+      for(let i=0;i<reference.length;i++){
+        const a=reference[i],b=measured[i];
+        if(!Object.values(b).every(Number.isFinite))throw new Error('Non-finite static font measurement');
+        maxOutwardPx=Math.max(maxOutwardPx,a.x-b.x,a.y-b.y,b.x+b.width-a.x-a.width,b.y+b.height-a.y-a.height);
+      }
+      profiles.push({browser:name,probeCount:probes.length,maxOutwardPx});reservePx=Math.max(reservePx,maxOutwardPx);
+    }finally{await browser.close();}
+  }
+  // Round outward at subpixel resolution, never inward.
+  reservePx=Math.ceil(reservePx*64)/64;
+  return {method:'maximum outward SVG text-bound difference from Chromium across embedded-font probes',reservePx,profiles};
+}
 /** Finalize only after reopening the exact serialized bytes in every audit engine. */
 export async function finalizeStatic({
   input,
@@ -66,8 +120,9 @@ export async function finalizeStatic({
         : r.abort("blockedbyclient"),
     );
     await page.goto(url, { waitUntil: "load" });
+    const measurementEnvelope = await staticMeasurementEnvelope(page, viewport);
     const frozen = await page.evaluate(
-      async ({ sourceSha256 }) => {
+      async ({ sourceSha256, measurementEnvelope, auditPolicy }) => {
         const svg = document.getElementById("mapsvg"),
           controller = window.mapLayout;
         if (!svg || !controller)
@@ -84,6 +139,10 @@ export async function finalizeStatic({
             document.getElementById("map-label-manifest").textContent,
           ),
           { width, height } = manifest.map;
+        // Keep the release clearance unchanged. The solver receives an additional
+        // measured envelope on both labels, plus one envelope at map edges.
+        controller.policy={...controller.policy,clearance:Math.max(controller.policy.clearance??2,auditPolicy.clearance??2)+2*measurementEnvelope.reservePx,edgePadding:Math.max(controller.policy.edgePadding??4,auditPolicy.edgePadding??4)+measurementEnvelope.reservePx};
+        controller.invalidateLayout();controller.previous=null;controller.cache.invalidate();controller.lineCache.clear();
         // All placement distances are resolved at the declared natural map size.
         svg.style.width = width + "px";
         svg.style.height = height + "px";
@@ -167,13 +226,14 @@ export async function finalizeStatic({
           schemaVersion: 1,
           sourceSha256,
           referenceSize: { width, height },
+          measurementEnvelope,
           outcomes: report.outcomes,
           missingRequired: report.missingRequired,
         }).replaceAll("<", "\\u003c");
         document.body.append(metadata);
         return "<!doctype html>\n" + document.documentElement.outerHTML;
       },
-      { sourceSha256 },
+      { sourceSha256, measurementEnvelope, auditPolicy:policy },
     );
     await browser.close();
     browser = null;
@@ -207,6 +267,7 @@ export async function finalizeStatic({
       sourceSha256,
       artifactSha256,
       viewport,
+      measurementEnvelope,
       audits,
     };
     await writeFile(
@@ -217,6 +278,7 @@ export async function finalizeStatic({
           sourceSha256,
           artifactSha256,
           viewport,
+          measurementEnvelope,
           audits: audits.map((a) => ({
             browser: a.browser,
             theme: a.theme,

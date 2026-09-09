@@ -59,6 +59,8 @@ test("static finalizer bakes SVG and verifies serialized bytes in three engines 
   expect(output).toContain('data-layout-frozen="true"');
   expect(output).toContain('id="map-layout-frozen-report"');
   expect(output).not.toContain("data-layout-details");
+  expect(result.measurementEnvelope.reservePx).toBeGreaterThan(0);
+  expect(result.measurementEnvelope.profiles.map(p=>p.browser)).toEqual(["chromium","firefox","webkit"]);
   expect(result.audits).toHaveLength(6);
   expect(
     result.audits.every((a) => a.status === "pass" && !a.javaScriptEnabled),

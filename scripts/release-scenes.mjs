@@ -24,12 +24,35 @@ export function releaseStates({width,height,features=[],sampleCount=250,seed=0xC
 /** Verify the current trail-selection UI, which deliberately keeps the old tooltip
  * hidden and exposes information in the separate details region. */
 export async function checkPinnedTrailDetails(page) {
-  const result=await page.evaluate(()=>{const hit=document.querySelector('.hit');if(!hit)return {error:'Missing trail hit target'};const r=document.querySelector('#mapsvg').getBoundingClientRect();hit.dispatchEvent(new MouseEvent('click',{bubbles:true,clientX:r.x+r.width/2,clientY:r.y+r.height/2}));const details=document.querySelector('[data-layout-details]');let visible=!!details;
-    for(let p=details;p?.nodeType===1;p=p.parentElement){const s=getComputedStyle(p);if(p.hidden||s.display==='none'||s.visibility==='hidden'||+s.opacity===0)visible=false;}
-    return {details:details?.textContent,visible,name:hit.dataset.name};
+  const target=await page.evaluate(()=>{
+    const svg=document.querySelector('#mapsvg'),layout=window.mapLayout;
+    if(!svg)return {error:'Missing map'};
+    const r=svg.getBoundingClientRect(),canvas=layout?.renderer?.active;
+    const view=layout?.view,s=view?Math.min(r.width/view.w,r.height/view.h):1;
+    const camera=canvas?new DOMMatrix([s,0,0,s,r.x+(r.width-view.w*s)/2-view.x*s,r.y+(r.height-view.h*s)/2-view.y*s]):null;
+    for(const hit of svg.querySelectorAll('.hit')){
+      const length=hit.getTotalLength(),matrix=camera||hit.getScreenCTM();if(!matrix||!length)continue;
+      const samples=Math.min(2048,Math.max(2,Math.ceil(length*Math.hypot(matrix.a,matrix.b)/6)));
+      for(let i=0;i<=samples;i++){
+        const local=hit.getPointAtLength(length*i/samples),p=new DOMPoint(local.x,local.y).matrixTransform(matrix),x=p.x,y=p.y;
+        if(x<Math.max(r.left,0)+2||x>Math.min(r.right,innerWidth)-2||y<Math.max(r.top,0)+2||y>Math.min(r.bottom,innerHeight)-2)continue;
+        const surface=document.elementFromPoint(x,y);if(!surface||!(surface===svg||svg.contains(surface)))continue;
+        // Intersections select the topmost trail, which may differ from the
+        // geometry being sampled. Use the same visible pick identity as a user.
+        const selected=canvas?layout.pickTrail(x,y):surface.closest('.hit');
+        if(selected?.dataset.name)return {x,y,name:selected.dataset.name};
+      }
+    }
+    return {error:'No visible trail geometry available for native pin verification'};
   });
-  if(result.error||!result.visible||!result.name||!result.details?.includes(result.name))throw new Error(result.error??'Pin did not expose selected trail name in visible details');
-  return {trail:result.name};
+  if(target.error)throw new Error(target.error);
+  await page.mouse.click(target.x,target.y);
+  const result=await page.evaluate(()=>{const details=document.querySelector('[data-layout-details]');let visible=!!details;
+    for(let p=details;p?.nodeType===1;p=p.parentElement){const s=getComputedStyle(p);if(p.hidden||s.display==='none'||s.visibility==='hidden'||+s.opacity===0)visible=false;}
+    return {details:details?.textContent,visible};
+  });
+  if(!result.visible||!result.details?.includes(target.name))throw new Error('Pin did not expose selected trail name in visible details');
+  return {trail:target.name};
 }
 async function settled(page){await page.evaluate(async()=>{await window.mapLayout?.ready;await window.mapLayout?.whenSettled?.();});}
 async function setView(page,view){await page.evaluate(async view=>{const m=JSON.parse(document.querySelector('#map-label-manifest').textContent),w=m.map.width/view.zoom,h=m.map.height/view.zoom;if(!window.mapLayout?.requestView)throw new Error('Missing managed camera API');for(const layer of ['places','names','contours'])window.mapLayout.setLayer?.(layer,view.layers?.[layer]??true);window.mapLayout.requestView({x:view.x??(m.map.width-w)/2,y:view.y??(m.map.height-h)/2,w,h});await window.mapLayout.whenSettled?.();},view);}

@@ -31,8 +31,8 @@ def render(rampf, lo, hi, name, q):
     im = Image.fromarray((img * 255).astype(np.uint8)); buf = io.BytesIO()
     im.save(buf, "JPEG", quality=q, optimize=True, subsampling=1); b = buf.getvalue(); open(name, "wb").write(b)
     print(name, len(b) // 1024, "KB"); return "data:image/jpeg;base64," + base64.b64encode(b).decode()
-uri_light = render(light, 0.80, 1.04, "terrain_hi_light.jpg", 72)
-uri_dark = render(dark, 0.82, 1.20, "terrain_hi_dark.jpg", 72)
+uri_light = render(light, 0.66, 1.00, "terrain_hi_light.jpg", 72)
+uri_dark = render(dark, 0.64, 1.25, "terrain_hi_dark.jpg", 72)
 print("images done", round(time.time() - t0))
 if '--shading-only' in sys.argv:
     refresh_cache('terrain_hi.json',uri_light,uri_dark)

@@ -1,5 +1,7 @@
 const NS='http://www.w3.org/2000/svg';
 const BACKGROUND='.terrain,.contours,.hydro,.roads,[data-layout-background]';
+const VECTOR='[data-layout-id],.trails,.fixed-ui,text,[data-layout-obstacle="trail"]';
+const backgroundOnly=e=>e.matches(BACKGROUND)&&!e.matches(VECTOR)&&!e.querySelector(VECTOR);
 /** One bounded background bitmap for gestures. Protected trails, all annotations,
  * hit targets and fixed UI stay in the original SVG. Source nodes are retained
  * behind placeholders and restored synchronously before every settled pass. */
@@ -19,7 +21,7 @@ export class MotionPreview {
     const generation=++this.generation,started=performance.now();let sourceURL,bitmapURL;
     try{
       const source=this.svg,clone=source.cloneNode(true);
-      for(const e of [...clone.children])if(e.tagName.toLowerCase()!=='defs'&&!e.matches(BACKGROUND))e.remove();
+      for(const e of [...clone.children])if(e.tagName.toLowerCase()!=='defs'&&!backgroundOnly(e))e.remove();
       for(const e of clone.querySelectorAll('[data-layout-id],.trails,.fixed-ui,text'))e.remove();
       for(const e of clone.querySelectorAll('[href]'))if(!/^(?:data:|#)/.test(e.getAttribute('href')))throw new Error('Preview requires embedded assets');
       const style=document.createElementNS(NS,'style');style.textContent=[...document.querySelectorAll('style')].map(e=>e.textContent.replace(/@font-face\s*\{[^}]*\}/g,'')).join('\n');clone.prepend(style);
@@ -44,7 +46,7 @@ export class MotionPreview {
   }
   show(){
     if(this.active||!this.image)return;
-    for(const node of [...this.svg.children].filter(e=>e.matches(BACKGROUND))){
+    for(const node of [...this.svg.children].filter(backgroundOnly)){
       const marker=document.createComment('motion background');node.replaceWith(marker);this.detached.push({node,marker});
     }
     this.svg.insertBefore(this.image,this.svg.firstChild);this.active=true;

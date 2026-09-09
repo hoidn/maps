@@ -245,8 +245,10 @@ export class LayoutController {
         // Reset/normalize in one write batch before measuring any annotation.
         // This avoids forcing style/layout once for every ordinary point label.
         for(const a of this.manifest.annotations){
-          const e=this.elements.get(a.id),text=e.querySelector('text');e.style.visibility='hidden';e.setAttribute('transform','');
-          e.style.display=this.eligible(a,project(m,a.anchor),viewport,z)?'none':'inline';
+          const e=this.elements.get(a.id),text=e.querySelector('text');e.style.visibility='hidden';
+          const deferredLine=a.kind==='line-label'&&(a.geometryId||a.geometryIds?.length);
+          if(deferredLine||this.eligible(a,project(m,a.anchor),viewport,z)){e.style.display='none';continue;}
+          e.style.display='inline';e.setAttribute('transform','');
           if(text&&text.innerHTML!==a.originalTextHTML)text.innerHTML=a.originalTextHTML;
           this.normalize(a,e,s);
         }
@@ -259,14 +261,20 @@ export class LayoutController {
           if(a.kind==='symbol')item.anchorTrailRadius=6;
           item.eligibleReason=this.eligible(a,anchor,viewport,z);
           if(item.eligibleReason){prepared.push(item);continue;}
-          if(performance.now()>candidateDeadline&&!this.cache.entries.has(a.id)&&!this.lineCache.has(a.id)){item.eligibleReason='budget-deferred';prepared.push(item);continue;}
+          if(performance.now()>=candidateDeadline&&!this.cache.entries.has(a.id)&&!this.lineCache.has(a.id)){item.eligibleReason='budget-deferred';prepared.push(item);continue;}
           try {
             const line=a.kind==='line-label'&&(a.geometryId||a.geometryIds?.length);
             if(line){
               const parentMatrix=e.parentElement.getScreenCTM(),cached=this.lineCache.get(a.id);
               if(cached)try{item.candidates=cached.candidates.map(c=>reprojectLineCandidate(c,cached.parentMatrix,parentMatrix));}catch{this.lineCache.delete(a.id);}
-              if(!this.lineCache.has(a.id)&&performance.now()>candidateDeadline){item.eligibleReason='budget-deferred';prepared.push(item);continue;}
-              if(!this.lineCache.has(a.id))item.candidates=buildLineCandidates({annotation:a,element:e,policy:{...this.policy,maxLineCandidates:this.mode==='interactive'?Math.min(this.policy.maxLineCandidates??24,4):this.policy.maxLineCandidates}});
+              if(!this.lineCache.has(a.id)&&performance.now()>=candidateDeadline){item.eligibleReason='budget-deferred';prepared.push(item);continue;}
+              if(!this.lineCache.has(a.id)){
+                const text=e.querySelector('text');e.style.display='inline';e.setAttribute('transform','');
+                if(text&&text.innerHTML!==a.originalTextHTML)text.innerHTML=a.originalTextHTML;
+                this.normalize(a,e,s);
+                try{item.candidates=buildLineCandidates({annotation:a,element:e,policy:{...this.policy,maxLineCandidates:this.mode==='interactive'?Math.min(this.policy.maxLineCandidates??24,4):this.policy.maxLineCandidates}});}
+                finally{e.style.display='none';}
+              }
               this.lineCache.set(a.id,{candidates:item.candidates,parentMatrix});
               item.repeatDistance=this.policy.repeatDistance;
             }else{

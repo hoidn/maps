@@ -45,6 +45,37 @@ export function collectManagedInventory() {
       { x: b.x + b.width + pad, y: b.y + b.height + pad },
       { x: b.x - pad, y: b.y + b.height + pad },
     ].map((p) => project(m, p));
+  // Independent clipping stays inside this serialized collector. Intersect two
+  // conservative round-stroke enclosures: local padded quad and screen padded
+  // bounds. Rotating a local square alone invents excess diagonal halo.
+  const paintedQuad = (box, matrix, pad, round) => {
+    let polygon = quad(box, matrix, pad);
+    if (!pad || !round) return polygon;
+    const core = quad(box, matrix);
+    const aa = matrix.a ** 2 + matrix.b ** 2;
+    const bb = matrix.c ** 2 + matrix.d ** 2;
+    const ab = matrix.a * matrix.c + matrix.b * matrix.d;
+    const radius = pad * Math.sqrt((aa + bb + Math.hypot(aa - bb, 2 * ab)) / 2);
+    for (const [axis, edge, sign] of [
+      ['x', Math.min(...core.map(p => p.x)) - radius, 1],
+      ['x', Math.max(...core.map(p => p.x)) + radius, -1],
+      ['y', Math.min(...core.map(p => p.y)) - radius, 1],
+      ['y', Math.max(...core.map(p => p.y)) + radius, -1],
+    ]) {
+      const input = polygon; polygon = [];
+      for (let i = 0; i < input.length; i++) {
+        const a = input[i], b = input[(i + 1) % input.length];
+        const insideA = sign * (a[axis] - edge) >= 0;
+        const insideB = sign * (b[axis] - edge) >= 0;
+        if (insideA) polygon.push(a);
+        if (insideA !== insideB) {
+          const t = (edge - a[axis]) / (b[axis] - a[axis]);
+          polygon.push({x: a.x + t * (b.x - a.x), y: a.y + t * (b.y - a.y)});
+        }
+      }
+    }
+    return polygon;
+  };
   const polygons = (e) => {
     const result = [];
     for (const child of e.matches(
@@ -58,10 +89,13 @@ export function collectManagedInventory() {
       const m = child.getScreenCTM();
       if (!m) continue;
       const style = getComputedStyle(child),
+        isText = child.tagName.toLowerCase() === "text",
+        round = isText && style.strokeLinejoin === "round",
         pad =
           style.stroke === "none"
             ? 0
-            : (parseFloat(style.strokeWidth) || 0) / 2;
+            : ((parseFloat(style.strokeWidth) || 0) / 2) *
+              (isText && style.strokeLinejoin.startsWith("miter") ? Math.max(1, parseFloat(style.strokeMiterlimit) || 4) : 1);
       if (
         child.tagName.toLowerCase() === "text" &&
         (child.querySelector("textPath") ||
@@ -69,10 +103,10 @@ export function collectManagedInventory() {
           Math.abs(m.c) > 1e-8)
       ) {
         for (let i = 0; i < child.getNumberOfChars(); i++)
-          result.push(quad(child.getExtentOfChar(i), m, pad));
+          result.push(paintedQuad(child.getExtentOfChar(i), m, pad, round));
       } else {
         const b = child.getBBox();
-        if (b.width || b.height) result.push(quad(b, m, pad));
+        if (b.width || b.height) result.push(paintedQuad(b, m, pad, round));
       }
     }
     return result;

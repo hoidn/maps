@@ -3,5 +3,5 @@
   "bbox":[-118.89,36.42,-118.51,36.69], "width":1300,"height":1140,
   "contourIntervalsFeet":[250,100,50], "bufferDegrees":0.015,
   "requiredNames":[], "requiredRoutes":[],
-  "sources":["osm","3dep","3dhp","gnis","nlcd","padus","nps"]
+  "sources":["osm","3dep","3dhp","gnis","nlcd","padus"]
 }

@@ -16,8 +16,10 @@ def refresh(spec,source):
   return import_module('sources.'+source).fetch(spec,root)
  from importlib import import_module
  result=import_module('sources.'+source).fetch(spec,root)
- atomic_json(root/(source+'-features.json'),result)
- return {'features':len(result['features'] if isinstance(result,dict) else result)}
+ features,issues=result if isinstance(result,tuple) else (result,[])
+ catalog={'frame':spec.frame,'features':features,'issues':issues,'featureCount':len(features),'issueCount':len(issues)}
+ atomic_json(root/(source+'-features.json'),catalog)
+ return {'features':len(features),'issues':len(issues)}
 def main():
  parser=argparse.ArgumentParser();parser.add_argument('--map',default='grand_canyon');parser.add_argument('--source',choices=['osm','gnis','usgs_hydro','boundaries','landcover','elevation','all'],default='all');args=parser.parse_args();spec=MapSpec.load(args.map)
  for source in (['osm','gnis','usgs_hydro','boundaries','landcover','elevation'] if args.source=='all' else [args.source]):

@@ -29,7 +29,11 @@ class MapSpec:
  def from_dict(cls,d):
   b=tuple(d['bbox'])
   if len(b)!=4 or not all(math.isfinite(v) for v in b) or not(-180<=b[0]<b[2]<=180 and -90<b[1]<b[3]<90):raise ValueError('Invalid frame extent')
-  if d.get('width',1300)<=0 or d.get('height',1070)<=0:raise ValueError('Invalid frame dimensions')
+  if any(type(v) is not int or v<=0 for v in (d.get('width',1300),d.get('height',1070))):raise ValueError('Invalid frame dimensions')
+  buffer=d.get('bufferDegrees',.015)
+  if type(buffer) not in (int,float) or not math.isfinite(buffer) or buffer<0:raise ValueError('Invalid query buffer')
+  intervals=d.get('contourIntervalsFeet',[250,100,50])
+  if not isinstance(intervals,(list,tuple)) or len(intervals)!=3 or any(type(v) is not int or v<=0 for v in intervals) or not intervals[0]>intervals[1]>intervals[2] or any(v%intervals[2] for v in intervals):raise ValueError('Invalid contour intervals: three descending positive feet intervals, divisible by finest')
   return cls(d['id'],d['title'],b,d.get('width',1300),d.get('height',1070),d.get('subtitle','Trails and terrain'),tuple(d.get('contourIntervalsFeet',[250,100,50])),d.get('bufferDegrees',.015),tuple(d.get('requiredNames',[])),tuple(d.get('requiredRoutes',[])),tuple(d.get('sources',[])))
  @property
  def center(self):return ((self.bbox[1]+self.bbox[3])/2,(self.bbox[0]+self.bbox[2])/2)
@@ -65,3 +69,12 @@ class MapSpec:
  def overpass_bbox(self):
   w,s,e,n=self.bbox;b=self.buffer_degrees
   return (s-b,w-b,n+b,e+b)
+
+def validate_legacy_terrain_frame(spec):
+ """Guard the fixed frame of the historical terrain/profile cache adapter.
+
+ These constants belong to process_dem(_hi).py, not to portable selection rules.
+ A new extent/interval requires the region builder and registered raster caches.
+ """
+ if (spec.bbox,spec.width,spec.height,spec.contour_intervals)!=((-112.262,35.990,-111.898,36.232),1300,1070,(250,100,50)):
+  raise ValueError('Map specification does not match legacy terrain; use build_region.py with registered caches')

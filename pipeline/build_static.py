@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Draws the Grand Canyon trail sheet: hand-designed SVG cartography over USGS 3DEP terrain
 with trail/river geometry from OpenStreetMap."""
+from pathlib import Path
 import json, math, html, numpy as np
 from skimage.measure import approximate_polygon
 from label_manifest import Manifest, embedded_fonts, layout_script
@@ -8,6 +9,9 @@ M = Manifest("static")
 from water_areas import WaterAreas
 import osmdata as o
 from osmdata import P, hav, length, LAT0, LAT1, LON0, LON1, W, H
+
+from map_spec import validate_legacy_terrain_frame
+validate_legacy_terrain_frame(o.SPEC)
 
 T = json.load(open("terrain.json"))
 DEM = np.load("dem.npy") * 3.28084
@@ -195,10 +199,8 @@ def oriented(run):
     dx = run[-1][0] - run[0][0]; dy = run[-1][1] - run[0][1]
     if dx < -20 or (abs(dx) <= 20 and dy > 0): return run[::-1]
     return run
-SKIP_STREAM = ("Wash", "Kwagunt", "Unkar", "Lava Creek", "Ninetyfour", "Ninetyone", "Tuna Creek", "Milk Creek")
 hid = 0
 for name, chains in o.streams.items():
-    if any(s in name for s in SKIP_STREAM): continue
     is_river = name == "Colorado River"
     cls = "river" if is_river else ("creek creek-major" if name == "Bright Angel Creek" else "creek")
     best, bestlen = None, 0
@@ -215,7 +217,7 @@ for name, chains in o.streams.items():
         hydro_defs.append(f'<path id="h{hid}" d="{"M"+" ".join(f"{x:.1f},{y:.1f}" for x,y in pts)}"/>')
         for off in ("14%", "58%", "86%"):
             hydro_labels.append(f'<text class="l-river" dy="-7"><textPath href="#h{hid}" startOffset="{off}" text-anchor="middle">Colorado River</textPath></text>')
-    elif bestlen >= 110 and name not in ("Coconino Wash",):
+    elif bestlen >= 110 and name.strip() not in ("?", ""):
         pts = simplify(oriented(best), 0.5); hid += 1
         hydro_defs.append(f'<path id="h{hid}" d="{"M"+" ".join(f"{x:.1f},{y:.1f}" for x,y in pts)}"/>')
         hydro_labels.append(f'<text class="l-hydro" dy="-4"><textPath href="#h{hid}" startOffset="50%" text-anchor="middle">{esc(name)}</textPath></text>')
@@ -435,6 +437,8 @@ svg = f'''<svg class="map" viewBox="0 0 {W} {H}" role="img" aria-label="Hand-dra
 <rect class="neatline" x="0.5" y="0.5" width="{W-1}" height="{H-1}"/>
 </svg>'''
 
+from cartography.integration import improve, catalog_panel, transport_legend
+svg, cartography_context = improve(svg, M, DEM / 3.28084)
 svg = M.finalize(svg)
 
 # ---------------------------------------------------------------- mileage tables & profile
@@ -731,7 +735,7 @@ legend = "".join([
 
 page = f'''<meta charset="utf-8">
 <title>Grand Canyon Trail Sheet</title>
-<style>{embedded_fonts()}{CSS}\n[data-layout-id]{{visibility:hidden}}</style>
+<style>{embedded_fonts()}{CSS}{(Path(__file__).parent/'cartography/styles.css').read_text()}\n[data-layout-id]{{visibility:hidden}}</style>
 <main class="sheet">
 <header class="mast">
   <div>
@@ -743,12 +747,12 @@ page = f'''<meta charset="utf-8">
     <dt>Scale</dt><dd>1 mile ≈ {MI:.0f} px (about 1:90,000 at full width)</dd>
     <dt>Contours</dt><dd>250 ft, index every 1,000 ft</dd>
     <dt>Terrain</dt><dd>USGS 3DEP ⅓-arc-second DEM, fetched 2026-09-06</dd>
-    <dt>Lines</dt><dd>OpenStreetMap trail, road and stream geometry</dd>
+    <dt>Lines</dt><dd>Trails and roads: OpenStreetMap · water: USGS and OSM</dd>
   </dl>
 </header>
 <figure class="map-fig">
 {svg}
-<figcaption class="legend">{legend}</figcaption>
+<figcaption class="legend">{transport_legend(cartography_context) or legend}</figcaption>
 </figure>
 
 <section id="corridor">
@@ -779,8 +783,9 @@ page = f'''<meta charset="utf-8">
   </div>
 </section>
 
+{catalog_panel(cartography_context)}
 <footer>
-  <p>Terrain: U.S. Geological Survey 3D Elevation Program, ⅓-arc-second DEM served by the 3DEP Elevation ImageServer; hillshade, hypsometric tint and contours computed from that grid for this sheet. Trails, roads, streams, campsites and summit names and elevations: © OpenStreetMap contributors (ODbL). Symbology, labels, layout and the rim-to-rim profile were drawn for this sheet.</p>
+  <p>Terrain: U.S. Geological Survey 3D Elevation Program, ⅓-arc-second DEM served by the 3DEP Elevation ImageServer; neutral hillshade and contours computed from that grid for this sheet. Supplemental hydrography and natural-feature names: USGS 3DHP and GNIS. Land cover: Annual NLCD; protected areas: PAD-US. Source snapshots and dates are listed above. Trails, roads, streams, campsites and summit names and elevations: © OpenStreetMap contributors (ODbL). Symbology, labels, layout and the rim-to-rim profile were drawn for this sheet.</p>
   <p>Schematic reference, not for navigation. Trail lines and mileages carry mapping error of a few hundred feet; use the park's official trail guides and current conditions for planning.</p>
 </footer>
 </main>

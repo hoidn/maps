@@ -35,6 +35,16 @@ class ManifestTests(unittest.TestCase):
     def test_nonfinite_anchor_rejected(self):
         with self.assertRaises(ValueError):
             Manifest().label('<text>A</text>','A','l-place',(float('nan'),0))
+    def test_required_static_route_paths_declare_complete_wraps(self):
+        m=Manifest('static');m.required_routes={'Example Ridge Trail'}
+        m.label('<text><textPath href="#route">Example Ridge Trail</textPath></text>',
+                'Example Ridge Trail','l-trail',(10,20),kind='line-label',geometry_id='route',source_id='osm:way:123')
+        a=m.annotations[0]
+        self.assertEqual(a['geometryId'],'route')
+        self.assertEqual(a['requiredGroup'],'Example Ridge Trail')
+        self.assertTrue(any(len(v['lines'])==3 for v in a.get('variants',[])))
+        self.assertTrue(all(' '.join(v['lines'])==a['text'] for v in a['variants']))
+        self.assertEqual(m.features[a['featureId']]['sourceId'],'osm:way:123')
     def test_curved_labels_registered_and_paths_identified(self):
         m=Manifest()
         svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1300 1070"><defs><path id="river" d="M0,0 L80,80"/></defs><g class="hydro-labels"><text class="l-river"><textPath href="#river">River</textPath></text></g></svg>'

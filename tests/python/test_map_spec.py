@@ -17,3 +17,16 @@ class MapSpecTests(unittest.TestCase):
   a.validate_cache({'frame':a.frame})
  def test_invalid_extents_fail(self):
   with self.assertRaises(ValueError):MapSpec.from_dict({'id':'bad','title':'bad','bbox':[10,40,9,41],'width':1300,'height':1070})
+ def test_contour_profile_rejects_invalid_intervals(self):
+  for intervals in ([0,100,50],[50,100,250],[250,100],[250,100,30]):
+   with self.assertRaisesRegex(ValueError,'contour'):
+    MapSpec.from_dict({'id':'test','title':'Test','bbox':[0,0,1,1],'contourIntervalsFeet':intervals})
+ def test_legacy_adapter_cannot_reinterpret_caches_under_a_changed_frame(self):
+  from map_spec import validate_legacy_terrain_frame
+  from dataclasses import replace
+  s=MapSpec.load('grand_canyon');validate_legacy_terrain_frame(s)
+  for changed in (replace(s,bbox=(-113,35,-112,36)),replace(s,width=1200),replace(s,contour_intervals=(200,100,50))):
+   with self.assertRaisesRegex(ValueError,'legacy'):validate_legacy_terrain_frame(changed)
+ def test_invalid_dimensions_and_buffer_fail_before_geographic_operations(self):
+  for values in ({'width':float('nan')},{'width':True},{'height':3.5},{'bufferDegrees':-1},{'bufferDegrees':float('inf')},{'contourIntervalsFeet':None}):
+   with self.subTest(values=values),self.assertRaises(ValueError):MapSpec.from_dict({'id':'test','title':'Test','bbox':[0,0,1,1],**values})

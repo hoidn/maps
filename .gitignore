@@ -22,3 +22,7 @@ pipeline/grand_canyon_trails*.html
 
 water.json
 water.json.tmp
+
+pipeline/cache/
+
+pipeline/sequoia_trails*.html

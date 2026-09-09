@@ -2,7 +2,7 @@
 and original tags survive normalization. No region names influence selection.
 """
 from collections import defaultdict,Counter
-from shapely.geometry import Point,LineString,Polygon,mapping,box
+from shapely.geometry import Point,LineString,Polygon,MultiPolygon,mapping,box
 from shapely.ops import unary_union
 from water_areas import rings
 
@@ -11,6 +11,7 @@ def display_name(tags):
  return name.strip() if name and name.strip() not in ('?','unknown','unnamed') else None
 
 def feature_kind(t):
+ if t.get('highway') in ('trailhead','bus_stop','crossing','ford') or t.get('waterway')=='waterfall' or (not t.get('highway') and t.get('ford') not in (None,'no')):return 'poi'
  if t.get('highway'):
   h=t.get('construction') if t['highway']=='construction' else t['highway']
   return 'trail' if h in ('path','footway','steps','bridleway','cycleway','pedestrian') else 'road'
@@ -19,9 +20,28 @@ def feature_kind(t):
  if t.get('boundary') in ('protected_area','national_park','administrative'):return 'boundary'
  if t.get('building') not in (None,'no'):return 'building'
  if t.get('natural') in ('wood','scrub','grassland','heath','wetland','glacier','bare_rock','sand') or t.get('landuse') in ('forest','meadow','grass','recreation_ground'):return 'landcover'
- if any(k in t for k in ('amenity','tourism','historic','place','barrier','public_transport')) or t.get('natural') in ('peak','saddle','spring','waterfall','cave_entrance','arch','tree'):return 'poi'
+ if t.get('leisure')=='picnic_table':return 'poi'
+ if t.get('barrier') in ('fence','wall','retaining_wall','hedge','city_wall'):return 'barrier'
+ if any(k in t for k in ('amenity','tourism','shop','historic','place','barrier','public_transport')) or t.get('natural') in ('peak','saddle','spring','waterfall','cave_entrance','arch','tree'):return 'poi'
  if t.get('railway') in ('rail','narrow_gauge','light_rail','tram','abandoned'):return 'railway'
  return None
+
+def feature_roles(tags,kind=None):
+ """A facility inside a building retains both roles under one source identity."""
+ kind=kind or feature_kind(tags)
+ roles=[kind] if kind else []
+ if kind=='building' and any(tags.get(key) not in (None,'','no') for key in ('amenity','tourism','shop','historic','public_transport')):roles.append('poi')
+ return roles
+
+def assemble_area(outer,inner):
+ holes=[[] for _ in outer]
+ for hole in inner:
+  containers=[i for i,shell in enumerate(outer) if shell.covers(hole)]
+  if not containers:raise ValueError('Polygon hole outside outer ring')
+  holes[min(containers,key=lambda i:outer[i].area)].append(hole.exterior.coords)
+ g=MultiPolygon([Polygon(shell.exterior.coords,holes[i]) for i,shell in enumerate(outer)])
+ if not g.is_valid:raise ValueError('Invalid polygon topology')
+ return g
 
 def catalog_from_osm(elements,spec):
  merged={}
@@ -43,7 +63,7 @@ def catalog_from_osm(elements,spec):
  def add(e,g,kind):
   if g.is_empty or not g.intersects(frame):return
   t=dict(e.get('tags',{}));identity=f'osm:{e["type"]}:{e["id"]}'
-  features.append({'id':identity,'provider':'osm','sourceId':identity,'kind':kind,'name':display_name(t),'geometry':mapping(g),'tags':t,'properties':dict(t),'nodeIds':e.get('nodes',[]),'routeIds':memberships.get(e['id'],[]) if e['type']=='way' else []})
+  features.append({'id':identity,'provider':'osm','sourceId':identity,'kind':kind,'roles':feature_roles(t,kind),'name':display_name(t),'geometry':mapping(g),'tags':t,'properties':dict(t),'nodeIds':e.get('nodes',[]),'routeIds':memberships.get(e['id'],[]) if e['type']=='way' else []})
  for r in relations:
   t=r.get('tags',{});kind=feature_kind(t)
   if t.get('type') not in ('multipolygon','boundary') or kind is None:continue
@@ -53,9 +73,8 @@ def catalog_from_osm(elements,spec):
     if m['type']!='way' or m.get('role','') not in ('','outer','inner'):continue
     if m['ref'] not in ways:raise ValueError('Missing OSM polygon member')
     roles[m.get('role') or 'outer'].append(ways[m['ref']]['nodes']);ids.append(m['ref'])
-   outer=unary_union([Polygon(coordinates(ring)) for ring in rings(roles['outer'])]);inner=unary_union([Polygon(coordinates(ring)) for ring in rings(roles['inner'])])
-   if not outer.is_valid or not inner.is_valid or not outer.covers(inner) and not inner.is_empty:raise ValueError('Invalid polygon topology')
-   add(r,outer.difference(inner),kind);used.update((i,kind) for i in ids)
+   outer=[Polygon(coordinates(ring)) for ring in rings(roles['outer'])];inner=[Polygon(coordinates(ring)) for ring in rings(roles['inner'])]
+   add(r,assemble_area(outer,inner),kind);used.update((i,kind) for i in ids)
   except ValueError as error:issues.append({'id':f'osm:relation:{r["id"]}','reason':str(error)})
  for w in ways.values():
   t=w.get('tags',{});kind=feature_kind(t)
@@ -70,5 +89,5 @@ def catalog_from_osm(elements,spec):
   else:g=LineString(pts)
   add(w,g,kind)
  for e in merged.values():
-  if e['type']=='node' and feature_kind(e.get('tags',{}))=='poi':add(e,Point(nodes[e['id']]),'poi')
+  if e['type']=='node' and feature_kind(e.get('tags',{})) in ('poi','barrier'):add(e,Point(nodes[e['id']]),'poi')
  return {'version':1,'frame':spec.frame,'features':features,'routes':routes,'issues':issues,'counts':dict(Counter(f['kind'] for f in features))}

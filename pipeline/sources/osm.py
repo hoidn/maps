@@ -6,7 +6,7 @@ from .catalog import atomic_json,record_source,utc_now
 ENDPOINTS=('https://overpass-api.de/api/interpreter','https://overpass.private.coffee/api/interpreter')
 def overpass_query(spec):
  bbox=','.join(str(v) for v in spec.overpass_bbox)
- selectors=['["highway"]','["waterway"]','["natural"]','["landuse"~"^(forest|meadow|grass|recreation_ground)$"]','["building"]','["amenity"]','["tourism"]','["leisure"]','["historic"]','["place"]','["barrier"]','["railway"]','["public_transport"]','["boundary"~"^(national_park|protected_area)$"]','["type"="route"]["route"~"^(hiking|foot|bicycle|bus)$"]']
+ selectors=['["highway"]','["ford"]','["waterway"]','["natural"]','["landuse"~"^(forest|meadow|grass|recreation_ground)$"]','["building"]','["amenity"]','["tourism"]','["shop"]','["leisure"]','["historic"]','["place"]','["barrier"]','["railway"]','["public_transport"]','["boundary"~"^(national_park|protected_area)$"]','["type"="route"]["route"~"^(hiking|foot|bicycle|bus)$"]']
  return '[out:json][timeout:180];('+''.join(f'nwr{tag}({bbox});' for tag in selectors)+');(._;>>;);out body qt;'
 def fetch(spec,path):
  query=overpass_query(spec);errors=[]

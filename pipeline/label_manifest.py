@@ -30,6 +30,7 @@ def safe_json(value):
 class Manifest:
     def __init__(self, mode='interactive', width=1300, height=1070):
         self.mode, self.width, self.height = mode, width, height
+        self.required=set(REQUIRED);self.required_routes=set(REQUIRED_ROUTES)
         self.features = {}
         self.annotations = []
         self.ids = set()
@@ -41,8 +42,8 @@ class Manifest:
 
     def _feature(self, xy, name='', kind='place', directory=False, source_id=None):
         xy = self._anchor(xy)
-        fid = stable_id('feature', [kind if kind in ('trail','region','contour','waterway') else 'place', name if kind in ('trail','region','contour','waterway') else (['source',source_id] if source_id is not None else xy)])
-        current = self.features.setdefault(fid, dict(id=fid, name=name, kind=kind, anchor=xy, directory=directory))
+        fid = stable_id('feature', [kind if kind in ('trail','region','contour','waterway') else 'place', ['source',source_id] if source_id is not None else name if kind in ('trail','region','contour','waterway') else xy])
+        current = self.features.setdefault(fid, dict(id=fid, name=name, kind=kind, anchor=xy, directory=directory,sourceId=source_id))
         if name and (not current['name'] or directory): current['name'] = name
         current['directory'] = current['directory'] or directory
         return fid
@@ -59,19 +60,19 @@ class Manifest:
         feature_kind = 'region' if kind=='region-label' else ('trail' if cls.startswith('l-trail') else 'place')
         if cls.startswith('l-contour'): feature_kind='contour'
         if cls in ('l-river','l-hydro'): feature_kind='waterway'
-        layer = 'peaks' if cls=='l-peak' else ('contours' if feature_kind=='contour' else ('names' if kind in ('line-label','region-label') else 'places'))
+        layer = 'water' if cls in ('l-river','l-hydro') else 'peaks' if cls=='l-peak' else ('contours' if feature_kind=='contour' else ('names' if kind in ('line-label','region-label') else 'places'))
         directory = feature_kind=='place' and kind!='edge-pointer'
         fid=self._feature(xy,text,feature_kind,directory,source_id)
         identity=[text,cls,xy,geometry_id,source_id,raw if geometry_id else '']
         aid=stable_id('label', identity)
         record=dict(id=aid,elementId=aid,featureId=fid,kind=kind,layer=layer,anchor=xy,text=text,
-                    style=cls,priority=PRIORITIES.get(cls,500),requiredProfiles=['static-default'] if text in REQUIRED else [],
-                    angle=angle,geometryId=geometry_id,requiredGroup=text if text in REQUIRED_ROUTES else None)
-        if (kind=='point-label' or self.mode=='static' and kind=='line-label' and not geometry_id and text in REQUIRED_ROUTES) and len(text.split())>1:
+                    style=cls,priority=PRIORITIES.get(cls,500),requiredProfiles=['static-default'] if text in self.required and not any(a.get('text')==text and a.get('requiredProfiles') for a in self.annotations) else [],
+                    angle=angle,geometryId=geometry_id,repeatGroup=stable_id('display-name',[feature_kind,' '.join(text.casefold().split())]),repeatDistance=180,requiredGroup=text if text in self.required_routes else None)
+        if (kind=='point-label' or self.mode=='static' and kind=='line-label' and text in self.required_routes) and len(text.split())>1:
             words=text.split();mid=min(range(1,len(words)),key=lambda i:abs(len(' '.join(words[:i]))-len(' '.join(words[i:]))))
             splits=[mid]+[i for i in range(1,len(words)) if i!=mid]
             record['variants']=[dict(lines=[' '.join(words[:i]),' '.join(words[i:])]) for i in splits]
-            if kind=='point-label' or text in REQUIRED or text in REQUIRED_ROUTES:
+            if kind=='point-label' or text in self.required or text in self.required_routes:
                 record['variants'] += [dict(lines=[' '.join(words[:i]),' '.join(words[i:j]),' '.join(words[j:])]) for i in range(1,len(words)-1) for j in range(i+1,len(words))]
         return self._wrap(raw, record)
 
@@ -94,6 +95,14 @@ class Manifest:
                 if path.get('id'):
                     old=path.get('id'); new=stable_id('geometry',path.get('d',''))
                     remap[old]=new; path.set('id',new)
+        # Identical label geometry is shared after content-addressing; never emit
+        # duplicate DOM IDs when refs/names use the same physical window.
+        seen_geometry=set()
+        for defs in root.findall(f'{{{NS}}}defs'):
+            for path in list(defs):
+                gid=path.get('id')
+                if gid and gid in seen_geometry:defs.remove(path)
+                elif gid:seen_geometry.add(gid)
         for e in root.iter():
             href=e.get('href','')
             if href.startswith('#') and href[1:] in remap: e.set('href','#'+remap[href[1:]])
@@ -103,7 +112,7 @@ class Manifest:
             while p in parent:
                 p=parent[p]; chain.append(p)
             if any(p.get('data-layout-id') for p in chain): continue
-            if any(set(p.get('class','').split()) & {'fixed-ui','cartouche','scale'} for p in chain): continue
+            if any(set(p.get('class','').split()) & {'fixed-ui','cartouche','scale','coordinate-grid'} for p in chain): continue
             cls=element.get('class','')
             text=''.join(element.itertext())
             path=element.find(f'{{{NS}}}textPath')
@@ -123,10 +132,11 @@ class Manifest:
         for group in root.iter(f'{{{NS}}}g'):
             if 'trails' not in group.get('class','').split(): continue
             for path in group.iter(f'{{{NS}}}path'):
-                path.set('id',stable_id('trail-path',path.get('d','')))
+                casing='bridge-case' in path.get('class','').split()
+                path.set('id',stable_id('trail-case' if casing else 'trail-path',[path.get('d',''),path.get('data-source-id','')] if casing else path.get('d','')))
                 path.set('data-layout-obstacle','trail')
                 name=path.get('data-name','')
-                if name:
+                if name and not path.get('data-feature-id'):
                     fid=self._feature((0,0),name,'trail')
                     path.set('data-feature-id',fid)
         paths_by_feature={}
@@ -134,12 +144,19 @@ class Manifest:
             if path.get('data-layout-obstacle')=='trail':
                 paths_by_feature.setdefault(path.get('data-feature-id'),[]).append(path.get('id'))
         for a in self.annotations:
+            if a.get('geometryId') in remap: a['geometryId']=remap[a['geometryId']]
+            if a.get('geometryId') and not a.get('geometryBounds'):
+                target=next((e for e in root.iter() if e.get('id')==a['geometryId']),None)
+                if target is not None:
+                    values=list(map(float,re.findall(r'-?\d+(?:\.\d+)?',target.get('d',''))))
+                    if len(values)>=4 and len(values)%2==0:a['geometryBounds']=[min(values[::2]),min(values[1::2]),max(values[::2]),max(values[1::2])]
+
             if a['kind']=='line-label' and not a.get('geometryId'):
                 a['geometryIds']=paths_by_feature.get(a['featureId'],[])
         return ET.tostring(root,encoding='unicode')
 
     def data(self):
-        return dict(version=1,map=dict(width=self.width,height=self.height,mode=self.mode,coordinateSpace='svg'),
+        return dict(version=1,map=dict(width=self.width,height=self.height,mode=self.mode,coordinateSpace='svg',**getattr(self,'map_metadata',{})),
                     features=list(self.features.values()),annotations=self.annotations)
 
     def json(self): return safe_json(self.data())

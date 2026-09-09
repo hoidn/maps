@@ -1,0 +1,13 @@
+:root{--road-case:var(--road);--trail-ink:#984a32;--restricted-ink:#846d81;--water-fill:#b5d4df;--building-fill:#c7bcac;--building-edge:#8b8174;--boundary-ink:#816789}
+:root[data-theme="dark"]{--trail-ink:#e8ab87;--restricted-ink:#c4a4c1;--water-fill:#31596d;--building-fill:#68645c;--building-edge:#a09a8b;--boundary-ink:#c5a4cb}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--trail-ink:#e8ab87;--restricted-ink:#c4a4c1;--water-fill:#31596d;--building-fill:#68645c;--building-edge:#a09a8b;--boundary-ink:#c5a4cb}}
+.landcover{opacity:.65;pointer-events:none}.boundaries,.buildings{pointer-events:none}.map.no-landcover .landcover,.map.no-boundaries .boundaries,.map.no-grid .coordinate-grid{display:none}
+.facility-mark{fill:var(--paper);stroke:var(--ink);stroke-width:1.25;stroke-linejoin:round;stroke-linecap:round}
+.l-road,.l-road-ref{font-family:var(--sans);font-weight:600;font-size:12px;fill:var(--ink);stroke:var(--paper);paint-order:stroke;stroke-width:3px}
+.l-road-ref{font-weight:700;stroke-width:5px}.live-scale{position:absolute;right:15px;bottom:40px;z-index:4;background:var(--paper);color:var(--ink);padding:5px 8px;font:12px var(--sans);pointer-events:none}.live-scale span{display:block;border-bottom:3px solid currentColor;border-left:1px solid;border-right:1px solid;text-align:center;white-space:nowrap}
+.coordinate-grid{fill:none;stroke:var(--muted);stroke-width:.35;opacity:.5;pointer-events:none}.coordinate-grid text{font:10px var(--sans);fill:var(--ink);stroke:none}.cartographic-context details{padding:10px 0;border-bottom:1px solid var(--rule)}.cartographic-context table{font-size:13px;width:100%;border-collapse:collapse}.cartographic-context td,.cartographic-context th{padding:5px;text-align:left}.detail-inset{width:100%;max-width:540px;background:var(--paper);border:1px solid var(--rule)}
+
+/* Semantic label ownership matches the manifest in SVG and Canvas. */
+.map.no-boundaries .boundary-labels,.map.no-water .hydro-labels{display:none}
+
+@media(max-width:700px){.live-scale{bottom:76px}.zlabel{bottom:51px}.hint{max-width:calc(100% - 210px);font-size:10px}}

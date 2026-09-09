@@ -1,7 +1,9 @@
 import json, math
 from collections import defaultdict
-LON0,LAT0,LON1,LAT1 = -112.262,35.990,-111.898,36.232
-W,H = 1300,1070
+from map_spec import MapSpec
+SPEC = MapSpec.load('grand_canyon')
+LON0,LAT0,LON1,LAT1 = SPEC.bbox
+W,H = SPEC.width,SPEC.height
 def P(lat,lon): return ((lon-LON0)/(LON1-LON0)*W, (LAT1-lat)/(LAT1-LAT0)*H)
 def hav(a,b):
     R=3958.8; la1,lo1=map(math.radians,a); la2,lo2=map(math.radians,b)

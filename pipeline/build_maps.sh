@@ -5,7 +5,7 @@ pipeline_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_dir="$(dirname "$pipeline_dir")"
 cd "$pipeline_dir"
 missing=()
-for file in osm.json osm2.json dem.npy terrain.json dem_hi.npy terrain_hi.json; do
+for file in cache/grand_canyon/features.json osm.json osm2.json dem.npy terrain.json dem_hi.npy terrain_hi.json; do
   [[ -f "$file" ]] || missing+=("$file")
 done
 if ((${#missing[@]})); then
@@ -32,7 +32,11 @@ done
 "$map_python" smooth_terrain.py --cache terrain.json --dem dem.npy --register-only
 "$map_python" smooth_terrain.py
 "$map_python" build_static.py
-"$map_python" build_interactive.py
+"$map_python" build_interactive.py --renderer webgl
+"$map_python" build_interactive.py --renderer canvas --output grand_canyon_trails_canvas.html
+if [[ -f cache/sequoia/features.json && -f cache/sequoia/dem.json ]]; then
+  "$map_python" build_region.py --map sequoia --renderer webgl
+fi
 cd "$repo_dir"
 export PLAYWRIGHT_BROWSERS_PATH="${PLAYWRIGHT_BROWSERS_PATH:-$repo_dir/.browser-cache}"
 node scripts/finalize-static.mjs --input pipeline/grand_canyon_trails.html --output pipeline/grand_canyon_trails_final.html --report artifacts/layout/static-finalization

@@ -9,6 +9,9 @@ cd "$pipeline_dir"
 "$map_python" fetch_osm.py
 "$map_python" fetch_osm2.py
 "$map_python" fetch_water.py
+for source in gnis usgs_hydro boundaries landcover; do
+  "$map_python" fetch_region.py --map grand_canyon --source "$source"
+done
 "$map_python" fetch_dem.py
 "$map_python" process_dem.py
 "$map_python" fetch_dem_hi.py

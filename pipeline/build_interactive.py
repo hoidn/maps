@@ -2,6 +2,7 @@
 """Draws the Grand Canyon trail sheet: hand-designed SVG cartography over USGS 3DEP terrain
 with trail/river geometry from OpenStreetMap."""
 from path_geometry import detail_path, detail_points
+from pathlib import Path
 import argparse
 import json, math, html, numpy as np
 parser = argparse.ArgumentParser(description="Build a standalone interactive map candidate")
@@ -13,6 +14,9 @@ M = Manifest("interactive")
 from water_areas import WaterAreas
 import osmdata as o
 from osmdata import P, hav, length, LAT0, LAT1, LON0, LON1, W, H
+
+from map_spec import validate_legacy_terrain_frame
+validate_legacy_terrain_frame(o.SPEC)
 
 T = json.load(open("terrain_hi.json"))
 DEM = np.load("dem_hi.npy") * 3.28084
@@ -213,10 +217,8 @@ def oriented(run):
     dx = run[-1][0] - run[0][0]; dy = run[-1][1] - run[0][1]
     if dx < -20 or (abs(dx) <= 20 and dy > 0): return run[::-1]
     return run
-SKIP_STREAM = ("Wash", "Kwagunt", "Unkar", "Lava Creek", "Ninetyfour", "Ninetyone", "Tuna Creek", "Milk Creek")
 hid = 0
 for name, chains in o.streams.items():
-    if any(s in name for s in SKIP_STREAM): continue
     is_river = name == "Colorado River"
     cls = "river" if is_river else ("creek creek-major" if name == "Bright Angel Creek" else "creek")
     best, bestlen = None, 0
@@ -233,7 +235,7 @@ for name, chains in o.streams.items():
         hydro_defs.append(f'<path id="h{hid}" d="{"M"+" ".join(f"{x:.3f},{y:.3f}" for x,y in pts)}"/>')
         for off in ("14%", "58%", "86%"):
             hydro_labels.append(f'<text class="l-river" dy="-7"><textPath href="#h{hid}" startOffset="{off}" text-anchor="middle">Colorado River</textPath></text>')
-    elif bestlen >= 110 and name not in ("Coconino Wash",):
+    elif bestlen >= 110 and name.strip() not in ("?", ""):
         pts = detail_points(oriented(best)); hid += 1
         hydro_defs.append(f'<path id="h{hid}" d="{"M"+" ".join(f"{x:.3f},{y:.3f}" for x,y in pts)}"/>')
         hydro_labels.append(f'<text class="l-hydro" dy="-4"><textPath href="#h{hid}" startOffset="50%" text-anchor="middle">{esc(name)}</textPath></text>')
@@ -470,6 +472,8 @@ svg = f'''<svg id="mapsvg" data-renderer="{args.renderer}" class="map" viewBox="
 <rect class="neatline" x="0.5" y="0.5" width="{W-1}" height="{H-1}"/>
 </svg>'''
 
+from cartography.integration import improve, catalog_panel, transport_legend
+svg, cartography_context = improve(svg, M, DEM / 3.28084)
 svg = M.finalize(svg)
 
 # ---------------------------------------------------------------- mileage tables & profile
@@ -579,287 +583,9 @@ small = resize(DEM, (GH, GW), order=1, anti_aliasing=True, preserve_range=True)
 dem_b64 = base64.b64encode(np.clip(np.round(small), 0, 65535).astype("<u2").tobytes()).decode()
 places_json = json.dumps(PLACES)
 # ---------------------------------------------------------------- HTML
-CSS = r'''
-:root{
-  --paper:#F0EBDF; --panel:#F8F4EA; --ink:#2B2520; --ink-2:#5A5147; --muted:#867B6E; --rule:#D9D0BF;
-  --corridor:#B0361F; --corridor-lbl:#8E2B18; --thresh:#2B2520; --rim:#3F6B45; --camp:#2E6B3B;
-  --river:#2F6C90; --creek:#4C88AA; --hydro-lbl:#245B7E;
-  --road:#7D7568; --road-fill:#F6F0E3; --track:#8F877A;
-  --contour:#A86A3A; --contour-idx:#8A4E22; --contour-lbl:#7A4620; --c-op:.5; --cx-op:.8;
-  --halo:rgba(243,236,222,.86); --halo-solid:#F0EBDF; --peak:#5A4A3A;
-  --terrain-light:inline; --terrain-dark:none;
-  --grid:#E0D7C6; --chart-fill:rgba(176,54,31,.12); --panel-op:.9;
-  --sans:'Source Sans 3','Helvetica Neue',Arial,sans-serif; --serif:'Alegreya',Georgia,serif; --display:'Bree Serif','Rockwell',Georgia,serif;
-  color-scheme:light;
-}
-@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
-  --paper:#17140F; --panel:#211D17; --ink:#EDE5D6; --ink-2:#C4BAA8; --muted:#948A7D; --rule:#3A342B;
-  --corridor:#F07A5C; --corridor-lbl:#F7A58F; --thresh:#EDE5D6; --rim:#9FCB95; --camp:#8FD08F;
-  --river:#6FB3D8; --creek:#5C98BD; --hydro-lbl:#8FC6E6;
-  --road:#A39A8C; --road-fill:#2A251E; --track:#8A8275;
-  --contour:#D9A06A; --contour-idx:#EBB983; --contour-lbl:#EBB983; --c-op:.42; --cx-op:.66;
-  --halo:rgba(23,20,15,.82); --halo-solid:#17140F; --peak:#D8CBB6;
-  --terrain-light:none; --terrain-dark:inline;
-  --grid:#2E2822; --chart-fill:rgba(240,122,92,.16); --panel-op:.88; color-scheme:dark;
-}}
-:root[data-theme="dark"]{
-  --paper:#17140F; --panel:#211D17; --ink:#EDE5D6; --ink-2:#C4BAA8; --muted:#948A7D; --rule:#3A342B;
-  --corridor:#F07A5C; --corridor-lbl:#F7A58F; --thresh:#EDE5D6; --rim:#9FCB95; --camp:#8FD08F;
-  --river:#6FB3D8; --creek:#5C98BD; --hydro-lbl:#8FC6E6;
-  --road:#A39A8C; --road-fill:#2A251E; --track:#8A8275;
-  --contour:#D9A06A; --contour-idx:#EBB983; --contour-lbl:#EBB983; --c-op:.42; --cx-op:.66;
-  --halo:rgba(23,20,15,.82); --halo-solid:#17140F; --peak:#D8CBB6;
-  --terrain-light:none; --terrain-dark:inline;
-  --grid:#2E2822; --chart-fill:rgba(240,122,92,.16); --panel-op:.88; color-scheme:dark;
-}
-*{box-sizing:border-box}
-body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.5}
-.sheet{max-width:1340px;margin:0 auto;padding:28px 20px 60px}
-.mast{display:flex;justify-content:space-between;align-items:flex-end;gap:32px;flex-wrap:wrap;margin-bottom:18px;padding-bottom:16px;border-bottom:1.5px solid var(--ink)}
-.eyebrow{margin:0 0 4px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2)}
-h1{margin:0;font-family:var(--display);font-weight:400;font-size:clamp(34px,4.5vw,52px);line-height:1.02;letter-spacing:-.005em;text-wrap:balance}
-.lede{margin:10px 0 0;max-width:60ch;font-size:17px;color:var(--ink-2)}
-.facts{display:grid;grid-template-columns:auto auto;gap:3px 14px;margin:0;font-size:13px}
-.facts dt{color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-size:11px;padding-top:2px}
-.facts dd{margin:0;font-variant-numeric:tabular-nums}
-figure{margin:0}
-.map-fig{border:1px solid var(--rule);background:var(--paper)}
-.map{display:block;width:100%;height:auto}
-.map{--k:1;--s:1;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}
-.map.dragging{cursor:grabbing}
-.map text{font-family:var(--sans);paint-order:stroke fill;stroke:var(--halo);stroke-width:2.8px;stroke-linejoin:round;fill:var(--ink);pointer-events:none}
-.map .symbols,.map .peaks,.map .regions,.map .hydro-labels,.map .contour-labels,.map .trail-labels,.map .labels,.map .fixed-ui{pointer-events:none}
-.map.zoomed .fixed-ui{display:none}
-.map.no-contours .contours,.map.no-contours .contour-labels{display:none}
-.map .g-fine,.map .g-finest,.map .l-contour-f,.map .l-contour-ff{display:none}
-.map.z2 .g-fine,.map.z2 .l-contour-f{display:inline}
-.map.z5 .g-finest,.map.z5 .l-contour-ff{display:inline}
-.map .cf{stroke-width:calc(.5px*var(--s))} .map .cff{stroke-width:calc(.42px*var(--s));opacity:calc(var(--c-op)*.85)}
-.map.no-relief .terrain{display:none}
-.map.no-peaks .peaks{display:none}
-.map.no-places .symbols,.map.no-places .labels{display:none}
-.map.no-names .trail-labels,.map.no-names .hydro-labels,.map.no-names .regions{display:none}
-.map.no-water .hydro{display:none}
-.hit{fill:none;stroke:transparent;stroke-width:calc(14px*var(--s));pointer-events:stroke;cursor:pointer}
-.tr.dim{opacity:.25} .tr.lit{opacity:1}
-.map-wrap{position:relative}
-.ctl{position:absolute;top:12px;right:12px;display:flex;flex-direction:column;gap:6px;z-index:2}
-.ctl button,.ctl select,.ctl summary{font:600 13px var(--sans);color:var(--ink);background:var(--panel);border:1px solid var(--ink);border-radius:3px;min-width:34px;height:32px;padding:0 10px;cursor:pointer}
-.ctl button:hover,.ctl summary:hover{background:var(--paper)}
-.ctl button:focus-visible,.ctl select:focus-visible,.ctl summary:focus-visible,.layers input:focus-visible{outline:2px solid var(--corridor);outline-offset:2px}
-.ctl .zoomrow{display:flex;gap:6px}
-.ctl .zoomrow button{flex:1}
-.ctl select{max-width:200px;height:32px}
-.layers{position:relative}
-.layers summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:10px}
-.layers summary::-webkit-details-marker{display:none}
-.layers summary::after{content:"▾";font-size:11px}
-.layers[open] summary::after{content:"▴"}
-.layers .box{position:absolute;right:0;top:36px;background:var(--panel);border:1px solid var(--ink);border-radius:3px;padding:8px 12px;display:grid;gap:5px;min-width:190px;font-size:13px;color:var(--ink);box-shadow:0 4px 14px rgba(0,0,0,.15)}
-.layers label{display:flex;gap:8px;align-items:center;white-space:nowrap;cursor:pointer}
-.layers input{accent-color:var(--corridor)}
-.readout{position:absolute;left:12px;bottom:12px;background:var(--panel);border:1px solid var(--ink);border-radius:3px;padding:5px 10px;font-size:12.5px;color:var(--ink);font-variant-numeric:tabular-nums;pointer-events:none;z-index:2;line-height:1.3}
-.readout small{color:var(--ink-2);font-size:11px;letter-spacing:.06em;text-transform:uppercase}
-.ttip{position:absolute;pointer-events:none;background:var(--panel);border:1px solid var(--ink);border-radius:3px;padding:6px 10px;font-size:13px;line-height:1.35;color:var(--ink);z-index:3;white-space:nowrap;box-shadow:0 2px 10px rgba(0,0,0,.14)}
-.ttip .cls{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2)}
-.zlabel{position:absolute;right:12px;bottom:12px;background:var(--panel);border:1px solid var(--rule);border-radius:3px;padding:4px 8px;font-size:11.5px;color:var(--ink-2);font-variant-numeric:tabular-nums;z-index:2;pointer-events:none}
-.hint{position:absolute;left:12px;top:12px;font-size:11.5px;color:var(--ink-2);background:var(--panel);border:1px solid var(--rule);border-radius:3px;padding:4px 8px;z-index:2;display:none}
-.map.zoomed ~ .hint{display:block}
-@media (max-width:700px){.ctl select{max-width:140px}.readout{font-size:11px}}
-.terrain{image-rendering:auto}
-.t-light{display:var(--terrain-light)} .t-dark{display:var(--terrain-dark)}
-.ci{fill:none;stroke:var(--contour);stroke-width:calc(.55px*var(--s));opacity:var(--c-op);stroke-linejoin:round}
-.cx{fill:none;stroke:var(--contour-idx);stroke-width:calc(1px*var(--s));opacity:var(--cx-op);stroke-linejoin:round}
-.l-contour{font-size:calc(8px*var(--k));fill:var(--contour-lbl);font-weight:600;letter-spacing:.03em;stroke-width:calc(2px*var(--k))}
-.river-area{fill:var(--river);stroke:none}
-.river{fill:none;stroke:var(--river);stroke-width:calc(4.2px*var(--s));stroke-linejoin:round;stroke-linecap:round}
-.creek{fill:none;stroke:var(--creek);stroke-width:calc(.9px*var(--s));stroke-linejoin:round;stroke-linecap:round;opacity:.9}
-.creek-major{stroke-width:calc(1.7px*var(--s))}
-.l-river{font-family:var(--serif);font-style:italic;font-size:calc(13px*var(--k));letter-spacing:.16em;fill:var(--hydro-lbl);stroke-width:calc(2.4px*var(--k))}
-.l-hydro{font-family:var(--serif);font-style:italic;font-size:calc(9.5px*var(--k));fill:var(--hydro-lbl);stroke-width:calc(2.2px*var(--k))}
-.road-case{fill:none;stroke:var(--road);stroke-linecap:round;stroke-linejoin:round}
-.road-fill{fill:none;stroke:var(--road-fill);stroke-linecap:round;stroke-linejoin:round}
-.road-case.road-major{stroke-width:calc(3.4px*var(--s))} .road-fill.road-major{stroke-width:calc(1.6px*var(--s))}
-.road-case.road-minor{stroke-width:calc(2.4px*var(--s))} .road-fill.road-minor{stroke-width:calc(1px*var(--s))}
-.road-track{fill:none;stroke:var(--track);stroke-width:calc(1px*var(--s));stroke-dasharray:calc(4px*var(--s)) calc(3px*var(--s));opacity:.8}
-.tr{fill:none;stroke-linejoin:round;stroke-linecap:round}
-.tr-corridor{stroke:var(--corridor);stroke-width:calc(2.6px*var(--s))}
-.tr-threshold{stroke:var(--thresh);stroke-width:calc(1.7px*var(--s))}
-.tr-primitive{stroke:var(--thresh);stroke-width:calc(1.3px*var(--s));stroke-dasharray:calc(5px*var(--s)) calc(3.5px*var(--s))}
-.tr-rim{stroke:var(--rim);stroke-width:calc(1.5px*var(--s));stroke-dasharray:calc(1.5px*var(--s)) calc(2.6px*var(--s));stroke-linecap:round}
-.l-trail{font-size:10.5px;font-weight:600;font-style:italic;fill:var(--ink)}
-.l-trail-c{font-size:11px;font-weight:700;font-style:italic;fill:var(--corridor-lbl)}
-.l-trail-cs{font-size:9.5px;font-weight:600;font-style:italic;fill:var(--corridor-lbl)}
-.l-trail-r{font-size:10px;font-weight:600;font-style:italic;fill:var(--rim)}
-.l-place{font-size:10.5px;font-weight:600}
-.l-major{font-size:12.5px;font-weight:700}
-.l-village{font-size:11px;font-weight:700;letter-spacing:.12em}
-.l-minor{font-size:9px;font-weight:400;fill:var(--ink-2)}
-.l-sub{font-size:8px;font-weight:400;fill:var(--ink-2)}
-.l-peak{font-size:8.5px;fill:var(--peak);font-weight:400}
-.l-region{font-size:12.5px;font-weight:600;letter-spacing:.22em;fill:var(--ink-2);opacity:.78;stroke-width:2px}
-.l-region-s{font-size:9.5px;font-weight:600;letter-spacing:.2em;fill:var(--ink-2);opacity:.85;stroke-width:2px}
-.s-camp{fill:var(--camp);stroke:var(--halo-solid);stroke-width:1.2;stroke-linejoin:round}
-.s-camp-base{fill:none;stroke:var(--camp);stroke-width:1.6;stroke-linecap:round}
+CSS = (Path(__file__).parent/'cartography/map.css').read_text()
 
-.s-th{fill:var(--ink);stroke:var(--halo-solid);stroke-width:1.4}
-.s-water{fill:var(--river);stroke:var(--halo-solid);stroke-width:1.1}
-.s-shelter{fill:var(--halo-solid);stroke:var(--ink);stroke-width:1.3;stroke-linejoin:round}
-.s-lodge{fill:var(--ink);stroke:var(--halo-solid);stroke-width:1.2;stroke-linejoin:round}
-.s-bridge{fill:var(--halo-solid);stroke:var(--ink);stroke-width:1.3}
-.s-view{fill:var(--halo-solid);stroke:var(--ink);stroke-width:1.3}
-.s-peak{fill:var(--peak);stroke:var(--halo-solid);stroke-width:.9;stroke-linejoin:round}
-.s-spring{fill:var(--halo-solid);stroke:var(--river);stroke-width:1.3}
-.s-wp{fill:var(--corridor);stroke:var(--halo-solid);stroke-width:1.5}
-.s-wp2{fill:var(--ink);stroke:var(--halo-solid);stroke-width:1.4}
-.s-falls{fill:none;stroke:var(--river);stroke-width:1.4;stroke-linecap:round}
-.panel{fill:var(--panel);fill-opacity:var(--panel-op);stroke:var(--ink);stroke-width:.8}
-.c-title{font-family:var(--display);font-size:30px;fill:var(--ink);stroke:none}
-.c-sub{font-size:11px;font-weight:600;letter-spacing:.2em;fill:var(--ink);stroke:none}
-.c-note{font-size:9.5px;fill:var(--ink-2);stroke:none}
-.c-n{font-size:11px;font-weight:700;stroke:none}
-.n-arrow{fill:var(--panel);stroke:var(--ink);stroke-width:1;stroke-linejoin:round}
-.n-arrow-half{fill:var(--ink)}
-.sb-a{fill:var(--ink)} .sb-b{fill:var(--panel);stroke:var(--ink);stroke-width:.6}
-.l-scale{font-size:8.5px;fill:var(--ink);stroke:none}
-.neatline{fill:none;stroke:var(--ink);stroke-width:1}
-figcaption.legend{display:flex;flex-wrap:wrap;gap:8px 22px;align-items:center;padding:12px 16px;border-top:1px solid var(--rule);font-size:12.5px;color:var(--ink-2)}
-.legend .lg{display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
-.legend svg{width:34px;height:14px;overflow:visible}
-.legend .lg-title{font-weight:700;letter-spacing:.1em;text-transform:uppercase;font-size:11px;color:var(--ink);margin-right:4px}
-section{margin-top:44px}
-h2{font-family:var(--display);font-weight:400;font-size:28px;margin:0 0 6px;text-wrap:balance}
-.sec-lede{margin:0 0 18px;max-width:70ch;color:var(--ink-2)}
-.mtables{display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:22px 28px}
-.mtable h3{margin:0 0 2px;font-size:17px;font-weight:700}
-.tnote{margin:0 0 8px;font-size:13px;color:var(--ink-2)}
-table{border-collapse:collapse;width:100%;font-size:13.5px}
-th{text-align:left;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;padding:6px 8px 6px 0;border-bottom:1px solid var(--ink)}
-td{padding:5px 8px 5px 0;border-bottom:1px solid var(--rule);vertical-align:top}
-td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;padding-right:14px}
-td.amen,td.desc{color:var(--ink-2);font-size:12.5px}
-.sw{display:inline-block;width:22px;height:0;border-top:3px solid var(--thresh);margin-right:8px;vertical-align:middle}
-.sw-corridor{border-top-color:var(--corridor)} .sw-primitive{border-top-style:dashed;border-top-width:2px} .sw-rim{border-top-style:dotted;border-top-color:var(--rim)}
-.profile-wrap{position:relative}
-.profile{display:block;width:100%;height:auto}
-.profile text{font-family:var(--sans);fill:var(--ink-2)}
-.grid{stroke:var(--grid);stroke-width:1} .axis{stroke:var(--ink-2);stroke-width:1}
-.ax{font-size:11px;font-variant-numeric:tabular-nums}
-.p-area{fill:var(--chart-fill)} .p-line{fill:none;stroke:var(--corridor);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
-.wpm{fill:var(--corridor);stroke:var(--paper);stroke-width:2} .wpl{stroke:var(--ink-2);stroke-width:.8}
-.wpt{font-size:10.5px;fill:var(--ink)}
-.hover[hidden]{display:none}
-.xh{stroke:var(--ink-2);stroke-width:1;stroke-dasharray:3 3} .xd{fill:var(--corridor);stroke:var(--paper);stroke-width:2}
-.tip{position:absolute;pointer-events:none;background:var(--panel);border:1px solid var(--rule);border-radius:3px;padding:6px 9px;font-size:12.5px;line-height:1.35;box-shadow:0 2px 10px rgba(0,0,0,.12);white-space:nowrap;transform:translate(-50%,-110%)}
-.tip b{font-variant-numeric:tabular-nums}
-.notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px 32px}
-.notes h3{margin:0 0 4px;font-size:15px}
-.notes p{margin:0;font-size:14px;color:var(--ink-2)}
-footer{margin-top:40px;padding-top:14px;border-top:1px solid var(--rule);font-size:12.5px;color:var(--muted);max-width:90ch}
-footer p{margin:0 0 6px}
-a{color:inherit}
-@media (prefers-reduced-motion:no-preference){.hover *{transition:none}}
-'''
-
-JS = r'''
-(function(){
-  var data = PROFILE_JSON;
-  var svg = document.querySelector('.profile'); if(!svg) return;
-  var g = data.geom, hov = svg.querySelector('.hover'), xh = svg.querySelector('.xh'), xd = svg.querySelector('.xd');
-  var tip = document.createElement('div'); tip.className='tip'; tip.hidden = true; svg.parentNode.appendChild(tip);
-  function cx(m){ return g.ML + m/g.total*(g.CW-g.ML-g.MR); }
-  function cy(e){ return g.MT + (g.EMAX-e)/(g.EMAX-g.EMIN)*(g.CH-g.MT-g.MB); }
-  svg.addEventListener('mousemove', function(ev){
-    var r = svg.getBoundingClientRect(); var sx = (ev.clientX - r.left) * g.CW / r.width;
-    var m = (sx - g.ML)/(g.CW-g.ML-g.MR)*g.total; if(m<0||m>g.total){ hov.hidden=true; tip.hidden=true; return; }
-    var best=data.samples[0]; for(var i=0;i<data.samples.length;i++){ if(Math.abs(data.samples[i][0]-m)<Math.abs(best[0]-m)) best=data.samples[i]; }
-    var near=null; for(var j=0;j<data.wps.length;j++){ if(Math.abs(data.wps[j][1]-m)<0.35 && (!near||Math.abs(data.wps[j][1]-m)<Math.abs(near[1]-m))) near=data.wps[j]; }
-    hov.hidden=false; xh.setAttribute('x1',cx(best[0])); xh.setAttribute('x2',cx(best[0])); xd.setAttribute('cx',cx(best[0])); xd.setAttribute('cy',cy(best[1]));
-    tip.hidden=false; tip.innerHTML = (near? '<div>'+near[0]+'</div>':'') + '<b>'+best[0].toFixed(1)+' mi</b> · <b>'+best[1].toLocaleString()+' ft</b>';
-    tip.style.left = (cx(best[0])*r.width/g.CW)+'px'; tip.style.top = (cy(best[1])*r.height/g.CH - 8)+'px';
-  });
-  svg.addEventListener('mouseleave', function(){ hov.hidden=true; tip.hidden=true; });
-})();
-
-(function(){
-  var svg = document.getElementById('mapsvg'); if(!svg) return;
-  var W = +svg.dataset.w, H = +svg.dataset.h, fig = svg.parentNode;
-  var vb = {x:0,y:0,w:W,h:H}, MAXZ = 14;
-  var readout = document.getElementById('readout'), ttip = document.getElementById('ttip');
-  // ---- cursor DEM
-  var GW = DEM_GW, GH = DEM_GH, bin = atob("DEM_B64"), dem = new Uint16Array(GW*GH);
-  for (var i=0;i<dem.length;i++){ dem[i] = bin.charCodeAt(2*i) | (bin.charCodeAt(2*i+1)<<8); }
-  var LON0=DEM_LON0, LON1=DEM_LON1, LAT0=DEM_LAT0, LAT1=DEM_LAT1;
-  function elevAt(x,y){ var c=Math.min(GW-1,Math.max(0,Math.round(x/W*(GW-1)))), r=Math.min(GH-1,Math.max(0,Math.round(y/H*(GH-1)))); return dem[r*GW+c]; }
-  // ---- view
-  function apply(){ window.mapLayout.requestView(vb); }
-  var hashT=null, zlabel=document.getElementById('zlabel');
-  window.mapLayout.onCameraChange=function(view){
-    vb={...view};
-    clearTimeout(hashT); hashT=setTimeout(function(){ try{ history.replaceState(null,'','#v='+vb.x.toFixed(0)+','+vb.y.toFixed(0)+','+(W/vb.w).toFixed(2)); }catch(e){} }, 250);
-  };
-  (function(){ var m=/v=(-?[\d.]+),(-?[\d.]+),([\d.]+)/.exec(location.hash||''); if(m){ var z=Math.min(MAXZ,Math.max(1,+m[3])); vb.w=W/z; vb.h=vb.w*H/W; vb.x=+m[1]; vb.y=+m[2]; clamp(); } })();
-  function clamp(){
-    vb.w = Math.min(W, Math.max(W/MAXZ, vb.w)); vb.h = vb.w*H/W;
-    vb.x = Math.min(W-vb.w, Math.max(0, vb.x)); vb.y = Math.min(H-vb.h, Math.max(0, vb.y));
-  }
-  function toMap(cx,cy){ var r=svg.getBoundingClientRect(); return {x: vb.x+(cx-r.left)/r.width*vb.w, y: vb.y+(cy-r.top)/r.height*vb.h}; }
-  function zoomAt(factor, cx, cy){
-    var m = toMap(cx,cy); var nw = vb.w/factor;
-    nw = Math.min(W, Math.max(W/MAXZ, nw)); factor = vb.w/nw;
-    vb.x = m.x - (m.x-vb.x)/factor; vb.y = m.y - (m.y-vb.y)/factor; vb.w = nw; vb.h = nw*H/W; clamp(); apply();
-  }
-  function center(){ var r=svg.getBoundingClientRect(); return [r.left+r.width/2, r.top+r.height/2]; }
-  document.getElementById('zin').onclick = function(){ var c=center(); zoomAt(1.6,c[0],c[1]); };
-  document.getElementById('zout').onclick = function(){ var c=center(); zoomAt(1/1.6,c[0],c[1]); };
-  document.getElementById('zreset').onclick = function(){ vb={x:0,y:0,w:W,h:H}; apply(); };
-  document.getElementById('goto').onchange = function(e){
-    var v=e.target.value; if(!v) return; var p=v.split(',').map(Number); var nw=W/4.5;
-    vb.w=nw; vb.h=nw*H/W; vb.x=p[0]-nw/2; vb.y=p[1]-vb.h/2; clamp(); apply(); e.target.value='';
-  };
-  svg.addEventListener('wheel', function(e){ e.preventDefault(); var f = Math.exp(-e.deltaY*0.0016); zoomAt(f, e.clientX, e.clientY); }, {passive:false});
-  svg.addEventListener('dblclick', function(e){ e.preventDefault(); zoomAt(2, e.clientX, e.clientY); });
-  // pointer drag + pinch
-  var ptrs = new Map(), last = null, pinch = null, moved = false;
-  svg.addEventListener('pointerdown', function(e){ ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY}); svg.setPointerCapture(e.pointerId); moved=false;
-    if(ptrs.size===1){ last={x:e.clientX,y:e.clientY}; svg.classList.add('dragging'); }
-    if(ptrs.size===2){ var a=[...ptrs.values()]; pinch={d:Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y), cx:(a[0].x+a[1].x)/2, cy:(a[0].y+a[1].y)/2}; }
-  });
-  svg.addEventListener('pointermove', function(e){
-    if(ptrs.has(e.pointerId)) ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
-    if(ptrs.size===2 && pinch){ var a=[...ptrs.values()]; var d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y); var cx=(a[0].x+a[1].x)/2, cy=(a[0].y+a[1].y)/2;
-      zoomAt(d/pinch.d, cx, cy); var r=svg.getBoundingClientRect(); vb.x -= (cx-pinch.cx)/r.width*vb.w; vb.y -= (cy-pinch.cy)/r.height*vb.h; clamp(); apply(); pinch={d:d,cx:cx,cy:cy}; moved=true; return; }
-    if(ptrs.size===1 && last){ var r2=svg.getBoundingClientRect(); var dx=(e.clientX-last.x)/r2.width*vb.w, dy=(e.clientY-last.y)/r2.height*vb.h;
-      if(Math.abs(e.clientX-last.x)+Math.abs(e.clientY-last.y)>2) moved=true; vb.x-=dx; vb.y-=dy; last={x:e.clientX,y:e.clientY}; clamp(); apply(); }
-    // readout
-    var m = toMap(e.clientX,e.clientY);
-    if(m.x>=0&&m.x<=W&&m.y>=0&&m.y<=H){ var lon=LON0+m.x/W*(LON1-LON0), lat=LAT1-m.y/H*(LAT1-LAT0);
-      readout.innerHTML='<small>Cursor</small><br>'+lat.toFixed(4)+'° N &nbsp;'+(-lon).toFixed(4)+'° W &nbsp;·&nbsp; <b>'+elevAt(m.x,m.y).toLocaleString()+' ft</b>'; }
-  });
-  function up(e){ ptrs.delete(e.pointerId); if(ptrs.size<2) pinch=null; if(ptrs.size===0){ last=null; svg.classList.remove('dragging'); } }
-  svg.addEventListener('pointerup', up); svg.addEventListener('pointercancel', up); svg.addEventListener('lostpointercapture', up);
-  window.addEventListener('blur', function(){ ptrs.clear(); last=null; pinch=null; svg.classList.remove('dragging'); });
-  svg.addEventListener('mouseleave', function(){ readout.innerHTML='<small>Cursor</small><br>move over the map for elevation'; });
-  // layers
-  document.querySelectorAll('.layers input').forEach(function(cb){ cb.addEventListener('change', function(){ window.mapLayout.setLayer(cb.dataset.layer.replace('no-',''),cb.checked); }); });
-  // trail hover / click
-  var CLS={corridor:'Corridor trail',threshold:'Threshold trail',primitive:'Primitive route',rim:'Rim & plateau walk'};
-  var miles={}; document.querySelectorAll('.trails .tr').forEach(function(p){ miles[p.dataset.name]=(miles[p.dataset.name]||0)+parseFloat(p.dataset.mi||0); });
-  var pinned=null;
-  function light(name){ if(window.mapLayout.renderer?.active){window.mapLayout.renderer.highlight(name);return;} document.querySelectorAll('.trails .tr').forEach(function(p){ p.classList.toggle('lit', !!name && p.dataset.name===name); p.classList.toggle('dim', !!name && p.dataset.name!==name); }); }
-  function showTip(p, e){ var n=p.dataset.name; var r=fig.getBoundingClientRect();
-    ttip.innerHTML='<div class="cls">'+CLS[p.dataset.cls]+'</div><b>'+n+'</b><div>'+miles[n].toFixed(1)+' mi on this sheet</div>';
-    ttip.hidden=true; if(window.mapLayout)window.mapLayout.details.textContent=n+' · '+CLS[p.dataset.cls]+' · '+miles[n].toFixed(1)+' mi on this sheet'; }
-  svg.addEventListener('pointerover', function(e){ var p=window.mapLayout.renderer?.active?window.mapLayout.pickTrail(e.clientX,e.clientY):(e.target.closest && e.target.closest('.hit')); if(!p||pinned) return; light(p.dataset.name); showTip(p,e); });
-  svg.addEventListener('pointermove', function(e){ if(ptrs.size){ttip.hidden=true;return;} var p=window.mapLayout.renderer?.active?window.mapLayout.pickTrail(e.clientX,e.clientY):(e.target.closest && e.target.closest('.hit')); if(!pinned && window.mapLayout.renderer?.active) light(p?.dataset.name||null); if(p && !pinned) showTip(p,e); else if(!pinned) ttip.hidden=true; if(pinned && !p) ttip.hidden=true; });
-  svg.addEventListener('mouseleave', function(){if(!pinned)light(null);});
-  svg.addEventListener('pointerout', function(e){ if(!pinned && e.target.closest && e.target.closest('.hit')){ light(null); ttip.hidden=true; } });
-  svg.addEventListener('click', function(e){ if(moved) return; var p=window.mapLayout.renderer?.active?window.mapLayout.pickTrail(e.clientX,e.clientY):(e.target.closest && e.target.closest('.hit'));
-    if(p){ if(pinned===p.dataset.name){ pinned=null; light(null); ttip.hidden=true; } else { pinned=p.dataset.name; light(pinned); showTip(p,e); } }
-    else if(pinned){ pinned=null; light(null); ttip.hidden=true; } });
-  apply();
-})();
-'''.replace("PROFILE_JSON", prof_json).replace("DEM_GW", str(GW)).replace("DEM_GH", str(GH)).replace("DEM_B64", dem_b64).replace("DEM_LON0", str(LON0)).replace("DEM_LON1", str(LON1)).replace("DEM_LAT0", str(LAT0)).replace("DEM_LAT1", str(LAT1))
+JS = (Path(__file__).parent/'cartography/interactive.js').read_text().replace("PROFILE_JSON", prof_json).replace("DEM_GW", str(GW)).replace("DEM_GH", str(GH)).replace("DEM_B64", dem_b64).replace("DEM_LON0", str(LON0)).replace("DEM_LON1", str(LON1)).replace("DEM_LAT0", str(LAT0)).replace("DEM_LAT1", str(LAT1))
 
 def lg(kind, label):
     if kind == "corridor": sw = '<svg viewBox="0 0 34 14"><line x1="0" y1="7" x2="34" y2="7" class="tr tr-corridor"/></svg>'
@@ -893,7 +619,7 @@ legend = "".join([
 
 page = f'''<meta charset="utf-8">
 <title>Grand Canyon Trail Explorer</title>
-<style>{embedded_fonts()}{CSS}\n[data-layout-id]{{visibility:hidden}}</style>
+<style>{embedded_fonts()}{CSS}{(Path(__file__).parent/'cartography/styles.css').read_text()}\n[data-layout-id]{{visibility:hidden}}</style>
 <main class="sheet">
 <header class="mast">
   <div>
@@ -905,7 +631,7 @@ page = f'''<meta charset="utf-8">
     <dt>Scale</dt><dd>1 mile ≈ {MI:.0f} px (about 1:90,000 at full width)</dd>
     <dt>Contours</dt><dd>250 ft at full view, 100 ft from 2× zoom, 50 ft from 4.5×</dd>
     <dt>Terrain</dt><dd>USGS 3DEP ⅓-arc-second DEM, fetched 2026-09-06</dd>
-    <dt>Lines</dt><dd>OpenStreetMap trail, road and stream geometry</dd>
+    <dt>Lines</dt><dd>Trails and roads: OpenStreetMap · water: USGS and OSM</dd>
   </dl>
 </header>
 <figure class="map-fig">
@@ -915,6 +641,9 @@ page = f'''<meta charset="utf-8">
   <div class="zoomrow"><button type="button" id="zin" title="Zoom in" aria-label="Zoom in">+</button><button type="button" id="zout" title="Zoom out" aria-label="Zoom out">−</button><button type="button" id="zreset" title="Whole sheet" aria-label="Reset view">⌂</button></div>
   <select id="goto" aria-label="Go to a place"><option value="">Go to…</option>{"".join(f'<option value="{x},{y}">{esc(t)}</option>' for t, k, x, y in sorted(PLACES))}</select>
   <details class="layers"><summary>Layers</summary><div class="box">
+    <label><input type="checkbox" data-layer="no-landcover" checked> Land cover</label>
+    <label><input type="checkbox" data-layer="no-boundaries" checked> Protected areas</label>
+    <label><input type="checkbox" data-layer="no-grid"> Coordinate grid</label>
     <label><input type="checkbox" data-layer="no-relief" checked> Shaded relief</label>
     <label><input type="checkbox" data-layer="no-contours" checked> Contours</label>
     <label><input type="checkbox" data-layer="no-water" checked> Rivers &amp; creeks</label>
@@ -929,7 +658,7 @@ page = f'''<meta charset="utf-8">
 <div class="readout" id="readout"><small>Cursor</small><br>move over the map for elevation</div>
 <div class="ttip" id="ttip" hidden></div>
 </div>
-<figcaption class="legend">{legend}</figcaption>
+<figcaption class="legend">{transport_legend(cartography_context) or legend}</figcaption>
 </figure>
 
 <section id="corridor">
@@ -960,8 +689,9 @@ page = f'''<meta charset="utf-8">
   </div>
 </section>
 
+{catalog_panel(cartography_context)}
 <footer>
-  <p>Terrain: U.S. Geological Survey 3D Elevation Program, ⅓-arc-second DEM served by the 3DEP Elevation ImageServer; hillshade, hypsometric tint and contours computed from that grid for this sheet. Trails, roads, streams, campsites and summit names and elevations: © OpenStreetMap contributors (ODbL). Symbology, labels, layout and the rim-to-rim profile were drawn for this sheet.</p>
+  <p>Terrain: U.S. Geological Survey 3D Elevation Program, ⅓-arc-second DEM served by the 3DEP Elevation ImageServer; neutral hillshade and contours computed from that grid for this sheet. Supplemental hydrography and natural-feature names: USGS 3DHP and GNIS. Land cover: Annual NLCD; protected areas: PAD-US. Source snapshots and dates are listed above. Trails, roads, streams, campsites and summit names and elevations: © OpenStreetMap contributors (ODbL). Symbology, labels, layout and the rim-to-rim profile were drawn for this sheet.</p>
   <p>Schematic reference, not for navigation. Trail lines and mileages carry mapping error of a few hundred feet; use the park's official trail guides and current conditions for planning.</p>
 </footer>
 </main>

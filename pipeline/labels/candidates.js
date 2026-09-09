@@ -75,10 +75,22 @@ export function lineWindows(points,textLength,policy={}) {
   const step=Math.max(1,policy.lineSampleStep??Math.max(12,textLength/2),(last-padding)/256);
   const preferred=Math.max(padding,Math.min(last,policy.preferredOffset??(total-textLength)/2));
   const starts=new Set([preferred,padding,last]);for(let start=padding;start<=last;start+=step)starts.add(start);
-  const at=distance=>{const s=segments.find(s=>s.end>=distance)??segments.at(-1),t=(distance-s.start)/s.length;return [s.a[0]+(s.b[0]-s.a[0])*t,s.a[1]+(s.b[1]-s.a[1])*t];};
+  // Arc distances are monotone. A label spans only a small part of a long
+  // contour, so locate that interval instead of scanning the whole path for
+  // every candidate. The local curvature sum retains the original order and
+  // exact strict/non-strict endpoint conventions.
+  const first=(distance,strict=false)=>{
+    let low=0,high=segments.length;
+    while(low<high){const middle=(low+high)>>>1;
+      if(strict?segments[middle].end<=distance:segments[middle].end<distance)low=middle+1;else high=middle;
+    }
+    return low;
+  };
+  const at=distance=>{const s=segments[Math.min(segments.length-1,first(distance))],t=(distance-s.start)/s.length;return [s.a[0]+(s.b[0]-s.a[0])*t,s.a[1]+(s.b[1]-s.a[1])*t];};
   const delta=(a,b)=>Math.abs(((a-b+540)%360)-180);
   const result=[];
-  for(const start of starts){const end=start+textLength,covered=segments.filter(s=>s.end>start+1e-7&&s.start<end-1e-7);let curvature=0;for(let i=1;i<covered.length;i++)curvature+=delta(covered[i].angle,covered[i-1].angle);
+  for(const start of starts){const end=start+textLength,begin=first(start+1e-7,true);let curvature=0;
+    for(let i=begin+1;i<segments.length&&segments[i].start<end-1e-7;i++)curvature+=delta(segments[i].angle,segments[i-1].angle);
     if(curvature>(policy.maxTurnDegrees??45))continue;
     const a=at(start),b=at(end);let angle=Math.atan2(b[1]-a[1],b[0]-a[0])*180/Math.PI;const reverse=angle>90||angle< -90;if(reverse)angle+=angle>90?-180:180;
     const sideCandidates=[{dx:0,dy:0}],lineOffset=Math.max(0,policy.lineOffset??8);

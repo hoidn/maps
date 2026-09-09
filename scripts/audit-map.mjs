@@ -9,6 +9,10 @@ import {
   setLegacyZoom,
 } from "../tests/support/legacy-map-adapter.js";
 import { checkInventory } from "../tests/support/reference-geometry.js";
+import {
+  collectManagedInventory,
+  checkManagedInventory,
+} from "../tests/support/managed-map-adapter.js";
 export const legacyPolicy = Object.freeze({
   id: "legacy-rendered-audit-v1",
   version: 1,
@@ -27,11 +31,34 @@ export async function runAudit({
   zoomSamples = [1],
   browserName = "chromium",
   viewport = { width: 1440, height: 1000 },
+  policy,
+  theme = "light",
+  deviceScaleFactor = 1,
+  javaScriptEnabled = true,
 }) {
-  if (mode !== "legacy") throw new Error(`Unsupported audit mode: ${mode}`);
+  if (!["legacy", "managed"].includes(mode))
+    throw new Error(`Unsupported audit mode: ${mode}`);
   const source = resolve(input),
     bytes = await readFile(source),
     root = dirname(source);
+  const policyBytes =
+    mode === "legacy"
+      ? Buffer.from(JSON.stringify(legacyPolicy))
+      : policy
+        ? Buffer.from(JSON.stringify(policy))
+        : await readFile(resolve("pipeline/labels/policy.json"));
+  const auditPolicy = JSON.parse(policyBytes.toString());
+  const embeddedFonts = [
+    ...bytes
+      .toString()
+      .matchAll(
+        /url\(["']?(data:font\/[^;]+;base64,([A-Za-z0-9+/=]+))["']?\)/g,
+      ),
+  ]
+    .map((m) =>
+      createHash("sha256").update(Buffer.from(m[2], "base64")).digest("hex"),
+    )
+    .sort();
   const server = createServer(async (req, res) => {
     try {
       const url = new URL(req.url, "http://localhost");
@@ -53,7 +80,7 @@ export async function runAudit({
           ".json": "application/json",
         }[extname(file)] || "application/octet-stream",
       );
-      res.end(await readFile(file));
+      res.end(file === source ? bytes : await readFile(file));
     } catch {
       res.writeHead(404);
       res.end();
@@ -67,7 +94,19 @@ export async function runAudit({
   try {
     await mkdir(reportDir, { recursive: true });
     browser = await playwright[browserName].launch();
-    const page = await browser.newPage({ viewport });
+    const page = await browser.newPage({
+      viewport,
+      deviceScaleFactor,
+      javaScriptEnabled,
+      colorScheme: theme,
+    });
+    if (mode === "managed")
+      await page.route("**/*", (route) =>
+        route.request().isNavigationRequest() &&
+        route.request().url() === `http://127.0.0.1:${server.address().port}/`
+          ? route.continue()
+          : route.abort("blockedbyclient"),
+      );
     const networkErrors = [];
     page.on("requestfailed", (r) =>
       networkErrors.push({
@@ -88,17 +127,57 @@ export async function runAudit({
       waitUntil: "load",
       timeout: 30000,
     });
-    const fontReady = await page.evaluate(async () =>
-      Promise.race([
-        document.fonts.ready.then(() => true),
-        new Promise((r) => setTimeout(() => r(false), 10000)),
-      ]),
-    );
+    if (mode === "managed" && !javaScriptEnabled)
+      await page.evaluate((theme) => {
+        document.documentElement.dataset.theme = theme;
+      }, theme);
+    if (mode === "managed" && javaScriptEnabled)
+      await page.evaluate(async (theme) => {
+        document.documentElement.dataset.theme = theme;
+        if (window.mapLayout) {
+          await window.mapLayout.ready;
+          await window.mapLayout.whenSettled?.();
+        }
+      }, theme);
+    const fontReady = !javaScriptEnabled
+      ? await page.evaluate(() => document.fonts.status === "loaded")
+      : await page.evaluate(async () =>
+          Promise.race([
+            document.fonts.ready.then(() => true),
+            new Promise((r) => setTimeout(() => r(false), 10000)),
+          ]),
+        );
     const views = [];
     for (const zoom of zoomSamples) {
-      await setLegacyZoom(page, zoom);
-      const data = await page.evaluate(collectLegacyInventory);
-      const checks = checkInventory(data.inventory, data.viewport);
+      if (mode === "legacy") await setLegacyZoom(page, zoom);
+      else if (!javaScriptEnabled) {
+        if (zoom !== 1)
+          throw new Error("Zoom requires JavaScript runtime controller");
+      } else
+        await page.evaluate(async (z) => {
+          const m = JSON.parse(
+            document.getElementById("map-label-manifest").textContent,
+          );
+          if (window.mapLayout?.requestView) {
+            const w = m.map.width / z,
+              h = m.map.height / z;
+            await window.mapLayout.requestView({
+              x: (m.map.width - w) / 2,
+              y: (m.map.height - h) / 2,
+              w,
+              h,
+            });
+            await window.mapLayout.whenSettled?.();
+          } else if (z !== 1)
+            throw new Error("Zoom requires managed runtime controller");
+        }, zoom);
+      const data = await page.evaluate(
+        mode === "legacy" ? collectLegacyInventory : collectManagedInventory,
+      );
+      const checks =
+        mode === "legacy"
+          ? checkInventory(data.inventory, data.viewport)
+          : checkManagedInventory(data, auditPolicy);
       const view = { zoom, ...data, ...checks };
       views.push(view);
       const offenders = [
@@ -148,21 +227,35 @@ export async function runAudit({
         ["stylesheet", "font"].includes(e.resourceType),
       );
     const counts = Object.fromEntries(
-      ["overlaps", "clipped", "unresolved"].map((k) => [
-        k,
-        views.reduce((n, v) => n + v[k].length, 0),
-      ]),
+      [
+        "overlaps",
+        "clipped",
+        "unresolved",
+        ...(mode === "managed" ? ["missingRequired"] : []),
+      ].map((k) => [k, views.reduce((n, v) => n + v[k].length, 0)]),
     );
     const report = {
       schemaVersion: 1,
       mode,
-      policyId: legacyPolicy.id,
-      policy: legacyPolicy,
-      policySha256: createHash("sha256")
-        .update(JSON.stringify(legacyPolicy))
-        .digest("hex"),
+      policyId:
+        mode === "legacy"
+          ? legacyPolicy.id
+          : "managed-layout-policy-v" + auditPolicy.version,
+      policy: auditPolicy,
+      policySha256: createHash("sha256").update(policyBytes).digest("hex"),
       artifactSha256: createHash("sha256").update(bytes).digest("hex"),
       input,
+      ...(mode === "managed"
+        ? {
+            fontHashes: embeddedFonts,
+            fontSha256: createHash("sha256")
+              .update(JSON.stringify(embeddedFonts))
+              .digest("hex"),
+            theme,
+            deviceScaleFactor,
+            javaScriptEnabled,
+          }
+        : {}),
       browser: browserName,
       browserVersion: browser.version(),
       viewport,
@@ -198,7 +291,7 @@ if (
   try {
     if (!args.includes("--input") || !args.includes("--report"))
       throw new Error(
-        "Usage: --input FILE --mode legacy [--zoom-samples 1,2,4.5,6,14] --report DIR",
+        "Usage: --input FILE --mode legacy|managed [--zoom-samples 1,2,4.5,6,14] [--browser chromium|firefox|webkit] [--no-js] [--theme light|dark] --report DIR",
       );
     const zoomSamples = args.includes("--zoom-samples")
       ? value("--zoom-samples").split(",").map(Number)
@@ -210,6 +303,8 @@ if (
       reportDir: value("--report"),
       mode: args.includes("--mode") ? value("--mode") : "legacy",
       zoomSamples,
+      javaScriptEnabled: !args.includes("--no-js"),
+      theme: args.includes("--theme") ? value("--theme") : "light",
       browserName: args.includes("--browser") ? value("--browser") : "chromium",
     });
     console.log(

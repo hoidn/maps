@@ -1,3 +1,4 @@
+import {parseHeadless,collectGraphics} from './browser-profile.mjs';
 // Seeded interaction/visual fuzzing. FILE REPORT_DIR [seed] [steps] [engine] [backend]
 import {chromium,firefox,webkit} from '@playwright/test';
 import {readFile,writeFile,mkdir} from 'node:fs/promises';
@@ -6,12 +7,13 @@ import {createServer} from 'node:http';
 import {createHash} from 'node:crypto';
 import {build} from 'esbuild';
 const [file,dir,seedText='73191',stepsText='36',engine='chromium',backend='webgl']=process.argv.slice(2);
-if(!file||!dir)throw Error('Usage: FILE REPORT_DIR [seed] [steps] [engine] [backend]');
+if(!file||!dir)throw Error('Usage: FILE REPORT_DIR [seed] [steps] [engine] [backend] [--headed|--headless]');
 const bytes=await readFile(file);await mkdir(dir,{recursive:true});
 let state=Number(seedText)>>>0;const random=()=>{state=(Math.imul(state,1664525)+1013904223)>>>0;return state/4294967296};
 const server=createServer((req,res)=>{res.setHeader('Content-Type','text/html; charset=utf-8');res.end(bytes)});await new Promise(r=>server.listen(0,'127.0.0.1',r));
-const browser=await({chromium,firefox,webkit}[engine]).launch();
-const report={file:resolve(file),sha256:createHash('sha256').update(bytes).digest('hex'),seed:Number(seedText),engine,browserVersion:browser.version(),backend,deviceScaleFactor:Number(seedText)%2?1:2,screenshotScope:'visible viewport; no capture-induced scroll or resize',actions:[],errors:[],checks:[]};
+const headless=parseHeadless(process.argv.slice(8),{});
+const browser=await({chromium,firefox,webkit}[engine]).launch({headless}),graphics=await collectGraphics(browser,engine);
+const report={file:resolve(file),sha256:createHash('sha256').update(bytes).digest('hex'),seed:Number(seedText),engine,browserVersion:browser.version(),headless,graphics,backend,deviceScaleFactor:Number(seedText)%2?1:2,screenshotScope:'visible viewport; no capture-induced scroll or resize',actions:[],errors:[],checks:[]};
 const auditBundle=(await build({entryPoints:['scripts/release-browser-audit.js'],bundle:true,format:'iife',globalName:'releaseAudit',write:false})).outputFiles[0].text;
 const page=await browser.newPage({viewport:{width:1440,height:1200},deviceScaleFactor:report.deviceScaleFactor});
 await page.addInitScript({content:auditBundle+';window.releaseAudit=releaseAudit;'});

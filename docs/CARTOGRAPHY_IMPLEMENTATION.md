@@ -89,7 +89,9 @@ corrected latency probes, frozen baseline and diagnostic ablations.
 `node scripts/fuzz-cartography.mjs FILE REPORT_DIR SEED STEPS ENGINE BACKEND`
 uses a recorded seed, browser version, DPR and exact HTML hash.
 `node scripts/fuzz-cartography-matrix.mjs REPORT_DIR` runs the six-case pairwise
-matrix, covering both regions and all three browsers and backends. Each run exercises
+matrix, covering both regions and all three browsers and backends. Both commands
+accept a final `--headed` or `--headless` option (default headless), and reports
+record the launch mode and available GPU evidence. Each run exercises
 zoom, pan, wheel bursts, held/interrupted drags, text size, layers, themes, narrow
 resizes, reset and rapid reversals. Node-side watchdogs can terminate an unresponsive
 browser even when an in-page timer cannot run. Reports retain every action, state,

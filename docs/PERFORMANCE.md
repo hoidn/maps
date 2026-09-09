@@ -189,8 +189,8 @@ for further profiling, not evidence that switching backends alone would fix it.
 
 ## Remaining small optimization candidates
 
-These are source-based opportunities, not implemented changes or measured speedup
-claims. Prioritize a small before/after experiment for each:
+These are opportunities, not implemented changes or measured end-to-end speedups.
+The isolated timing estimates below help prioritize a before/after experiment:
 
 1. **Create full-run Path2D objects only when needed.** Initialization currently
    builds a complete Path2D for every parsed contour run, including hidden detail.
@@ -209,6 +209,34 @@ claims. Prioritize a small before/after experiment for each:
    time could reduce initial work further. This requires more lifecycle work than
    the first two: direct high-zoom URL loads and early zooms must still show complete
    geometry, and readiness must distinguish available detail from pending detail.
+
+### Estimated payoff after isolated timing
+
+A 2026-09-09 microbenchmark repeated the existing parsing, bounds, section and
+Path2D construction operations over the current map's geometry three times per
+browser. It used the same headless Chromium/Firefox/WebKit versions and Apple M3
+environment as above. This measures warmed operations after page initialization,
+not cold startup or implemented alternative code. The local script and results
+are in `artifacts/perf-estimates/measure.mjs` and `results.json`.
+
+The overview contains 454,185 contour points; the hidden 2× and 4.5× tiers contain
+1,816,909 more, approximately 80% of the total. Parsing all tiers cost roughly
+225–365 ms in these repetitions. Full Path2D construction cost 25–50 ms; the
+separate whole-run bounds scan cost only 3–8 ms.
+
+| Proposal | Estimated upfront main-thread work avoided | Rough full-initialization benefit |
+|---|---|---|
+| Lazy full-run Path2D construction | 20–40 ms, mainly from hidden tiers | Usually small: approximately 0–4% less time |
+| Combine bounds scans | At most roughly 3–8 ms before replacement overhead | Less than 1%; low priority |
+| Defer hidden detail tiers | Roughly 220–310 ms of parsing and preparation | A 5–20% reduction is plausible when this work delays readiness; it can be much smaller when worker computation or browser painting dominates |
+
+The wall-clock estimates are planning estimates, not measurements. Moving work
+off the initial path can improve responsiveness without shortening the parallel
+worker's completion time. Deferred work must eventually run and could instead
+delay the first detailed zoom. Tier deferral already avoids much of the Path2D
+and bounds work in the other proposals, so their estimates must not be added.
+The best likely payoff is visible-tier preparation; lazy Path2D construction is
+the smaller experiment. Combining bounds scans is unlikely to be noticeable alone.
 
 Moving bounds/section generation into the Python build could also remove browser
 work, but it needs an embedded-data format and payload/memory measurements. Moving

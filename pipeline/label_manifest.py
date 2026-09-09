@@ -67,11 +67,11 @@ class Manifest:
         record=dict(id=aid,elementId=aid,featureId=fid,kind=kind,layer=layer,anchor=xy,text=text,
                     style=cls,priority=PRIORITIES.get(cls,500),requiredProfiles=['static-default'] if text in REQUIRED else [],
                     angle=angle,geometryId=geometry_id,requiredGroup=text if text in REQUIRED_ROUTES else None)
-        if kind=='point-label' and len(text.split())>1:
+        if (kind=='point-label' or self.mode=='static' and kind=='line-label' and not geometry_id and text in REQUIRED_ROUTES) and len(text.split())>1:
             words=text.split();mid=min(range(1,len(words)),key=lambda i:abs(len(' '.join(words[:i]))-len(' '.join(words[i:]))))
             splits=[mid]+[i for i in range(1,len(words)) if i!=mid]
             record['variants']=[dict(lines=[' '.join(words[:i]),' '.join(words[i:])]) for i in splits]
-            if text in REQUIRED:
+            if text in REQUIRED or text in REQUIRED_ROUTES:
                 record['variants'] += [dict(lines=[' '.join(words[:i]),' '.join(words[i:j]),' '.join(words[j:])]) for i in range(1,len(words)-1) for j in range(i+1,len(words))]
         return self._wrap(raw, record)
 

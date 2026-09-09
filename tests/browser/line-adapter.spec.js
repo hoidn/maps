@@ -32,5 +32,19 @@ test('window budget is global across route parts and favors the nearest part',as
   const path=document.querySelector('#trail'),far=path.cloneNode();path.setAttribute('d','M20,100 L280,100');far.id='far';far.setAttribute('d','M20,20 L280,20');path.after(far);
   const cs=lineAdapter.buildLineCandidates({annotation:{geometryIds:['far','trail'],anchor:[140,100]},element:document.querySelector('#straight'),policy:{maxLineCandidates:2}});
   return {count:cs.length,first:cs[0].geometryId};
- });expect(result.count).toBeLessThanOrEqual(6);expect(result.first).toBe('trail');
+ });expect(result.count).toBeLessThanOrEqual(10);expect(result.first).toBe('trail');
+});
+test('curved candidates reject local upside-down glyphs even in a forward window',async({page})=>{
+ await fixture(page);const result=await page.evaluate(()=>{
+  document.querySelector('#curve').setAttribute('d','M100,20 Q220,100 100,180');
+  const e=document.querySelector('#curved'),text=e.querySelector('text'),cs=lineAdapter.buildLineCandidates({annotation:{geometryId:'curve'},element:e,policy:{maxLineCandidates:24,maxTurnDegrees:70}});let bad=0;
+  for(const c of cs){lineAdapter.applyLineCandidate(e,c);const m=text.getScreenCTM(),base=Math.atan2(m.b,m.a)*180/Math.PI;for(let i=0;i<text.getNumberOfChars();i++){const a=((text.getRotationOfChar(i)+base+540)%360)-180;if(Math.abs(a)>90.001)bad++;}}
+  return {count:cs.length,bad};
+ });expect(result.count).toBeGreaterThan(0);expect(result.bad).toBe(0);
+});
+test('declared multiline trail alternatives preserve the complete name and measured shape',async({page})=>{
+ await fixture(page);const result=await page.evaluate(()=>{
+  const e=document.querySelector('#straight'),before=e.innerHTML,cs=lineAdapter.buildLineCandidates({annotation:{geometryIds:['trail'],text:'North Kaibab Trail',variants:[{lines:['North Kaibab','Trail']}]},element:e,policy:{maxLineCandidates:2}}),wrapped=cs.find(c=>c.textHTML);
+  if(!wrapped)return {wrapped:false};const restored=e.innerHTML===before;e.querySelector('text').innerHTML=wrapped.textHTML;lineAdapter.applyLineCandidate(e,wrapped);return {wrapped:true,restored,text:e.textContent,actual:lineAdapter.measureElement(e).bounds,expected:wrapped.shape.bounds};
+ });expect(result.wrapped).toBe(true);expect(result.restored).toBe(true);expect(result.text).toBe('North KaibabTrail');expect(result.actual.x).toBeCloseTo(result.expected.x,3);expect(result.actual.y).toBeCloseTo(result.expected.y,3);
 });

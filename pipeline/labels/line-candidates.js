@@ -1,6 +1,7 @@
 import {lineWindows} from './candidates.js';
 import {measureElement} from './measure.js';
 import {moveShape} from './geometry.js';
+import {measurePointVariants} from './point-variants.js';
 const matrixString=m=>`matrix(${m.a} ${m.b} ${m.c} ${m.d} ${m.e} ${m.f})`;
 const project=(m,p)=>[m.a*p.x+m.c*p.y+m.e,m.b*p.x+m.d*p.y+m.f];
 const restore=(e,name,value)=>value===null?e.removeAttribute(name):e.setAttribute(name,value);
@@ -36,6 +37,7 @@ function geometry(path,matrix,pathScale){
  * footprints. Zoom requires remeasurement. Do not divide translation by scale again. This function does not change visibility. */
 export function applyLineCandidate(element,candidate) {
   const application=candidate.application??candidate;
+  if(candidate.textHTML&&element.querySelector('text').innerHTML!==candidate.textHTML)element.querySelector('text').innerHTML=candidate.textHTML;
   element.setAttribute('transform',application.transform);
   if(application.startOffset!==undefined)element.querySelector('textPath').setAttribute('startOffset',application.startOffset);
 }
@@ -52,6 +54,7 @@ export function buildLineCandidates({annotation,element,policy={}}) {
   const em=element.getScreenCTM(),base=parentMatrix.inverse().multiply(new DOMMatrix([em.a,em.b,em.c,em.d,em.e,em.f]));
   const tm=text.getScreenCTM(),scale=Math.hypot(tm.a,tm.b);
   let advance=text.getComputedTextLength()*scale;
+  if(!tp&&text.querySelector('[data-layout-primary]'))advance=text.getBBox().width*scale;
   if(tp){
     // Some engines return only the on-path advance, possibly zero for an invalid
     // original offset. An unconstrained copy discovers all usable alternatives.
@@ -99,6 +102,10 @@ export function buildLineCandidates({annotation,element,policy={}}) {
       if(tp&&originalOffset){const raw=originalOffset.endsWith('%')?parseFloat(originalOffset)*length/100:parseFloat(originalOffset);options.preferredOffset=raw*pathScale-advance/2;}
       for(const window of lineWindows(points,advance,options)){
         if(tp&&window.reverse)continue;
+        if(!tp&&options.lineOffset<32){
+          const radians=window.angle*Math.PI/180;
+          for(const sign of [1,-1])window.sideCandidates.push({dx:-Math.sin(radians)*32*sign,dy:Math.cos(radians)*32*sign});
+        }
         const score=!tp&&preferredScreen?Math.hypot(window.anchor[0]-preferredScreen[0],window.anchor[1]-preferredScreen[1]):Math.abs(window.start-(options.preferredOffset??(length*pathScale-advance)/2));
         windows.push({id,pathScale,window,score});
       }
@@ -119,11 +126,30 @@ export function buildLineCandidates({annotation,element,policy={}}) {
             application={transform:transformFor(screen)};
           }
           applyLineCandidate(element,application);
+          if(tp){
+            const m=text.getScreenCTM(),baseAngle=Math.atan2(m.b,m.a)*180/Math.PI;
+            let upright=true;
+            for(let i=0;i<text.getNumberOfChars();i++){
+              const angle=((text.getRotationOfChar(i)+baseAngle+540)%360)-180;
+              if(Math.abs(angle)>90+1e-5){upright=false;break;}
+            }
+            if(!upright)continue;
+          }
           try{output.push({id:`${id}:${window.id}:side-${side}`,shape:measureElement(element),dx:0,dy:0,...application,application,geometryId:id,angle:window.angle,side,windowStart:window.start,windowEnd:window.end});}
           catch(error){if(!error.message.includes('overflow'))throw error;}
         }
     }
   }finally{restore(element,'transform',originalTransform);if(tp)restore(tp,'startOffset',originalOffset);}
+  if(!tp&&annotation.variants?.length){
+    const originalHTML=text.innerHTML;
+    try{
+      for(const variant of measurePointVariants(element,annotation)){
+        text.innerHTML=variant.textHTML;
+        const alternatives=buildLineCandidates({annotation:{...annotation,variants:[]},element,policy});
+        output.push(...alternatives.map(c=>({...c,id:variant.id+':'+c.id,textHTML:variant.textHTML})));
+      }
+    }finally{text.innerHTML=originalHTML;}
+  }
   return output;
 }
 

@@ -636,7 +636,7 @@ figure{margin:0}
 .map.no-names .trail-labels,.map.no-names .hydro-labels,.map.no-names .regions{display:none}
 .map.no-water .hydro{display:none}
 .hit{fill:none;stroke:transparent;stroke-width:calc(14px*var(--s));pointer-events:stroke;cursor:pointer}
-.tr.dim{opacity:.25} .tr.lit{stroke-width:calc(5px*var(--s));filter:drop-shadow(0 0 2px var(--paper))}
+.tr.dim{opacity:.25} .tr.lit{opacity:1}
 .map-wrap{position:relative}
 .ctl{position:absolute;top:12px;right:12px;display:flex;flex-direction:column;gap:6px;z-index:2}
 .ctl button,.ctl select,.ctl summary{font:600 13px var(--sans);color:var(--ink);background:var(--panel);border:1px solid var(--ink);border-radius:3px;min-width:34px;height:32px;padding:0 10px;cursor:pointer}

@@ -60,16 +60,26 @@ export class ContourPreview {
     // Keep a 64 CSS-pixel margin on each side. Pans within it only change the
     // SVG camera; the contour buffer keeps its exact scale and world position.
     // Zoom frames cannot reuse this margin, so draw only their visible viewport.
-    const margin=cached&&cached.z!==z?0:64/fit,w=visibleW+2*margin,h=visibleH+2*margin,x=visibleX-margin,y=visibleY-margin;
-    const ratio=Math.min(dpr,Math.sqrt(maxBytes/(4*w*h*fit*fit)));
-    const width=Math.max(1,Math.floor(w*fit*ratio)),height=Math.max(1,Math.floor(h*fit*ratio));
+    const margin=cached&&cached.z!==z?0:64;
+    // Reserve the pan margin when choosing density, including the two-pixel
+    // rounding allowance. Switching between zoom and pan must not change it.
+    const maxW=viewport.width+128,maxH=viewport.height+128,pixels=maxBytes/4,
+      a=maxW*maxH,b=2*(maxW+maxH),budgetRatio=2*(pixels-4)/(b+Math.sqrt(b*b+4*a*(pixels-4))),
+      ratio=Math.min(dpr,budgetRatio),sx=fit*ratio,sy=sx;
+    const left=Math.floor((visibleX-margin/fit)*sx),top=Math.floor((visibleY-margin/fit)*sy),
+      width=Math.max(1,Math.ceil((viewport.width+2*margin)*ratio)+1),height=Math.max(1,Math.ceil((viewport.height+2*margin)*ratio)+1),
+      x=left/sx,y=top/sy,w=width/sx,h=height/sy;
     if(this.canvas.width!==width||this.canvas.height!==height){this.canvas.width=width;this.canvas.height=height;}
     this.rgbaBytes=width*height*4;this.cached={x,y,w,h,fit,z,dpr,maxBytes,hidden};
-    for(const [key,value] of Object.entries({x,y,width:w,height:h}))this.element.setAttribute(key,value);
+    // Lay out HTML in integer bitmap pixels, then position it with an SVG
+    // transform. foreignObject layout in map units rounds away subpixel motion
+    // at high zoom. A world-anchored integer raster origin also keeps identical
+    // antialiasing when a pan exhausts the cache and redraws its margin.
+    this.element.setAttribute('width',width);this.element.setAttribute('height',height);
+    this.element.setAttribute('transform',`matrix(${1/sx} 0 0 ${1/sy} ${x} ${y})`);
     const ctx=this.context;ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,width,height);
     if(hidden)return;
-    const sx=width/w,sy=height/h;
-    ctx.setTransform(sx,0,0,sy,-x*sx,-y*sy);
+    ctx.setTransform(sx,0,0,sy,-left,-top);
     for(const item of this.items){
       if(z<item.minZoom)continue;
       const b=item.bounds,s=item.style,pad=s.width/z/2*Math.max(1,s.join==='miter'?s.miter:1);

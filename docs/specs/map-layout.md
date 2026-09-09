@@ -180,6 +180,10 @@ width, theme, and detail level. Generated polylines retain every vertex; cached
 section bounds exclude offscreen segments, and contiguous sections are merged
 before stroking to preserve joins and opacity. A 64 CSS-pixel overscan margin
 lets pans reuse pixels at the same scale; zoom frames omit that margin.
+Raster density is chosen with the margin allowance for both modes. Raster
+origins lie on a fixed world-aligned pixel grid, and the canvas uses integer
+bitmap dimensions positioned by an SVG transform. This avoids high-zoom HTML
+layout rounding and changes in raster phase when a pan refreshes the cache.
 Zoom, theme, layer, pixel-density,
 or viewport-scale changes invalidate that reuse. They are never enlarged from
 an overview bitmap.

@@ -26,13 +26,14 @@ test('drag preview preserves rendered contour width and live road and waterway w
  await page.addScriptTag({content:await fs.readFile('pipeline/labels/dist/browser.js','utf8')});
  const rows=await page.evaluate(async()=>{
   const l=mapLayout;await l.ready;await l.preview.ready;const rows=[];
+  if(devicePixelRatio>1)l.preview.maxBytes=600000; // Exercise a fractional, budget-limited raster scale.
   for(const z of [1,4.5,14]){
    l.requestView({x:90,y:90,w:500/z,h:400/z});await l.whenSettled();
    const before=[0,1,2].map(i=>{const e=document.getElementById('drag-width-'+i);return parseFloat(getComputedStyle(e).strokeWidth)*e.getScreenCTM().a});
    l.view={...l.view,x:l.view.x+1};l.render(false);
    const during=[0,1,2].map(i=>{const e=document.getElementById('drag-width-'+i);return e?parseFloat(getComputedStyle(e).strokeWidth)*e.getScreenCTM().a:null});
    const canvas=l.preview.contours?.canvas;
-   if(canvas&&canvas.isConnected){const x=Math.round((100-Number(l.preview.contours.element.getAttribute('x')))/Number(l.preview.contours.element.getAttribute('width'))*canvas.width),pixels=canvas.getContext('2d').getImageData(x,0,1,canvas.height).data;let coverage=0;for(let i=3;i<pixels.length;i+=4)coverage+=pixels[i]/255;during[0]=coverage/(canvas.width/canvas.getBoundingClientRect().width);}
+   if(canvas&&canvas.isConnected){const x=Math.round((100-l.preview.contours.cached.x)/l.preview.contours.cached.w*canvas.width),pixels=canvas.getContext('2d').getImageData(x,0,1,canvas.height).data;let coverage=0;for(let i=3;i<pixels.length;i+=4)coverage+=pixels[i]/255;during[0]=coverage/(canvas.width/canvas.getBoundingClientRect().width);}
    rows.push({z,before,during,active:l.preview.active});l.render(true);
   }return rows;
  });
@@ -47,7 +48,7 @@ test('contour gesture rendering follows zoom detail, theme and layer changes',as
  const result=await page.evaluate(async()=>{
   const l=mapLayout;await l.ready;await l.preview.ready;
   const samples=[];
-  function pixels(){const c=l.preview.contours.canvas,e=l.preview.contours.element,x=Number(e.getAttribute('x')),y0=Number(e.getAttribute('y')),w=Number(e.getAttribute('width')),h=Number(e.getAttribute('height'));return [100,104,108].map(y=>[...c.getContext('2d').getImageData(Math.floor((100-x)/w*c.width),Math.floor((y-y0)/h*c.height),1,1).data]);}
+  function pixels(){const c=l.preview.contours.canvas,{x,y:y0,w,h}=l.preview.contours.cached;return [100,104,108].map(y=>[...c.getContext('2d').getImageData(Math.floor((100-x)/w*c.width),Math.floor((y-y0)/h*c.height),1,1).data]);}
   for(const z of [1,2,4.5,14]){l.requestView({x:90,y:90,w:500/z,h:400/z});await l.whenSettled();l.render(false);samples.push({z,pixels:pixels()});l.render(true);}
   document.documentElement.dataset.theme='dark';await new Promise(requestAnimationFrame);await l.preview.ready;l.render(false);const dark=pixels();l.render(true);
   l.setLayer('contours',false);await l.whenSettled();await l.preview.ready;l.render(false);const off=pixels();l.render(true);
@@ -65,9 +66,9 @@ test('panning reuses contour pixels until the viewport reaches the cached margin
   const c=l.preview.contours;let strokes=0;const stroke=c.context.stroke.bind(c.context);c.context.stroke=(...args)=>{strokes++;return stroke(...args)};
   l.view.x+=1;l.render(false);const first=strokes;l.view.x+=1;l.render(false);const near=strokes;
   l.view.x+=50;l.render(false);const far=strokes;l.view.w/=2;l.view.h/=2;l.render(false);const zoom=strokes;
-  return {first,near,far,zoom,zoomWidth:Number(c.element.getAttribute('width')),viewWidth:l.view.w};
+  return {first,near,far,zoom,zoomWidth:c.cached.w,viewWidth:l.view.w};
  });
- expect(result.near).toBe(result.first);expect(result.far).toBeGreaterThan(result.near);expect(result.zoom).toBeGreaterThan(result.far);expect(result.zoomWidth).toBeCloseTo(result.viewWidth,5);
+ expect(result.near).toBe(result.first);expect(result.far).toBeGreaterThan(result.near);expect(result.zoom).toBeGreaterThan(result.far);expect(result.zoomWidth).toBeGreaterThanOrEqual(result.viewWidth);expect(result.zoomWidth-result.viewWidth).toBeLessThan(2*result.viewWidth/500);
 });
 
 test('culled contour sections match the original path pixels including joins',async({page})=>{
@@ -76,7 +77,7 @@ test('culled contour sections match the original path pixels including joins',as
  await page.addScriptTag({content:await fs.readFile('pipeline/labels/dist/browser.js','utf8')});
  const result=await page.evaluate(async d=>{
   const l=mapLayout;await l.ready;await l.preview.ready;l.requestView({x:90,y:80,w:125,h:100});await l.whenSettled();l.render(false);
-  const c=l.preview.contours,e=c.element,x=Number(e.getAttribute('x')),y=Number(e.getAttribute('y')),w=Number(e.getAttribute('width')),h=Number(e.getAttribute('height'));
+  const c=l.preview.contours,{x,y,w,h}=c.cached;
   const ref=document.createElement('canvas');ref.width=c.canvas.width;ref.height=c.canvas.height;const ctx=ref.getContext('2d'),sx=ref.width/w,sy=ref.height/h;
   ctx.setTransform(sx,0,0,sy,-x*sx,-y*sy);ctx.strokeStyle='black';ctx.lineWidth=.5;ctx.lineJoin='round';ctx.globalAlpha=.5;ctx.stroke(new Path2D(d));
   const a=c.context.getImageData(0,0,ref.width,ref.height).data,b=ctx.getImageData(0,0,ref.width,ref.height).data;let max=0,total=0,ink=0;
@@ -85,4 +86,26 @@ test('culled contour sections match the original path pixels including joins',as
  },d);
  // Canvas string parsing and lineTo have small browser-specific edge coverage differences.
  expect(result.max,JSON.stringify(result)).toBeLessThanOrEqual(20);expect(result.total/result.ink).toBeLessThan(.001);
+});
+
+for(const dpr of [1,2])test.describe(`contour raster at DPR ${dpr}`,()=>{
+ test.use({deviceScaleFactor:dpr});
+ test('fractional pans keep contour raster alignment stable across cache refreshes',async({page})=>{
+ await page.setContent((await fixtureHTML()).replace('</svg>','<g class="contours"><path d="M0,100 500,100" fill="none" stroke="black" style="stroke-width:calc(.55px * var(--s))"/></g></svg>'));
+ await page.addScriptTag({content:await fs.readFile('pipeline/labels/dist/browser.js','utf8')});
+ const rows=await page.evaluate(async()=>{
+  const l=mapLayout;await l.ready;await l.preview.ready;const rows=[];
+  if(devicePixelRatio>1)l.preview.maxBytes=600000; // Exercise a fractional, budget-limited raster scale.
+  for(const z of [4.5,14]){
+   l.requestView({x:90.123,y:90.123,w:500/z,h:400/z});await l.whenSettled();
+   for(const offset of [0,.013,20,20.013,40]){
+    l.view.x=90.123+offset;l.view.y=90.123+offset*.01;l.render(false);
+    const c=l.preview.contours,b=c.cached,m=l.svg.getScreenCTM(),r=c.canvas.getBoundingClientRect(),sx=c.canvas.width/b.w,sy=c.canvas.height/b.h;
+    const sample=c.context.getImageData(Math.floor(c.canvas.width/2),Math.floor(100*sy)-Math.round(b.y*sy)-2,1,5).data;
+    rows.push({z,offset,linePixels:[...sample].filter((_,i)=>i%4===3),positionError:Math.max(Math.abs(r.x-(m.a*b.x+m.e)),Math.abs(r.y-(m.d*b.y+m.f))),sizeError:Math.max(Math.abs(r.width-m.a*b.w),Math.abs(r.height-m.d*b.h)),phaseError:Math.max(Math.abs(b.x*sx-Math.round(b.x*sx)),Math.abs(b.y*sy-Math.round(b.y*sy)))});
+   }
+  }return rows;
+ });
+ for(const row of rows){expect(row.positionError,JSON.stringify(row)).toBeLessThan(.01);expect(row.sizeError,JSON.stringify(row)).toBeLessThan(.01);expect(row.phaseError,JSON.stringify(row)).toBeLessThan(1e-8);const center=a=>a.reduce((n,v,i)=>n+v*i,0)/a.reduce((n,v)=>n+v,0);expect(Math.abs(center(row.linePixels)-center(rows.find(r=>r.z===row.z).linePixels)),JSON.stringify(row)).toBeLessThan(.02);}
+});
 });

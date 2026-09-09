@@ -335,6 +335,22 @@ modify relevant fixture builders and `docs/ADAPTING.md`, `docs/DESIGN.md`,
    footprints for shared visible labels (0.05 CSS px tolerance); clipped labels may
    disappear. Record shared counts and actual scroll movement so unexercised cases
    remain explicit. These additions need fresh exact-candidate matrix evidence.
+   Explicit visual acceptance review (added at user request): inspect whole-view
+   composition at normal display size **and** full-resolution crops of dense and
+   curved-label areas. Check jumbled, out-of-order, detached or misplaced letters;
+   broken baselines, glyph spacing, wrapping and textPath transitions; clipped,
+   duplicated or stale text; labels ambiguously separated from their geographic
+   anchors; and fonts that remain too small when zoomed in. Review overcrowding
+   even when bounding boxes do not collide: excessive label density, repeated
+   names/aliases, weak hierarchy, inadequate breathing room, and labels obscuring
+   trails, waterways or terrain. Include both sparse and developed areas in both
+   regions at matched ground scales, across the existing theme, viewport, DPR and
+   backend matrix. Record per-scene findings, representative crops, disposition
+   and recheck evidence; distinguish inspected, failed and unreviewed categories.
+   Geometry/audit passes or contact-sheet thumbnails alone do not satisfy this
+   review. Correct defects through general typography, source identity, priority,
+   spacing and scale rules, with regression cases; do not introduce regional
+   exclusion lists or arbitrary label-count reductions to hide crowded scenes.
 6. Run sequential renderer/startup benchmarks using immutable before/after files,
    same hardware/browser/viewport, at least three repetitions. Preserve raw results.
    Aim for no >10% regression in median/p95 gesture CPU or early-input latency;

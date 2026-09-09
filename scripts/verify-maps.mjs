@@ -24,7 +24,7 @@ export async function promotePair({sources,destinations,verify,beforeReplace=asy
   return {status:'pass',hashes,report};
  }finally{await Promise.all(staged.map(p=>rm(p,{force:true})));}
 }
-export async function verifyMaps({sources,reportDir}){
+export async function verifyMaps({sources,reportDir,onProgress}){
  const {runAudit}=await import('./audit-map.mjs');
  const {runReleaseScenes}=await import('./release-scenes.mjs');
  const {benchmarkLayout}=await import('./benchmark-layout.mjs');
@@ -32,11 +32,13 @@ export async function verifyMaps({sources,reportDir}){
  const checkHash=(report,index)=>{if(report.artifactSha256!==initialHashes[index])throw new Error('Audit artifact changed during verification');};
  await mkdir(reportDir,{recursive:true});const reports=[];
  for(const browserName of ['chromium','firefox','webkit'])for(const theme of ['light','dark']){
+  onProgress?.({stage:'static',browser:browserName,theme,status:'start'});
   const report=await runAudit({input:sources[0],mode:'managed',reportDir:join(reportDir,'static-'+browserName+'-'+theme),browserName,theme,javaScriptEnabled:false,viewport:{width:1440,height:1400}});
   checkHash(report,0);reports.push(report);if(report.status!=='pass')throw new Error('Frozen static audit failed: '+browserName+' '+theme+' '+JSON.stringify(report.counts));
  }
- const scenes=await runReleaseScenes({input:sources[1],reportDir:join(reportDir,'scenes')});checkHash(scenes,1);reports.push(scenes);
+ const scenes=await runReleaseScenes({input:sources[1],reportDir:join(reportDir,'scenes'),onProgress:event=>onProgress?.({stage:'interactive',...event})});checkHash(scenes,1);reports.push(scenes);
  if(scenes.status!=='pass'||!scenes.releaseComplete||!scenes.coverageFrozen)throw new Error('Interactive release scenes failed or coverage review incomplete');
+ onProgress?.({stage:'performance',status:'start'});
  const performance=await benchmarkLayout({input:sources[1],reportDir:join(reportDir,'performance')});checkHash(performance,1);reports.push(performance);
  if(performance.status!=='pass')throw new Error('Performance criteria unmet; see '+join(reportDir,'performance'));
  const finalHashes=await Promise.all(sources.map(async p=>hash(await readFile(p))));
@@ -46,9 +48,10 @@ export async function verifyMaps({sources,reportDir}){
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(resolve(process.argv[1])).href){
  const args=process.argv.slice(2),value=(name,fallback)=>args.includes(name)?args[args.indexOf(name)+1]:fallback;
+ const onProgress=event=>console.error(JSON.stringify(event));
  const sources=[value('--static','pipeline/grand_canyon_trails_final.html'),value('--interactive','pipeline/grand_canyon_trails_interactive.html')],reportDir=resolve(value('--report','artifacts/layout/release'));
  try{
-  const report=args.includes('--promote')?await promotePair({sources,destinations:['output/grand_canyon_trail_sheet_static.html','output/grand_canyon_trail_explorer_interactive.html'],verify:paths=>verifyMaps({sources:paths,reportDir})}):await verifyMaps({sources,reportDir});
+  const report=args.includes('--promote')?await promotePair({sources,destinations:['output/grand_canyon_trail_sheet_static.html','output/grand_canyon_trail_explorer_interactive.html'],verify:paths=>verifyMaps({sources:paths,reportDir,onProgress})}):await verifyMaps({sources,reportDir,onProgress});
   console.log(JSON.stringify({status:report.status,hashes:report.hashes??report.artifactHashes,reportDir}));
  }catch(error){console.error(error.message);process.exitCode=1;}
 }

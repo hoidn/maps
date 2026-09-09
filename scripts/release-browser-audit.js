@@ -1,3 +1,4 @@
+export {loadAuditFonts} from './audit-fonts.js';
 // Independent audit bundle: imports reference geometry, never production layout code.
 import {collectManagedInventory,checkManagedInventory} from '../tests/support/managed-map-adapter.js';
 import {collectTypography,checkTypography} from '../tests/support/typography-audit.js';

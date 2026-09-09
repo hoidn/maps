@@ -172,3 +172,12 @@ scene. Arbitrary responsive print reflow, new fonts, third-party CSS, different 
 new annotation classes require new validation. Exact print/PDF glyph outlines are a separate
 export feature. Human review remains useful for composition and geographic meaning; collision
 checks cannot verify OSM positions, water availability, closures, route continuity or safety.
+
+
+Interactive release audits explicitly load every face in the declared required font
+families before collecting a settled inventory. This exercises embedded bytes even
+when a style is currently hidden, and restores WebKit font-face status after screenshot
+stylesheet synchronization. Missing families and failed loads still fail the audit;
+font status checks are not waived. Fuzz captures also compare renderer/font/camera
+state before and after the screenshot and retry changed generations within a bounded
+limit. Reports distinguish automated checks from pending visual review.

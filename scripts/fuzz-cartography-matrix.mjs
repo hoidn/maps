@@ -15,6 +15,6 @@ for(const [region,engine,backend,seed] of cases){
  const code=await new Promise((resolve,reject)=>{const child=spawn(process.execPath,['scripts/fuzz-cartography.mjs',file,reportDir,String(seed),'18',engine,backend],{stdio:'inherit'});child.on('error',reject);child.on('exit',resolve)});
  let report;try{report=JSON.parse(await readFile(join(reportDir,'report.json')))}catch(e){report={status:'failed',failure:e.message}}
  runs.push({region,engine,backend,seed,exitCode:code,reportDir,...report});
- await writeFile(join(dir,'matrix.json'),JSON.stringify({status:runs.some(r=>r.status!=='passed')?'failed':runs.length===cases.length?'passed':'running',runs},null,2));
+ await writeFile(join(dir,'matrix.json'),JSON.stringify({status:runs.some(r=>r.status!=='passed')?'failed':runs.length===cases.length?'passed':'running',visualReview:{status:'pending',required:true,flaggedFrames:runs.flatMap(r=>(r.visualReview?.flaggedFrames||r.checks?.filter(c=>c.pointNameCoverage?.reviewRequired).map(c=>c.step)||[]).map(step=>({region:r.region,engine:r.engine,backend:r.backend,step})))},runs},null,2));
 }
 if(runs.some(r=>r.status!=='passed'))process.exitCode=1;

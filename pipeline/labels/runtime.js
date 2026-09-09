@@ -90,12 +90,14 @@ export class LayoutController {
       document.fonts.addEventListener('loading',()=>this.fontsChanged());
       for(const event of ['loadingdone','loadingerror'])document.fonts.addEventListener(event,()=>{if(this.status==='ready')this.fontsChanged();});
       // Face deletion or replacement need not start a loading cycle. Detect face
-      // identity/status changes before paint; this does not force DOM layout.
-      let known=[...document.fonts].map(face=>[face,face.status]);
+      // identity changes before paint; loading events above own real load cycles.
+      // WebKit stylesheet synchronization can mark unchanged, unused faces
+      // unloaded without a load event. Their cached glyph metrics remain valid.
+      let known=[...document.fonts];
       const watchFonts=()=>{
         const current=[...document.fonts];
-        if(current.length!==known.length||current.some((face,i)=>face!==known[i]?.[0]||face.status!==known[i]?.[1])){
-          known=current.map(face=>[face,face.status]);if(this.status==='ready')this.fontsChanged();
+        if(current.length!==known.length||current.some((face,i)=>face!==known[i])){
+          known=current;if(this.status==='ready')this.fontsChanged();
         }
         this.fontWatch=requestAnimationFrame(watchFonts);
       };
@@ -115,7 +117,13 @@ export class LayoutController {
     for(const e of this.elements.values()){e.style.visibility='hidden';e.style.display='none';}this.visibleIds.clear();
     this.fontReady=document.fonts.ready.then(()=>ensureFonts(this.policy.fontFamilies)).then(()=>{
       if(generation!==this.fontGeneration)return;
-      this.status='ready';return this.render(true).then(()=>this.resolveWaiters());
+      this.status='ready';return this.render(true).then(committed=>{
+        if(generation!==this.fontGeneration)return;
+        // Scroll or control changes can invalidate font recovery between slices.
+        // Keep recovery pending until a current placement actually commits.
+        if(committed===false&&this.status==='ready')this.scheduleSettled(0);
+        else this.resolveWaiters();
+      });
     }).catch(error=>{
       if(generation!==this.fontGeneration)return;
       this.status='error';this.error=error.message;this.details.textContent='Map labels unavailable: '+error.message;this.resolveWaiters();

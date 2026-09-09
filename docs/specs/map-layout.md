@@ -38,7 +38,11 @@ directory even when their optional map labels cannot fit.
 ## Measurement and policy boundary
 
 Embedded fonts come from the checked-in [font assets](../../pipeline/labels/fonts/).
-Layout waits for font readiness; incomplete font loading is a failure. The
+Layout waits for font readiness; incomplete font loading is a failure. Real font
+loading events and face replacement/deletion invalidate live metrics. A transient
+unloaded status on an unchanged face during stylesheet synchronization does not.
+Font recovery retries placement when a changed viewport invalidates its measurement
+snapshot, so idle completion requires a current committed result. The
 [measurement module](../../pipeline/labels/measure.js) measures actual rendered
 SVG in CSS pixels after transforms, including stroke/halo and multiline text.
 Interactive Canvas/WebGL text uses Canvas glyph ink at the SVG-provided glyph

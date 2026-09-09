@@ -177,3 +177,16 @@ regressions cover the changes made after that run. Source-to-paint review inspec
 21 matched-ground-scale scenes in Grand Canyon and Sequoia, with hashes and
 explicit scale/fit/collision omissions in the coverage baseline. These checks are
 not yet a completed release gate or a claim that the final fuzz matrix passes.
+
+
+The next fuzz replay isolated a font-recovery cancellation bug: page scrolling could
+abort the recovery pass after its sprites were cleared, then incorrectly resolve
+idle waiters without retrying. Recovery now schedules a current replacement pass.
+A separate WebKit screenshot preparation step reset unused FontFace load-status
+bookkeeping on unchanged faces. The identity watcher now handles replacement/deletion;
+real font-loading events handle load cycles. Its regression set still rejects missing
+and broken fonts. A stabilized capture verifies that screenshot and independent audit
+refer to the same renderer/font generation. Required font bytes are explicitly loaded
+for audits instead of accepting unloaded faces. Targeted real Sequoia captures restore
+314 overview labels and 73 after resize; the subsequent enlarged-text overlap remains
+under investigation before final release.

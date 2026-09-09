@@ -1,3 +1,4 @@
+import {loadAuditFonts} from './audit-fonts.js';
 import {readFile,writeFile,mkdir} from 'node:fs/promises';
 import {resolve,join} from 'node:path';
 import {pathToFileURL} from 'node:url';
@@ -69,7 +70,7 @@ export async function runReleaseScenes({input,reportDir,browsers=['chromium','fi
   const profileTotal=browsers.length*viewports.length*dprs.length*themes.length;
   const counts={profiles:0,states:0,frames:0,overlaps:0,clipped:0,unknown:0,missingRequired:0,typography:0,coverage:0,interactionFailures:0,incomplete:0},profiles=[];
   const bundle=(await build({entryPoints:[fileURLToPath(new URL('./release-browser-audit.js',import.meta.url))],bundle:true,format:'iife',globalName:'releaseAudit',write:false})).outputFiles[0].text;
-  async function audit(page,profile,scene,compact){compact??=await page.evaluate(args=>window.releaseAudit.collectCompactAudit(args),{policy,scene:{...scene,viewportWidth:profile.viewport.width}});for(const k of ['overlaps','clipped','unknown','missingRequired','typography'])counts[k]+=compact.counts[k];counts.coverage+=compact.coverage.length;
+  async function audit(page,profile,scene,compact){if(!compact)await page.evaluate(loadAuditFonts,policy.fontFamilies);compact??=await page.evaluate(args=>window.releaseAudit.collectCompactAudit(args),{policy,scene:{...scene,viewportWidth:profile.viewport.width}});for(const k of ['overlaps','clipped','unknown','missingRequired','typography'])counts[k]+=compact.counts[k];counts.coverage+=compact.coverage.length;
     const result={id:scene.id,kind:scene.kind,...compact};profile.samples.push(result);
     if(compact.fontStatus!=='loaded'||compact.fontFailures.length)counts.incomplete++;
     return result;

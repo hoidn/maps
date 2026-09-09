@@ -2,11 +2,50 @@
   "version": 1,
   "coverageReview": "pending-real-artifact-evaluation",
   "rationale": "These are explicit proposed information floors, not measured baselines. Freeze only after examining real overview and dense-scene coverage; do not lower a floor to conceal placement failures.",
-  "overview": {"minima":{"point-label":8}},
+  "overview": {
+    "minima": {
+      "point-label": 8
+    },
+    "fractions": [
+      {
+        "kind": "primary-point-label",
+        "minimumFraction": 0.8,
+        "minViewportWidth": 1200
+      }
+    ]
+  },
   "scenes": [
-    {"id":"phantom-bridges","feature":"Phantom Ranch","zoom":4.5,"minima":{"point-label":3}},
-    {"id":"south-rim","feature":"Mather Point","zoom":4.5,"minima":{"point-label":3}},
-    {"id":"north-rim","feature":"North Kaibab TH","zoom":4.5,"minima":{"point-label":2}},
-    {"id":"monument-cedar-salt-horn","feature":"Cedar Spring","zoom":4.5,"minima":{"point-label":2}}
+    {
+      "id": "phantom-bridges",
+      "feature": "Phantom Ranch",
+      "zoom": 4.5,
+      "minima": {
+        "point-label": 3
+      }
+    },
+    {
+      "id": "south-rim",
+      "feature": "Mather Point",
+      "zoom": 4.5,
+      "minima": {
+        "point-label": 3
+      }
+    },
+    {
+      "id": "north-rim",
+      "feature": "North Kaibab TH",
+      "zoom": 4.5,
+      "minima": {
+        "point-label": 2
+      }
+    },
+    {
+      "id": "monument-cedar-salt-horn",
+      "feature": "Cedar Spring",
+      "zoom": 4.5,
+      "minima": {
+        "point-label": 2
+      }
+    }
   ]
 }

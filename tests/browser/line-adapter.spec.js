@@ -18,3 +18,19 @@ test('authored polylines use their exact vertices without repeated DOM path scan
   return {scans,first:first.length,second:second.length};
  });expect(result.first).toBeGreaterThan(0);expect(result.second).toBe(0);expect(result.scans).toBe(0);
 });
+test('straight trail names can sit beside a winding route without bending glyphs',async({page})=>{
+ await fixture(page);const result=await page.evaluate(()=>{
+  const path=document.querySelector('#trail');path.setAttribute('d','M20,100 '+Array.from({length:30},(_,i)=>`${28+i*8},${i%2?104:96}`).join(' '));
+  const candidates=lineAdapter.buildLineCandidates({annotation:{geometryIds:['trail'],anchor:[140,100]},element:document.querySelector('#straight'),policy:{maxLineCandidates:8}});
+  const numbers=path.getAttribute('d').match(/-?\d+(?:\.\d+)?/g).map(Number),m=path.getScreenCTM(),lines=[];
+  for(let i=2;i<numbers.length;i+=2)lines.push({a:{x:numbers[i-2]*m.a+m.e,y:numbers[i-1]*m.d+m.f},b:{x:numbers[i]*m.a+m.e,y:numbers[i+1]*m.d+m.f},width:2});
+  return {count:candidates.length,upright:candidates.every(c=>c.angle>=-90&&c.angle<=90),clear:candidates.some(c=>!lines.some(l=>c.shape.parts.some(r=>lineAdapter.lineHitsRect(l,r,2))))};
+ });expect(result.count).toBeGreaterThan(0);expect(result.upright).toBe(true);expect(result.clear).toBe(true);
+});
+test('window budget is global across route parts and favors the nearest part',async({page})=>{
+ await fixture(page);const result=await page.evaluate(()=>{
+  const path=document.querySelector('#trail'),far=path.cloneNode();path.setAttribute('d','M20,100 L280,100');far.id='far';far.setAttribute('d','M20,20 L280,20');path.after(far);
+  const cs=lineAdapter.buildLineCandidates({annotation:{geometryIds:['far','trail'],anchor:[140,100]},element:document.querySelector('#straight'),policy:{maxLineCandidates:2}});
+  return {count:cs.length,first:cs[0].geometryId};
+ });expect(result.count).toBeLessThanOrEqual(6);expect(result.first).toBe('trail');
+});

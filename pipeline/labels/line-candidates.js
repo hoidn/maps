@@ -66,6 +66,8 @@ export function buildLineCandidates({annotation,element,policy={}}) {
   const output=[];const straightMetric=tp?null:measureElement(element);
   // Conjugation maps a screen-space movement to the wrapper's parent coordinates.
   const transformFor=screen=>matrixString(parentMatrix.inverse().multiply(screen).multiply(parentMatrix).multiply(base));
+  const windows=[];
+  const preferredScreen=annotation.anchor?project(element.ownerSVGElement.getScreenCTM(),{x:annotation.anchor[0],y:annotation.anchor[1]}):null;
   try {
     for(const id of ids){
       const path=element.ownerDocument.getElementById(id);if(!path?.getTotalLength)continue;
@@ -76,9 +78,34 @@ export function buildLineCandidates({annotation,element,policy={}}) {
       // Keep association close to the real path and let hard obstacles reject any
       // case where even this bounded side offset cannot fit.
       const options={...policy,lineOffset:policy.lineOffset??Math.min(32,Math.max(8,fontPixels*1.4+halo+(policy.clearance??2)))};
+      // Straight names do not bend with every route vertex. Curvature scores
+      // their windows; protected strokes still determine whether a side fits.
+      // Curved text retains the explicit curvature bound for readable glyphs.
+      if(!tp){
+        options.maxTurnDegrees=Infinity;
+        if(annotation.anchor){
+          const preferred=project(element.ownerSVGElement.getScreenCTM(),{x:annotation.anchor[0],y:annotation.anchor[1]});
+          let best=Infinity,along=0;
+          for(let i=1;i<points.length;i++){
+            const a=points[i-1],b=points[i],dx=b[0]-a[0],dy=b[1]-a[1],length=Math.hypot(dx,dy);
+            if(!length)continue;
+            const t=Math.max(0,Math.min(1,((preferred[0]-a[0])*dx+(preferred[1]-a[1])*dy)/(length*length)));
+            const distance=Math.hypot(preferred[0]-a[0]-t*dx,preferred[1]-a[1]-t*dy);
+            if(distance<best){best=distance;options.preferredOffset=along+t*length-advance/2;}
+            along+=length;
+          }
+        }
+      }
       if(tp&&originalOffset){const raw=originalOffset.endsWith('%')?parseFloat(originalOffset)*length/100:parseFloat(originalOffset);options.preferredOffset=raw*pathScale-advance/2;}
       for(const window of lineWindows(points,advance,options)){
         if(tp&&window.reverse)continue;
+        const score=!tp&&preferredScreen?Math.hypot(window.anchor[0]-preferredScreen[0],window.anchor[1]-preferredScreen[1]):Math.abs(window.start-(options.preferredOffset??(length*pathScale-advance)/2));
+        windows.push({id,pathScale,window,score});
+      }
+    }
+    const limit=Math.max(1,Math.floor(policy.maxLineCandidates??24));
+    windows.sort((a,b)=>a.score-b.score||a.window.curvature-b.window.curvature||(a.id<b.id?-1:a.id>b.id?1:0)||a.window.start-b.window.start);
+    for(const {id,pathScale,window} of windows.slice(0,limit)){
         for(let side=0;side<window.sideCandidates.length;side++){
           const delta=window.sideCandidates[side];let application;
           restore(element,'transform',originalTransform);
@@ -95,7 +122,6 @@ export function buildLineCandidates({annotation,element,policy={}}) {
           try{output.push({id:`${id}:${window.id}:side-${side}`,shape:measureElement(element),dx:0,dy:0,...application,application,geometryId:id,angle:window.angle,side,windowStart:window.start,windowEnd:window.end});}
           catch(error){if(!error.message.includes('overflow'))throw error;}
         }
-      }
     }
   }finally{restore(element,'transform',originalTransform);if(tp)restore(tp,'startOffset',originalOffset);}
   return output;

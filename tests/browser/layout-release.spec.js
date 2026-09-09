@@ -30,3 +30,14 @@ test('destination coverage counts reviewed identity alternatives once and keeps 
  expect(checkSceneCoverage(data,{...scene,destinations:{...scene.destinations,groups:[]}})).toContainEqual({kind:'reviewed-destinations',minimumFraction:.8,numerator:0,denominator:0,fraction:0,missing:[]});
  expect(checkSceneCoverage(data,{...scene,destinations:{...scene.destinations,groups:[{id:'unknown',annotationIds:['absent'],required:true}]}}).some(f=>f.missing.includes('unknown'))).toBe(true);
 });
+
+for(const backend of ['svg','canvas','webgl'])test(`pin verification establishes a visible detail level before a native ${backend} click`,async({page})=>{
+ let html=(await fixtureHTML()).replace('id="mapsvg"',`id="mapsvg" data-renderer="${backend}"`).replace('"mode":"interactive"','"mode":"interactive","metersPerMapUnit":20');
+ html=html.replace('<defs>','<g class="hits" fill="none" stroke="transparent" stroke-width="14"><path class="hit" data-name="Detailed Trail" data-max-mpp="10" d="M20,300 L480,300"/></g><defs>');
+ await page.setContent(html);await page.addScriptTag({content:await readFile('pipeline/labels/dist/browser.js','utf8')});
+ await page.evaluate(async()=>{await mapLayout.whenSettled();window.nativePinClicks=0;mapLayout.svg.addEventListener('click',event=>{if(event.isTrusted)nativePinClicks++;const hit=mapLayout.renderer?.active?mapLayout.pickTrail(event.clientX,event.clientY):event.target.closest('.hit');if(hit)document.querySelector('[data-layout-details]').textContent=hit.dataset.name;});});
+ expect(await page.evaluate(()=>getComputedStyle(document.querySelector('.hit')).visibility)).toBe('hidden');
+ expect(await checkPinnedTrailDetails(page)).toEqual({trail:'Detailed Trail'});
+ expect(await page.evaluate(()=>nativePinClicks)).toBe(1);
+ expect(await page.evaluate(()=>mapLayout.manifest.map.metersPerMapUnit/(mapLayout.svg.getBoundingClientRect().width/mapLayout.view.w))).toBeLessThan(10);
+});

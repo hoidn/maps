@@ -25,18 +25,33 @@ export function releaseStates({width,height,features=[],sampleCount=250,seed=0xC
 /** Verify the current trail-selection UI, which deliberately keeps the old tooltip
  * hidden and exposes information in the separate details region. */
 export async function checkPinnedTrailDetails(page) {
-  const target=await page.evaluate(()=>{
+  let target;
+  for(let attempt=0;attempt<2;attempt++){
+  target=await page.evaluate(()=>{
     const svg=document.querySelector('#mapsvg'),layout=window.mapLayout;
     if(!svg)return {error:'Missing map'};
     const r=svg.getBoundingClientRect(),canvas=layout?.renderer?.active;
     const view=layout?.view,s=view?Math.min(r.width/view.w,r.height/view.h):1;
     const camera=canvas?new DOMMatrix([s,0,0,s,r.x+(r.width-view.w*s)/2-view.x*s,r.y+(r.height-view.h*s)/2-view.y*s]):null;
+    let focus;
     for(const hit of svg.querySelectorAll('.hit')){
       const length=hit.getTotalLength(),matrix=camera||hit.getScreenCTM();if(!matrix||!length)continue;
       const samples=Math.min(2048,Math.max(2,Math.ceil(length*Math.hypot(matrix.a,matrix.b)/6)));
-      for(let i=0;i<=samples;i++){
+      // Interior samples avoid native integer-coordinate rounding off butt caps.
+      for(let i=1;i<samples;i++){
         const local=hit.getPointAtLength(length*i/samples),p=new DOMPoint(local.x,local.y).matrixTransform(matrix),x=p.x,y=p.y;
         if(x<Math.max(r.left,0)+2||x>Math.min(r.right,innerWidth)-2||y<Math.max(r.top,0)+2||y>Math.min(r.bottom,innerHeight)-2)continue;
+        // An arbitrary restored mobile view can legitimately hide every trail
+        // below its data-driven detail threshold. Establish an eligible view
+        // before asserting picking; never select geometry that is still hidden.
+        const limit=Number(hit.dataset.maxMpp),map=layout?.manifest.map;
+        if(limit&&map?.metersPerMapUnit&&layout.requestView){
+          const fit=Math.min(r.width/map.width,r.height/map.height),zoom=map.metersPerMapUnit/(limit*fit)*1.05;
+          if(zoom>map.width/view.w&&zoom<=14&&(!focus||zoom<focus.zoom)){
+            const w=map.width/zoom,h=map.height/zoom;
+            focus={zoom,view:{x:Math.max(0,Math.min(map.width-w,local.x-w/2)),y:Math.max(0,Math.min(map.height-h,local.y-h/2)),w,h}};
+          }
+        }
         const surface=document.elementFromPoint(x,y);if(!surface||!(surface===svg||svg.contains(surface)))continue;
         // Intersections select the topmost trail, which may differ from the
         // geometry being sampled. Use the same visible pick identity as a user.
@@ -44,8 +59,11 @@ export async function checkPinnedTrailDetails(page) {
         if(selected?.dataset.name)return {x,y,name:selected.dataset.name};
       }
     }
-    return {error:'No visible trail geometry available for native pin verification'};
+    return {focus,error:'No visible trail geometry available for native pin verification'};
   });
+  if(!target.error||!target.focus||attempt)break;
+  await page.evaluate(async view=>{mapLayout.requestView(view);await mapLayout.whenSettled();},target.focus.view);
+  }
   if(target.error)throw new Error(target.error);
   await page.mouse.click(target.x,target.y);
   const result=await page.evaluate(()=>{const details=document.querySelector('[data-layout-details]');let visible=!!details;

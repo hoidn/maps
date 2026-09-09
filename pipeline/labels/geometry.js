@@ -1,5 +1,7 @@
 export function validRect(r) {
-  if(!r || ![r.x,r.y,r.width,r.height].every(Number.isFinite)||r.width<0||r.height<0) throw new Error('Invalid rectangle');
+  if(!r)throw new Error('Invalid rectangle');
+  const {x,y,width,height}=r;
+  if(!Number.isFinite(x)||!Number.isFinite(y)||!Number.isFinite(width)||!Number.isFinite(height)||width<0||height<0)throw new Error('Invalid rectangle');
   return r;
 }
 export function expand(r,n) {validRect(r);return {x:r.x-n,y:r.y-n,width:r.width+2*n,height:r.height+2*n};}
@@ -19,11 +21,22 @@ export function shapeIntersects(a,b,gap=0) {
   return intersects(a.bounds,b.bounds,gap) && a.parts.some(x=>b.parts.some(y=>intersects(x,y,gap)));
 }
 export function lineHitsRect(line,rect,gap=0) {
-  const r=expand(rect,(line.width||0)/2+gap),a=line.a,b=line.b;
-  if(![a.x,a.y,b.x,b.y].every(Number.isFinite)) throw new Error('Invalid line');
-  let lo=0,hi=1;const dx=b.x-a.x,dy=b.y-a.y;
-  for(const [p,q] of [[-dx,a.x-r.x],[dx,r.x+r.width-a.x],[-dy,a.y-r.y],[dy,r.y+r.height-a.y]]) {
-    if(Math.abs(p)<1e-12) {if(q<0)return false;continue;}
+  const margin=(line.width||0)/2+gap;validRect(rect);
+  // Keep expand()'s operation order, including its floating-point edge rounding,
+  // without allocating a rectangle and five arrays for each segment test.
+  const x=rect.x-margin,y=rect.y-margin,width=rect.width+2*margin,height=rect.height+2*margin,
+    a=line.a,b=line.b,ax=a.x,ay=a.y,bx=b.x,by=b.y;
+  if(!Number.isFinite(ax)||!Number.isFinite(ay)||!Number.isFinite(bx)||!Number.isFinite(by))throw new Error('Invalid line');
+  let lo=0,hi=1;const dx=bx-ax,dy=by-ay;
+  for(let edge=0;edge<4;edge++){
+    let p,q;
+    switch(edge){
+      case 0:p=-dx;q=ax-x;break;
+      case 1:p=dx;q=x+width-ax;break;
+      case 2:p=-dy;q=ay-y;break;
+      default:p=dy;q=y+height-ay;
+    }
+    if(Math.abs(p)<1e-12){if(q<0)return false;continue;}
     const t=q/p;if(p<0)lo=Math.max(lo,t);else hi=Math.min(hi,t);
     if(lo>hi)return false;
   }

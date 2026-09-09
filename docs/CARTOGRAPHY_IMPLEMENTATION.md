@@ -243,3 +243,37 @@ The existing hardware comparison uses headed Chromium on Apple Metal; software
 WebGL is a distinct profile. Timing reports must record the actual adapter and
 launch mode, while preserving the 8 ms/33 ms camera limits. No delivered output has
 been replaced. The separate production 3× startup target remains unproven.
+
+
+## Release performance investigation
+
+The first expanded-content candidate failed the provisional warm-camera gate on
+headed Chromium 140.0.7339.186 with Apple M3/Metal at 1440×1000, DPR 1. The
+following changes preserve the candidate inventory and exact collision tests:
+
+- Project area boundaries only when a retained fast candidate exists.
+- Read viewport scale once; find HTML controls without traversing sibling SVG
+  artwork, while retaining fresh bounds and dynamically added HTML controls.
+- Reuse fast annotation metadata and a bounded, fully validated priority-order
+  cache. Candidate geometry and eligibility remain specific to each frame.
+- Avoid copying ordinary read-only solver candidates; isolate fallback expansion
+  and measurement margins. Keep all omitted and required-item diagnostics.
+- Query protected trails directly for a single candidate, avoiding a local index
+  that would be used only once. Multiple-candidate/fallback searches retain theirs.
+- Group label sprites by paint layer in one pass and use equivalent affine
+  projection; retain paint ordering and previous-result isolation.
+- Remove temporary arrays from rectangle validation/segment clipping and combine
+  result construction into one ordered pass. Numerical boundaries and errors
+  have reference-parity regressions.
+
+Separate single-run preflights on the same expanded map content reduced median
+transaction work from 16.1 to 3.4 ms and p95 from 26.5 to 11.0 ms; frame p95 was
+18.1 ms in the last run. These are diagnostic runs, **not** the three-repetition
+comparison against main or a 3× startup result. All 369 final-view placements
+completed. The 8 ms transaction gate remains unmet; its limit has not changed.
+
+Validation includes 114 Node cases, 10,000 deterministic clipping comparisons,
+focused cross-engine control/frame/sprite tests, and explicit previous-result and
+input-isolation cases. Final rebuilt-artifact fuzzing, the complete release matrix
+and the quiet main-versus-candidate comparison remain separate. The working logs
+are retained under `artifacts/cartography/performance-fast-*`.

@@ -3,6 +3,7 @@ import {WebGLContours} from './webgl-contours.js';
 import {moveShape,projectAreaPolygons} from '../labels/geometry.js';
 const ORDER=['boundaries','buildings','contour-labels','hydro','roads','trails','regions','hydro-labels','boundary-labels','peaks','symbols','trail-labels','labels','fixed-ui','coordinate-grid','neatline','other'];
 const center=b=>[b.x+b.width/2,b.y+b.height/2];
+const EMPTY_CANDIDATES=Object.freeze([]);
 /** Persistent Canvas paint surface. SVG is retained as a non-painted measurement
  * source; it is not the camera or the hit-test surface during fast frames. */
 export class CanvasMapRenderer{
@@ -64,17 +65,25 @@ export class CanvasMapRenderer{
   return {m,s:m.a,z};
  }
  prepareFast(m,viewport,z){
-  const l=this.controller;
-  return l.manifest.annotations.map(a=>{
-   const anchor=[m.a*a.anchor[0]+m.c*a.anchor[1]+m.e,m.b*a.anchor[0]+m.d*a.anchor[1]+m.f],record=this.labels.get(a.id),item={...a,anchor,required:false,candidates:[],eligibleReason:l.eligible(a,anchor,viewport,z)};
-   if(a.kind==='symbol'){item.anchorTrailRadius=6;item.anchorTrailFootprint=true;}
+  const l=this.controller,pixelsPerMapUnit=l.svg.clientWidth/l.view.w;
+  // The authored manifest is immutable for this controller. Only camera-dependent
+  // fields change between synchronous fast solves; settled preparation owns its
+  // separate items, and solver results copy candidate geometry out of these items.
+  const items=this.fastItems??=(l.manifest.annotations.map(a=>({...a,required:false,candidates:EMPTY_CANDIDATES,eligibleReason:undefined,
+   ...(a.kind==='symbol'?{anchorTrailRadius:6,anchorTrailFootprint:true}:{})})));
+  for(let i=0;i<items.length;i++){
+   const a=l.manifest.annotations[i],item=items[i],anchor=[m.a*a.anchor[0]+m.c*a.anchor[1]+m.e,m.b*a.anchor[0]+m.d*a.anchor[1]+m.f];
+   item.anchor=anchor;item.candidates=EMPTY_CANDIDATES;item.areaPolygons=a.areaPolygons;
+   item.eligibleReason=l.eligible(a,anchor,viewport,z,pixelsPerMapUnit);
    if(a.kind==='line-label')item.repeatDistance=l.policy.repeatDistance;
-   if(item.eligibleReason)return item;
+   if(item.eligibleReason)continue;
+   const record=this.labels.get(a.id);
+   if(!record){item.eligibleReason='budget-deferred';continue;}
    item.areaPolygons=projectAreaPolygons(a.areaPolygons,m);
-   if(!record){item.eligibleReason='budget-deferred';return item;}
-   const c=new DOMPoint(...record.worldCenter).matrixTransform(m),dx=c.x-record.center[0],dy=c.y-record.center[1];
-   item.candidates=[{...record.placement,id:record.placement.candidateId,shape:moveShape(record.placement.footprint,dx,dy)}];return item;
-  });
+   const [x,y]=record.worldCenter,dx=m.a*x+m.c*y+m.e-record.center[0],dy=m.b*x+m.d*y+m.f-record.center[1];
+   item.candidates=[{...record.placement,id:record.placement.candidateId,shape:moveShape(record.placement.footprint,dx,dy)}];
+  }
+  return items;
  }
  capture(result,m){
   const l=this.controller,scale=Math.hypot(m.a,m.b),key=scale+':'+l.textScale+':'+this.generation+':'+Math.min(devicePixelRatio||1,2);
@@ -116,14 +125,17 @@ export class CanvasMapRenderer{
   if(!this.gpu&&l.layers.contours&&contours.cached){const c=contours.cached;this.contourContext.setTransform(...matrixArray(world));this.contourContext.globalAlpha=1;this.contourContext.drawImage(contours.canvas,c.x,c.y,c.w,c.h);}
   }
   this.painted=[];
+  const placementsByLayer=new Map();
+  for(const p of result.placements){const record=this.labels.get(p.id);if(!record)continue;let entries=placementsByLayer.get(record.layer);if(!entries){entries=[];placementsByLayer.set(record.layer,entries);}entries.push([p,record]);}
+  const deviceValues=matrixArray(device);
   const view={x:-world.e/world.a,y:-world.f/world.d,w:width/world.a,h:height/world.d};
   for(const layer of ORDER){
    for(const item of this.scene.byLayer.get(layer)||[])if(this.scene.visible(item,l.layers,z,view))paintCommands(this.fg,item.commands,world,{strokeFactor:item.constantStroke?1/z:1,opacity:layer==='trails'&&this.highlighted&&(this.highlighted instanceof Set?!this.highlighted.has(item.element.dataset.sourceId||item.element.dataset.featureId||item.element.id):item.name!==this.highlighted)?0.25:1});
-   for(const p of result.placements){
-    const record=this.labels.get(p.id);if(!record||record.layer!==layer)continue;
-    const c=new DOMPoint(...record.worldCenter).matrixTransform(m),dx=c.x-record.center[0],dy=c.y-record.center[1];
+   const entries=placementsByLayer.get(layer);
+   if(entries){this.fg.setTransform(...deviceValues);this.fg.globalAlpha=1;}
+   for(const [p,record] of entries||[]){
+    const [x,y]=record.worldCenter,dx=m.a*x+m.c*y+m.e-record.center[0],dy=m.b*x+m.d*y+m.f-record.center[1];
     if(record.sprite.dpr!==dpr)this.sprite(record);const sprite=record.sprite;
-    this.fg.setTransform(...matrixArray(device));this.fg.globalAlpha=1;
     this.fg.drawImage(sprite.canvas,sprite.x+dx,sprite.y+dy,sprite.canvas.width/dpr,sprite.canvas.height/dpr);
     this.painted.push({id:p.id,commands:record.commands,offset:[dx,dy],sprite});
    }

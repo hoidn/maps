@@ -233,11 +233,15 @@ export class LayoutController {
   }
   controls(){
     const out=[];let i=0;
-    for(const e of this.svg.parentElement.querySelectorAll('.ctl,.layers .box,.hint,.readout,.zlabel,.live-scale')){
+    const selector='.ctl,.layers .box,.hint,.readout,.zlabel,.live-scale';
+    // HTML controls may be added or replaced, but traversing their sibling SVG
+    // walks the entire immutable artwork tree on every camera frame.
+    const controls=[];for(const root of this.svg.parentElement.children){if(root===this.svg)continue;if(root.matches(selector))controls.push(root);controls.push(...root.querySelectorAll(selector));}
+    for(const e of controls){
       const r=rectangle(e.getBoundingClientRect());if(r.width&&r.height&&getComputedStyle(e).display!=='none')out.push({id:'control-'+i++,kind:'control',shape:shape(r)});
     }
     let fixedIndex=0;
-    for(const e of this.svg.querySelectorAll('.cartouche,.scale')){
+    for(const e of this.fixedControlElements??=(Array.from(this.svg.querySelectorAll('.cartouche,.scale')))){
       const reserve=this.policy.fixedControlReserves?.[fixedIndex++];
       if(this.renderer?.active&&this.manifest.map.width/this.view.w>1.02)continue;
       if(getComputedStyle(e.parentElement).display==='none')continue;
@@ -269,10 +273,10 @@ export class LayoutController {
       strokeScale:this.mode==='interactive'?1/z:1,scale:s,maxWidth:this.maxTrailWidth,metersPerPixel:this.manifest.map.metersPerMapUnit/s});
   }
 
-  eligible(a,anchor,viewport,z){
+  eligible(a,anchor,viewport,z,pixelsPerMapUnit){
     if(!this.layers[a.layer])return 'layer-off';
-    if(a.geometryBounds){const b=a.geometryBounds,pad=64/(this.svg.clientWidth/this.view.w);if(b[2]+pad<this.view.x||b[0]-pad>this.view.x+this.view.w||b[3]+pad<this.view.y||b[1]-pad>this.view.y+this.view.h)return 'outside-view';}
-    if(a.maxMetersPerPixel&&this.manifest.map.metersPerMapUnit&&this.manifest.map.metersPerMapUnit/(this.svg.clientWidth/this.view.w)>a.maxMetersPerPixel)return 'below-detail';
+    if(a.geometryBounds){const b=a.geometryBounds,pad=64/(pixelsPerMapUnit??this.svg.clientWidth/this.view.w);if(b[2]+pad<this.view.x||b[0]-pad>this.view.x+this.view.w||b[3]+pad<this.view.y||b[1]-pad>this.view.y+this.view.h)return 'outside-view';}
+    if(a.maxMetersPerPixel&&this.manifest.map.metersPerMapUnit&&this.manifest.map.metersPerMapUnit/(pixelsPerMapUnit??this.svg.clientWidth/this.view.w)>a.maxMetersPerPixel)return 'below-detail';
     if(a.style?.split(' ').includes('l-contour-f')&&z<2||a.style?.split(' ').includes('l-contour-ff')&&z<4.5)return 'below-detail';
     if(['point-label','symbol','region-label','edge-pointer'].includes(a.kind)&&!intersects({x:anchor[0]-.5,y:anchor[1]-.5,width:1,height:1},viewport))return 'outside-view';
   }

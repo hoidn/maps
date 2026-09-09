@@ -437,5 +437,16 @@
     "Candidate byte changes require appropriate new evidence; historical screenshots must not be relabeled with later hashes.",
     "Source freshness, geographic accuracy, access conditions and universal feature visibility are not established by rendering checks.",
     "Original reports, including unsuccessful attempts and superseded candidates, are retained."
-  ]
+  ],
+  "sourceReview": {
+    "status": "no-material-findings-in-bounded-read-only-review",
+    "attributionAndMapUseNotice": "preserved in generators and the three candidate hashes recorded above",
+    "generality": "no new region/name-specific production exclusion found; legacy stream exclusions removed",
+    "localMarkdownLinks": {
+      "scope": "three Markdown files changed since 00ddd2f at review time, including heading targets",
+      "checked": 20,
+      "broken": 0
+    },
+    "browserExecution": false
+  }
 }

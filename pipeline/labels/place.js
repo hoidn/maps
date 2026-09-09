@@ -35,6 +35,7 @@ export function solveLayout({annotations,obstacles=[],viewport,previous,policy={
     if(!hard){hard=[];
     if(!validShape(c.shape)) return {hard:['invalid-geometry'],labels,repeat};
     if(!contains(frame,c.shape.bounds,padding))hard.push('frame');
+    if(placementDiagnostics&&hard.length){cache.set(c,hard);return {hard,labels,repeat};}
     const allowed=new Set(a.allowedObstacleIds??[]);
     const query=expand(c.shape.bounds,clearance);
     const nearby=obstacleIndex.query(query).map(key=>obstacleMap.get(key));
@@ -43,10 +44,13 @@ export function solveLayout({annotations,obstacles=[],viewport,previous,policy={
       if(allowed.has(o.id)&&o.kind!=='trail')continue;
       const lines=o.line&&(o.kind==='trail'&&a.kind==='symbol'&&a.anchorTrailRadius===6?lineOutsideCircle(o.line,a.anchor,6):[o.line]);
       if(lines?lines.some(line=>c.shape.parts.some(r=>lineHitsRect(line,r,clearance))):shapeIntersects(c.shape,o.shape,clearance))hard.push(o.id);
+      if(placementDiagnostics&&hard.length)break;
     }
     cache.set(c,hard);
     }
-    for(const id of placedIndex.query(expand(c.shape.bounds,clearance))){if(id===a.id)continue;const other=accepted.get(id);if(other&&shapeIntersects(c.shape,other.shape,clearance))labels.push(id);}
+    if(placementDiagnostics&&hard.length)return {hard,labels,repeat};
+    for(const id of placedIndex.query(expand(c.shape.bounds,clearance))){if(id===a.id)continue;const other=accepted.get(id);if(other&&shapeIntersects(c.shape,other.shape,clearance))labels.push(id);if(placementDiagnostics&&labels.length)break;}
+    if(placementDiagnostics&&labels.length)return {hard,labels,repeat};
     // Repeat distance is a feature-level constraint, not a rectangle approximation.
     const group=featureGroups.get(a.featureId);
     if(group?.maximum>0)for(const id of group.ids){if(id===a.id)continue;const other=accepted.get(id);if(!other)continue;const distance=Math.max(repeatDistances.get(a.id),repeatDistances.get(id));if(distance<=0)continue;const p=center(c.shape),q=center(other.shape);if(Math.hypot(p[0]-q[0],p[1]-q[1])<distance)repeat.push(id);}

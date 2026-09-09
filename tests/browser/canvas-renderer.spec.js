@@ -96,3 +96,6 @@ test('offscreen paths do not reach Canvas stroke calls during deep pans',async({
  const strokes=await page.evaluate(async()=>{const l=mapLayout,r=l.renderer;l.requestView({x:300,y:10,w:100,h:80});await l.whenSettled();const path=r.scene.items.find(i=>i.name==='Fixture Trail').commands[0].path,stroke=r.fg.stroke.bind(r.fg);let count=0;r.fg.stroke=(p,...args)=>{if(p===path)count++;return stroke(p,...args);};l.beginGesture('pointer');l.requestView({...l.view,x:301});await new Promise(requestAnimationFrame);l.endGesture('pointer');return count;});
  expect(strokes).toBe(0);
 });
+test('changing text size rebuilds Canvas label sprites even when placement is unchanged',async({page})=>{
+ await mount(page);const result=await page.evaluate(async()=>{const l=mapLayout,old=l.renderer.labels.get('label-0'),before=old.commands.find(c=>c.kind==='glyph').style.fontSize;l.setTextScale(1.25);await l.whenSettled();const now=l.renderer.labels.get('label-0');return{before,after:now.commands.find(c=>c.kind==='glyph').style.fontSize,replaced:now.sprite.canvas!==old.sprite.canvas}});expect(result.after).toBeGreaterThan(result.before*1.2);expect(result.replaced).toBe(true);
+});

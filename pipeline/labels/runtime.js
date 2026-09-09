@@ -20,6 +20,7 @@ const project=(m,[x,y])=>[m.a*x+m.c*y+m.e,m.b*x+m.d*y+m.f];
 export class LayoutController {
   constructor(svg,manifest,policy) {
     this.svg=svg;this.manifest=validateManifest(manifest);this.policy=policy;
+    this.textScale=1;try{const value=Number(localStorage.getItem('map-text-scale'));if(value>=1&&value<=1.5)this.textScale=value;}catch{}
     this.mode=manifest.map.mode;this.gestures=new Set();this.revision=0;this.view={x:0,y:0,w:manifest.map.width,h:manifest.map.height};
     this.layers={places:true,peaks:true,names:true,contours:true,water:true,relief:true};
     this.elements=new Map();this.cache=new MetricCache();this.previous=null;this.waiters=[];this.timings=[];this.status='loading';
@@ -34,7 +35,9 @@ export class LayoutController {
     svg.parentElement.after(details);this.details=details;
     this.pointers=new Set();
     if(this.mode==='interactive')this.trackGestures();
-    this.createDirectory();this.ready=this.initialize();
+    this.createDirectory();
+    const textControl=document.getElementById('text-size');if(textControl){textControl.value=String(this.textScale);textControl.addEventListener('change',()=>this.setTextScale(Number(textControl.value)));}
+    this.ready=this.initialize();
   }
   trackGestures(){
     // A pause between pointer events is still part of the same drag. Wheel
@@ -78,6 +81,7 @@ export class LayoutController {
         this.render(false);this.scheduleSettled();
       });
       this.observer.observe(this.svg);
+      if(this.mode==='interactive')this.scheduleSettled(0);
       for(const e of this.svg.parentElement.querySelectorAll('.ctl,.layers .box,.readout,.hint,.zlabel'))this.observer.observe(e);
       for(const e of this.svg.parentElement.querySelectorAll('details'))e.addEventListener('toggle',()=>{this.render(false);this.scheduleSettled();});
       document.fonts.addEventListener('loading',()=>this.fontsChanged());
@@ -167,7 +171,7 @@ export class LayoutController {
   }
   whenSettled(){return this.ready.then(()=>this.fontReady).then(()=>this.frame||this.settlePending||this.settleJob||this.gestures.size?new Promise(resolve=>this.waiters.push(resolve)):this.getReport());}
   resolveWaiters(){if(this.frame||this.settlePending||this.settleJob||this.gestures.size)return;for(const resolve of this.waiters.splice(0))resolve(this.getReport());}
-  getReport(){return {renderer:{requested:this.renderer?.requestedBackend||'svg',active:this.renderer?.backend||'svg',fallback:this.renderer?.fallbackReason||this.rendererError,rgbaBytes:this.renderer?.rgbaBytes,gpuBufferBytes:this.renderer?.gpu?.bufferBytes},status:this.status,error:this.error,view:{...this.view},diagnostics:this.result?.diagnostics,outcomes:this.result?.outcomes||[],missingRequired:this.result?.missingRequired||[],placements:this.result?.placements||[],timings:this.timings.slice(-200),samples:this.samples.slice(-200),transactionKind:this.transactionKind};}
+  getReport(){return {textScale:this.textScale,renderer:{requested:this.renderer?.requestedBackend||'svg',active:this.renderer?.backend||'svg',fallback:this.renderer?.fallbackReason||this.rendererError,rgbaBytes:this.renderer?.rgbaBytes,gpuBufferBytes:this.renderer?.gpu?.bufferBytes},status:this.status,error:this.error,view:{...this.view},diagnostics:this.result?.diagnostics,outcomes:this.result?.outcomes||[],missingRequired:this.result?.missingRequired||[],placements:this.result?.placements||[],timings:this.timings.slice(-200),samples:this.samples.slice(-200),transactionKind:this.transactionKind};}
   camera(readAfter=true){
     if(this.renderer?.active&&this.transactionKind==='fast')return this.renderer.camera(this.view);
     const v=this.view,W=this.manifest.map.width;
@@ -190,12 +194,24 @@ export class LayoutController {
     const m=translating?new DOMMatrix([before.a,before.b,before.c,before.d,before.e-before.a*(current.x-oldX)-before.c*(current.y-oldY),before.f-before.b*(current.x-oldX)-before.d*(current.y-oldY)]):readAfter?this.svg.getScreenCTM():null;
     this.cameraView={...v};return {m,s:m?Math.hypot(m.a,m.b):s,z};
   }
+  setTextScale(value){
+    if(!Number.isFinite(value)||value<1||value>1.5)throw new Error('Text scale must be between 1 and 1.5');
+    this.textScale=value;try{localStorage.setItem('map-text-scale',String(value));}catch{}
+    this.cache.invalidate();this.lineCache.clear();this.invalidateLayout();this.schedule();
+  }
+  textSizes(s){
+    const typography=this.policy.typography||{},z=this.manifest.map.width/this.view.w;
+    const meters=this.manifest.map.metersPerMapUnit;
+    const detail=meters?Math.max(1,(typography.referenceMetersPerPixel??32)/(meters/s)):z;
+    const growth=1+((typography.maximumZoomGrowth??1.18)-1)*Math.min(1,Math.max(0,Math.log2(detail))/(typography.growthStops??2));
+    return Object.fromEntries(Object.entries(this.policy.sizes).map(([key,value])=>[key,value*growth*this.textScale]));
+  }
   normalize(a,e,s){
     if(this.mode!=='interactive')return;
     const t=e.querySelector('text');if(!t)return;
-    const size=a.style?.startsWith('l-contour')?this.policy.sizes.contour:a.kind==='region-label'?this.policy.sizes.region:a.style?.startsWith('l-trail')?this.policy.sizes.trail:a.style==='l-major'?14:a.style==='l-minor'||a.style==='l-peak'?this.policy.sizes.secondary:this.policy.sizes.place;
+    const sizes=this.textSizes(s),size=a.style?.startsWith('l-contour')?sizes.contour:a.kind==='region-label'?sizes.region:a.style?.startsWith('l-trail')?sizes.trail:a.style==='l-major'?(sizes.major??sizes.region):a.style==='l-minor'||a.style==='l-peak'?sizes.secondary:sizes.place;
     t.style.fontSize=(a.geometryId?size/s:size)+'px';t.style.strokeWidth=(a.geometryId?2.8/s:2.8)+'px';
-    for(const sub of t.querySelectorAll('tspan:not([data-layout-primary])')){sub.style.fontSize='10px';sub.setAttribute('dy','13');}
+    for(const sub of t.querySelectorAll('tspan:not([data-layout-primary])')){sub.style.fontSize=sizes.secondary+'px';sub.setAttribute('dy',String(sizes.secondary*1.3));}
   }
   controls(){
     const out=[];let i=0;
@@ -369,7 +385,9 @@ export class LayoutController {
         }
         prepared=[];
         const facilityCounts=new Map();for(const a of this.manifest.annotations)if(a.kind==='symbol')facilityCounts.set(a.featureId,(facilityCounts.get(a.featureId)||0)+1);
-        const candidateDeadline=this.mode==='interactive'?performance.now()+(this.policy.interactiveCandidateBudgetMs??24):Infinity;
+        // Startup has a small first-paint budget. Idle preparation resumes through
+        // the cancellable 8 ms slices above until every eligible label is considered.
+        const candidateDeadline=this.mode==='interactive'&&!asyncSettled?performance.now()+(this.policy.interactiveCandidateBudgetMs??24):Infinity;
         const ordered=[...this.manifest.annotations].sort((a,b)=>(b.priority??0)-(a.priority??0)||a.id.localeCompare(b.id));
         for(const a of ordered){
           if(asyncSettled&&performance.now()>=deadline){await pause();deadline=performance.now()+8;}
@@ -397,7 +415,7 @@ export class LayoutController {
                 const text=e.querySelector('text');e.style.display='inline';e.setAttribute('transform','');
                 if(text&&text.innerHTML!==a.originalTextHTML)text.innerHTML=a.originalTextHTML;
                 this.normalize(a,e,s);
-                try{item.candidates=buildLineCandidates({annotation:a,element:e,policy:{...this.policy,maxLineCandidates:this.mode==='interactive'?Math.min(this.policy.maxLineCandidates??24,4):this.policy.maxLineCandidates}});}
+                try{item.candidateDiagnostics={};item.candidates=buildLineCandidates({annotation:a,element:e,diagnostics:item.candidateDiagnostics,policy:{...this.policy,maxLineCandidates:this.mode==='interactive'?Math.min(this.policy.maxLineCandidates??24,4):this.policy.maxLineCandidates}});}
                 finally{e.style.display='none';}
               }
               this.lineCache.set(a.id,{candidates:item.candidates,parentMatrix});

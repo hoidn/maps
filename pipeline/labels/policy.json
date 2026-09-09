@@ -7,8 +7,32 @@
   "pointDistanceBand": 4,
   "repeatDistance": 180,
   "staticProfile": "static-default",
-  "requiredRoutes": ["Bright Angel Trail", "South Kaibab Trail", "North Kaibab Trail"],
-  "fontFamilies": ["Source Sans 3", "Alegreya", "Bree Serif"],
-  "sizes": {"place":12,"secondary":10,"trail":13,"region":14,"contour":10},
-  "performance": {"transactionP95Ms":8,"frameP95Ms":33,"settledMs":100}
+  "requiredRoutes": [
+    "Bright Angel Trail",
+    "South Kaibab Trail",
+    "North Kaibab Trail"
+  ],
+  "fontFamilies": [
+    "Source Sans 3",
+    "Alegreya",
+    "Bree Serif"
+  ],
+  "sizes": {
+    "place": 14,
+    "secondary": 12,
+    "trail": 14,
+    "region": 16,
+    "major": 16,
+    "contour": 11
+  },
+  "performance": {
+    "transactionP95Ms": 8,
+    "frameP95Ms": 33,
+    "settledMs": 100
+  },
+  "typography": {
+    "maximumZoomGrowth": 1.18,
+    "growthStops": 2,
+    "referenceMetersPerPixel": 32
+  }
 }

@@ -16,10 +16,9 @@ SVG authoring/static output, Canvas interactive paint and optional WebGL contour
 Node, Python unittest and Playwright checks. Projection support would add a deliberate
 `pyproj` dependency after checking compatibility with the existing environment.
 
-**Status:** Draft, 2026-09-09. Investigation and plan are complete; the tasks below
-are **not implemented**. This plan does not claim current Sequoia coverage or authorize
-unrelated source refreshes, output promotion or hosted publication. User requested
-planning before remaining implementation. The [comparison catalog](../CARTOGRAPHIC_COMPARISON.md)
+**Status:** Implementation active, 2026-09-09. The user authorized execution and
+local output promotion. Hosted publication is separate. Completion and source
+coverage are established by the task record and release evidence below. The [comparison catalog](../CARTOGRAPHIC_COMPARISON.md)
 is the rationale and owns S01–S25/C01–C32 identifiers used below.
 
 The separate Canvas/WebGL implementation was committed and merged at `8336d94`.
@@ -120,7 +119,8 @@ candidate production is shared; add `tests/browser/readability.spec.js`, extend
 
 1. Test actual painted CSS sizes at overview/deep zoom, preserving the user font
    preference across reload; pure pans must preserve text, size and candidate identity.
-2. Introduce semantic size tokens and a bounded readability multiplier. Trial
+2. Introduce semantic size tokens, modest growth on zoom up to a readable cap,
+   and a persisted readability multiplier. Pure pans keep the same sizes. Trial
    place/trail 14–16 px, secondary 12–13 and contour 11–12. Give static print output
    a separate explicit size profile; do not apply screen pixels as print points.
 3. Implement fixes justified by task 1. Support upright candidates in either line
@@ -371,3 +371,31 @@ separate. Preserve worktrees until their evidence and needed artifacts are retai
   corrections or claims of current conditions from old reference data.
 - Performance, visual/geometry checks and release status are reported separately.
   Neither prettier screenshots nor faster GPU drawing substitutes for those checks.
+
+## Execution record
+
+- [x] 1. Label diagnostics and regression
+- [x] 2. Resumable preparation
+- [ ] 3. Readability and line candidates
+- [ ] 4. Area configuration/provenance
+- [ ] 5. Feature topology/attributes
+- [ ] 6. Transport styling
+- [ ] 7. Hydrography/gazetteer
+- [ ] 8. Facilities and route distances
+- [ ] 9. Land cover/boundaries
+- [ ] 10. Furniture
+- [ ] 11. Portability/performance validation
+- [ ] 12. Release and promotion
+- [ ] 13. Separate startup investigation
+
+User steering: the camera is already smooth. Preserve it; focus implementation on
+font growth/readability, label completion and cartographic content. Idle label latency
+is acceptable provided ongoing interaction remains responsive. Task 13 stays separate.
+
+First batch: reversed/winding hydro regressions and transition back to textPath
+passed with the existing line-adapter suite (45 browser cases). Idle preparation
+reuses the existing cancellable async loop instead of introducing a second queue;
+startup deadline remains bounded while idle slices complete all eligible items.
+Progress/pan/gesture/settled tests passed (66 cases before typography changes).
+Zoom growth and text preference passed in all engines (9 focused cases); Canvas
+sprite invalidation has its own regression. Source-only changes are not promoted.

@@ -115,7 +115,7 @@ function* layoutSteps({annotations,obstacles=[],viewport,previous,policy={},quer
     if(a.eligibleReason)return {id:a.id,reason:a.eligibleReason,blockerIds:[]};
     const failures=placementDiagnostics?attemptFailures.get(a.id)??[]:candidates(a).map(c=>blockers(a,c)),ids=[...new Set(failures.flatMap(b=>[...b.hard,...b.labels,...b.repeat]))].sort(stable);
     const reason=failures.length&&failures.every(b=>b.hard.includes('invalid-geometry'))?'invalid-geometry':a.required?'no-valid-candidate':failures.some(b=>b.repeat.length&&!b.hard.length&&!b.labels.length)?'repeat-spacing':failures.some(b=>b.labels.length&&!b.hard.length)?'collision':'no-valid-candidate';
-    return {id:a.id,reason,blockerIds:ids};
+    return {id:a.id,reason,blockerIds:ids,...(a.candidateDiagnostics?{candidateDiagnostics:a.candidateDiagnostics}:{})};
   });
   const missingRequired=ordered.filter(a=>a.required&&!accepted.has(a.id)).map(a=>a.id);
   for(const group of [...new Set(policy.requiredGroups??[])].sort(stable))if(!ordered.some(a=>a.requiredGroup===group&&accepted.has(a.id)))missingRequired.push('route:'+group);

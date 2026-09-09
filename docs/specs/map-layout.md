@@ -245,3 +245,17 @@ and restores their original positions at settlement; it does not duplicate their
 geometry or invalidate the textPath references.
 Filled river-bank polygons retain geographic dimensions and
 widen naturally with zoom; their width is not controlled by `--s`.
+
+## Progressive cartographic preparation
+
+The startup line-candidate deadline limits the first pass only. Subsequent idle
+preparation visits every eligible annotation through cancellable slices; yielding
+time does not consume a final cutoff. `whenSettled()` waits for that preparation.
+Candidate diagnostics distinguish path/window, reverse-direction, upright-glyph
+and overflow rejection. Curved waterways with no readable path window may use a
+measured straight name beside the same geometry; source paths are unchanged.
+
+Interactive typography uses semantic minimum sizes, modest bounded growth with
+zoom/ground scale, and a persisted 1–1.5 readability multiplier. Static typography
+retains its print profile. Zoom/font settings trigger measurement; pan retains
+accepted size, wrapping and placement.

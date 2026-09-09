@@ -70,7 +70,7 @@ export class CanvasMapRenderer{
   });
  }
  capture(result,m){
-  const l=this.controller,scale=Math.hypot(m.a,m.b),key=scale+':'+this.generation+':'+Math.min(devicePixelRatio||1,2);
+  const l=this.controller,scale=Math.hypot(m.a,m.b),key=scale+':'+l.textScale+':'+this.generation+':'+Math.min(devicePixelRatio||1,2);
   if(this.labelScale!==key){this.labels.clear();this.labelScale=key;}
   for(const p of result.placements){
    const e=l.elements.get(p.id),signature=JSON.stringify([p.candidateId,p.application,p.textHTML,p.dx,p.dy]);

@@ -921,6 +921,7 @@ page = f'''<meta charset="utf-8">
     <label><input type="checkbox" data-layer="no-places" checked> Places &amp; facilities</label>
     <label><input type="checkbox" data-layer="no-peaks" checked> Buttes &amp; temples</label>
     <label><input type="checkbox" data-layer="no-names" checked> Trail &amp; region names</label>
+    <label>Text size <select id="text-size" aria-label="Map text size"><option value="1">Standard</option><option value="1.25">Large</option><option value="1.5">Extra large</option></select></label>
   </div></details>
 </div>
 <div class="hint">drag to pan · scroll or pinch to zoom · double-click to zoom in · the link in the address bar remembers this view</div>

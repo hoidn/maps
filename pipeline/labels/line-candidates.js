@@ -47,8 +47,10 @@ export function applyLineCandidate(element,candidate) {
  * is added: the solver must reject any candidate covering a protected trail stroke.
  * Straight labels follow geometryIds with upright rotations. Curved labels retain the
  * real textPath and omit reverse-reading windows, avoiding mutation of shared paths. */
-export function buildLineCandidates({annotation,element,policy={}}) {
+export function buildLineCandidates({annotation,element,policy={},diagnostics={}}) {
+  Object.assign(diagnostics,{paths:0,windows:0,reverseWindows:0,uprightRejected:0,overflowRejected:0,measuredCandidates:0});
   const text=element.querySelector('text');if(!text)return [];
+  const originalTextHTML=text.innerHTML;
   const tp=text.querySelector('textPath'),originalTransform=element.getAttribute('transform'),originalOffset=tp?.getAttribute('startOffset');
   const parent=element.parentElement.getScreenCTM(),parentMatrix=new DOMMatrix([parent.a,parent.b,parent.c,parent.d,parent.e,parent.f]);
   const em=element.getScreenCTM(),base=parentMatrix.inverse().multiply(new DOMMatrix([em.a,em.b,em.c,em.d,em.e,em.f]));
@@ -74,6 +76,7 @@ export function buildLineCandidates({annotation,element,policy={}}) {
   try {
     for(const id of ids){
       const path=element.ownerDocument.getElementById(id);if(!path?.getTotalLength)continue;
+      diagnostics.paths++;
       const pm=path.getScreenCTM(),pathScale=Math.hypot(pm.a,pm.b);
       const {length,points}=geometry(path,pm,pathScale);
       const style=getComputedStyle(text),fontPixels=parseFloat(style.fontSize)*scale,halo=style.stroke==='none'?0:parseFloat(style.strokeWidth)*scale/2;
@@ -101,7 +104,8 @@ export function buildLineCandidates({annotation,element,policy={}}) {
       }
       if(tp&&originalOffset){const raw=originalOffset.endsWith('%')?parseFloat(originalOffset)*length/100:parseFloat(originalOffset);options.preferredOffset=raw*pathScale-advance/2;}
       for(const window of lineWindows(points,advance,options)){
-        if(tp&&window.reverse)continue;
+        diagnostics.windows++;
+        if(tp&&window.reverse){diagnostics.reverseWindows++;continue;}
         if(!tp&&options.lineOffset<32){
           const radians=window.angle*Math.PI/180;
           for(const sign of [1,-1])window.sideCandidates.push({dx:-Math.sin(radians)*32*sign,dy:Math.cos(radians)*32*sign});
@@ -133,13 +137,26 @@ export function buildLineCandidates({annotation,element,policy={}}) {
               const angle=((text.getRotationOfChar(i)+baseAngle+540)%360)-180;
               if(Math.abs(angle)>90+1e-5){upright=false;break;}
             }
-            if(!upright)continue;
+            if(!upright){diagnostics.uprightRejected++;continue;}
           }
-          try{output.push({id:`${id}:${window.id}:side-${side}`,shape:measureElement(element),dx:0,dy:0,...application,application,geometryId:id,angle:window.angle,side,windowStart:window.start,windowEnd:window.end});}
-          catch(error){if(!error.message.includes('overflow'))throw error;}
+          try{output.push({id:`${id}:${window.id}:side-${side}`,shape:measureElement(element),dx:0,dy:0,...application,application,...(tp?{textHTML:originalTextHTML}:{}),geometryId:id,angle:window.angle,side,windowStart:window.start,windowEnd:window.end});}
+          catch(error){if(!error.message.includes('overflow'))throw error;diagnostics.overflowRejected++;}
         }
     }
   }finally{restore(element,'transform',originalTransform);if(tp)restore(tp,'startOffset',originalOffset);}
+  // A straight, measured name beside the same geometry is preferable to losing
+  // the name when a textPath winds too tightly or runs in the reverse direction.
+  // Source geography and shared path direction stay untouched.
+  if(tp&&!output.length&&['l-hydro','l-river'].includes(annotation.style)){
+    const originalHTML=text.innerHTML,plainText=tp.textContent;
+    try{
+      text.textContent=plainText;
+      const textHTML=text.innerHTML,fallback={};
+      const alternatives=buildLineCandidates({annotation:{...annotation,geometryId:undefined,geometryIds:ids,variants:[]},element,policy,diagnostics:fallback});
+      output.push(...alternatives.map(c=>({...c,id:'straight:'+c.id,textHTML})));
+      diagnostics.straightFallback=fallback;
+    }finally{text.innerHTML=originalHTML;}
+  }
   if(!tp&&annotation.variants?.length){
     const originalHTML=text.innerHTML;
     try{
@@ -150,6 +167,7 @@ export function buildLineCandidates({annotation,element,policy={}}) {
       }
     }finally{text.innerHTML=originalHTML;}
   }
+  diagnostics.measuredCandidates=output.length;
   return output;
 }
 

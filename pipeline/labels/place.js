@@ -6,8 +6,10 @@ const center=s=>[s.bounds.x+s.bounds.width/2,s.bounds.y+s.bounds.height/2];
 
 /** Pure CSS-pixel solver. Higher priority sorts first; required labels precede optional ones.
  * Every accepted candidate is checked, including during bounded transactional repair.
+ * Optional queryObstacles(expandedBounds) is a deterministic provider of additional
+ * CSS-space obstacles; it must conservatively return every nearby painted segment.
  * Explicit allowedObstacleIds are the only exemptions for anchor/line relationships. */
-export function solveLayout({annotations,obstacles=[],viewport,previous,policy={}}) {
+export function solveLayout({annotations,obstacles=[],viewport,previous,policy={},queryObstacles}) {
   const clearance=policy.clearance??2,padding=policy.edgePadding??4;
   const frame={x:viewport.x??0,y:viewport.y??0,width:viewport.width,height:viewport.height};validRect(frame);
   const ordered=[...annotations].sort((a,b)=>Number(!!b.required)-Number(!!a.required)||(b.priority??0)-(a.priority??0)||stable(a.id,b.id));
@@ -23,8 +25,11 @@ export function solveLayout({annotations,obstacles=[],viewport,previous,policy={
     if(!validShape(c.shape)) return {hard:['invalid-geometry'],labels,repeat};
     if(!contains(frame,c.shape.bounds,padding))hard.push('frame');
     const allowed=new Set(a.allowedObstacleIds??[]);
-    for(const key of obstacleIndex.query(expand(c.shape.bounds,clearance))) {
-      const o=obstacleMap.get(key);if(allowed.has(o.id))continue;
+    const query=expand(c.shape.bounds,clearance);
+    const nearby=obstacleIndex.query(query).map(key=>obstacleMap.get(key));
+    if(queryObstacles)nearby.push(...queryObstacles(query));
+    for(const o of nearby) {
+      if(allowed.has(o.id))continue;
       if(o.line?c.shape.parts.some(r=>lineHitsRect(o.line,r,clearance)):shapeIntersects(c.shape,o.shape,clearance))hard.push(o.id);
     }
     for(const id of placedIndex.query(expand(c.shape.bounds,clearance))){if(id===a.id)continue;const other=accepted.get(id);if(other&&shapeIntersects(c.shape,other.shape,clearance))labels.push(id);}

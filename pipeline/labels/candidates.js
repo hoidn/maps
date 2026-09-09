@@ -21,7 +21,15 @@ export function pointCandidates(annotation,metric,policy={}) {
     const x=ax+(sx===1?distance:sx===-1?-distance-w:-w/2),y=ay+(sy===1?distance:sy===-1?-distance-h:-h/2);
     result.push(shifted(metric,name+(distance===gap?'':'-far'),x,y));
   }
-  return result;
+  if(policy.densePointCandidates){
+    const radius=Math.min(32,policy.maxPointDisplacement??32);
+    for(let dx=-radius;dx<=radius;dx+=4)for(let dy=-radius;dy<=radius;dy+=4){
+      const d=Math.hypot(dx,dy);if(d>radius||d<gap)continue;
+      result.push(shifted(metric,`grid-${dx}-${dy}`,ax+dx-(dx<0?w:dx===0?w/2:0),ay+dy-(dy<0?h:dy===0?h/2:0)));
+    }
+  }
+  const maximum=policy.maxPointDisplacement??32;
+  return result.filter(c=>{const r=c.shape.bounds;return Math.hypot(Math.max(r.x-ax,0,ax-r.x-r.width),Math.max(r.y-ay,0,ay-r.y-r.height))<=maximum+1e-7;});
 }
 
 /** Conservative translations of an already measured region name. No invented region

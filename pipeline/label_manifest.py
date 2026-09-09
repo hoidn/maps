@@ -37,7 +37,7 @@ class Manifest:
     def _anchor(self, xy):
         if len(xy) != 2 or not all(math.isfinite(v) for v in xy):
             raise ValueError('Annotation anchor must contain two finite coordinates')
-        return [round(float(v), 3) for v in xy]
+        return [round(float(v), 1) for v in xy]
 
     def _feature(self, xy, name='', kind='place', directory=False, source_id=None):
         xy = self._anchor(xy)
@@ -54,18 +54,25 @@ class Manifest:
 
     def label(self, raw, text, cls, xy, kind='point-label', geometry_id=None, angle=0, source_id=None):
         xy=self._anchor(xy)
+        if any(arrow in text for arrow in ('→','↗','←','↖')): kind='edge-pointer'
         if cls.startswith('l-region') or cls=='l-village': kind='region-label'
         feature_kind = 'region' if kind=='region-label' else ('trail' if cls.startswith('l-trail') else 'place')
         if cls.startswith('l-contour'): feature_kind='contour'
         if cls in ('l-river','l-hydro'): feature_kind='waterway'
         layer = 'peaks' if cls=='l-peak' else ('contours' if feature_kind=='contour' else ('names' if kind in ('line-label','region-label') else 'places'))
-        directory = feature_kind=='place'
+        directory = feature_kind=='place' and kind!='edge-pointer'
         fid=self._feature(xy,text,feature_kind,directory,source_id)
         identity=[text,cls,xy,geometry_id,source_id,raw if geometry_id else '']
         aid=stable_id('label', identity)
         record=dict(id=aid,elementId=aid,featureId=fid,kind=kind,layer=layer,anchor=xy,text=text,
                     style=cls,priority=PRIORITIES.get(cls,500),requiredProfiles=['static-default'] if text in REQUIRED else [],
                     angle=angle,geometryId=geometry_id,requiredGroup=text if text in REQUIRED_ROUTES else None)
+        if kind=='point-label' and len(text.split())>1:
+            words=text.split();mid=min(range(1,len(words)),key=lambda i:abs(len(' '.join(words[:i]))-len(' '.join(words[i:]))))
+            splits=[mid]+[i for i in range(1,len(words)) if i!=mid]
+            record['variants']=[dict(lines=[' '.join(words[:i]),' '.join(words[i:])]) for i in splits]
+            if text in REQUIRED:
+                record['variants'] += [dict(lines=[' '.join(words[:i]),' '.join(words[i:j]),' '.join(words[j:])]) for i in range(1,len(words)-1) for j in range(i+1,len(words))]
         return self._wrap(raw, record)
 
     def symbol(self, raw, kind, xy, offset=(0,0), source_id=None):
@@ -80,6 +87,16 @@ class Manifest:
 
     def finalize(self, svg):
         root=ET.fromstring(svg); root.set('id','mapsvg')
+        # Normalize historical hN/cN references before deriving annotation identities.
+        remap={}
+        for defs in root.findall(f'{{{NS}}}defs'):
+            for path in defs.iter(f'{{{NS}}}path'):
+                if path.get('id'):
+                    old=path.get('id'); new=stable_id('geometry',path.get('d',''))
+                    remap[old]=new; path.set('id',new)
+        for e in root.iter():
+            href=e.get('href','')
+            if href.startswith('#') and href[1:] in remap: e.set('href','#'+remap[href[1:]])
         parent={c:p for p in root.iter() for c in p}
         for element in list(root.iter(f'{{{NS}}}text')):
             chain=[]; p=element
@@ -108,6 +125,17 @@ class Manifest:
             for path in group.iter(f'{{{NS}}}path'):
                 path.set('id',stable_id('trail-path',path.get('d','')))
                 path.set('data-layout-obstacle','trail')
+                name=path.get('data-name','')
+                if name:
+                    fid=self._feature((0,0),name,'trail')
+                    path.set('data-feature-id',fid)
+        paths_by_feature={}
+        for path in root.iter(f'{{{NS}}}path'):
+            if path.get('data-layout-obstacle')=='trail':
+                paths_by_feature.setdefault(path.get('data-feature-id'),[]).append(path.get('id'))
+        for a in self.annotations:
+            if a['kind']=='line-label' and not a.get('geometryId'):
+                a['geometryIds']=paths_by_feature.get(a['featureId'],[])
         return ET.tostring(root,encoding='unicode')
 
     def data(self):
@@ -134,3 +162,11 @@ def embedded_fonts():
         css=css.replace('url('+name+')','url(data:'+mime+';base64,'+base64.b64encode(content).decode()+')')
     if re.search(r'url\((?!data:)',css): raise ValueError('Non-embedded font URL')
     return css
+
+
+def layout_script():
+    from pathlib import Path
+    bundle=Path(__file__).parent/'labels/dist/browser.js'
+    if not bundle.exists():
+        raise RuntimeError('Missing layout bundle. Run npm run build:labels at the repository root.')
+    return '<script id="map-layout-runtime">'+bundle.read_text().replace('</script','<\\/script')+'</script>'

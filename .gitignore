@@ -17,3 +17,5 @@ pipeline/labels/dist/
 .venv/
 !tests/**/*.png
 pipeline/grand_canyon_trails*.html
+
+.browser-cache/

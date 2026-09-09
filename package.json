@@ -6,9 +6,15 @@
     "node": "24.x"
   },
   "scripts": {
-    "test:browser": "playwright test",
+    "test:browser": "PLAYWRIGHT_BROWSERS_PATH=.browser-cache playwright test",
     "test:unit": "node --test tests/labels/*.test.js",
-    "audit": "node scripts/audit-map.mjs"
+    "audit": "PLAYWRIGHT_BROWSERS_PATH=.browser-cache node scripts/audit-map.mjs",
+    "build:labels": "node scripts/build-labels.mjs",
+    "build:maps": "bash pipeline/build_maps.sh",
+    "browsers:install": "PLAYWRIGHT_BROWSERS_PATH=.browser-cache playwright install",
+    "verify:maps": "PLAYWRIGHT_BROWSERS_PATH=.browser-cache node scripts/verify-maps.mjs",
+    "promote:maps": "PLAYWRIGHT_BROWSERS_PATH=.browser-cache node scripts/verify-maps.mjs --promote",
+    "layout:static": "PLAYWRIGHT_BROWSERS_PATH=.browser-cache node scripts/finalize-static.mjs"
   },
   "devDependencies": {
     "@playwright/test": "1.55.1",

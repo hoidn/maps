@@ -1,4 +1,4 @@
-import unittest, tempfile, importlib.util, subprocess, sys, json, re
+import unittest, tempfile, importlib.util, subprocess, sys, json, re, xml.etree.ElementTree as ET
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2]
 spec=importlib.util.spec_from_file_location('fixture',ROOT/'tests/support/build-fixture.py')
@@ -16,5 +16,16 @@ class BuilderTests(unittest.TestCase):
                 self.assertEqual(len(re.findall('data-layout-id=',text)),len(manifest['annotations']))
                 self.assertGreater(len(manifest['annotations']),100)
                 self.assertNotIn('fonts.googleapis.com',text)
+                svg=ET.fromstring(re.search(r'<svg[^>]*id="mapsvg".*?</svg>',text,re.S)[0])
+                parents={child:parent for parent in svg.iter() for child in parent}
+                for node in svg.iter():
+                    is_text=node.tag.endswith('}text')
+                    is_symbol=any(c.startswith('s-') for c in node.get('class','').split())
+                    if not (is_text or is_symbol): continue
+                    ancestry=[]; ancestor=node
+                    while ancestor in parents:
+                        ancestor=parents[ancestor]; ancestry.append(ancestor)
+                    if any(set(a.get('class','').split()) & {'fixed-ui','cartouche','scale'} for a in ancestry):continue
+                    self.assertTrue(any(a.get('data-layout-id') for a in ancestry),ET.tostring(node).decode())
                 names={f['name'] for f in manifest['features'] if f['directory']}
                 self.assertTrue({'Silver Bridge','Santa Maria Spring','Phantom Ranch'}.issubset(names))

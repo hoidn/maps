@@ -32,7 +32,7 @@ class ManifestTests(unittest.TestCase):
         svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1300 1070"><defs><path id="river" d="M0,0 L80,80"/></defs><g class="hydro-labels"><text class="l-river"><textPath href="#river">River</textPath></text></g></svg>'
         result=m.finalize(svg)
         self.assertIn('data-layout-id',result)
-        self.assertEqual(m.data()['annotations'][0]['geometryId'],'river')
+        self.assertTrue(m.data()['annotations'][0]['geometryId'].startswith('geometry-'))
         self.assertEqual(m.data()['annotations'][0]['kind'],'line-label')
     def test_distinct_source_features_at_identical_coordinates(self):
         m=Manifest()
@@ -47,6 +47,17 @@ class ManifestTests(unittest.TestCase):
         self.assertIn('data:font/',css)
         self.assertNotIn('https://',css)
         self.assertIn('Source Sans 3',css)
+
+    def test_curve_identity_does_not_depend_on_sequence_ids(self):
+        def make(pid):
+            m=Manifest()
+            m.finalize('<svg xmlns="http://www.w3.org/2000/svg"><defs><path id="'+pid+'" d="M0,0 L80,80"/></defs><text class="l-contour"><textPath href="#'+pid+'" startOffset="50%">4,000</textPath></text></svg>')
+            return m.data()['annotations'][0]['id']
+        self.assertEqual(make('c1'),make('c999'))
+    def test_off_frame_pointer_is_not_a_place(self):
+        m=Manifest();m.label('<text>Desert View →</text>','Desert View →','l-minor',(1,2))
+        self.assertEqual(m.data()['annotations'][0]['kind'],'edge-pointer')
+        self.assertFalse(m.data()['features'][0]['directory'])
 
     def test_duplicate_annotation_rejected(self):
         m=Manifest(); m.label('<text>A</text>','A','l-place',(1,2))

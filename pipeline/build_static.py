@@ -3,7 +3,7 @@
 with trail/river geometry from OpenStreetMap."""
 import json, math, html, numpy as np
 from skimage.measure import approximate_polygon
-from label_manifest import Manifest, embedded_fonts
+from label_manifest import Manifest, embedded_fonts, layout_script
 M = Manifest("static")
 import osmdata as o
 from osmdata import P, hav, length, LAT0, LAT1, LON0, LON1, W, H
@@ -155,20 +155,20 @@ def tonto_class(lat, lon):
     return "threshold"
 
 trails_svg = {"rim": [], "primitive": [], "threshold": [], "corridor": []}
-def add(cls, coords, tol=0.35):
-    if coords: trails_svg[cls].append(path_el(coords, f"tr tr-{cls}", tol))
+def add(cls, coords, tol=0.35, name=""):
+    if coords: trails_svg[cls].append(path_el(coords, f"tr tr-{cls}", tol).replace('<path ', f'<path data-name="{esc(name)}" '))
 for chain in o.TRAILS.get("Tonto Trail", []):
-    for k, run in split_by(chain, tonto_class): add(k, run)
+    for k, run in split_by(chain, tonto_class): add(k, run, name="Tonto Trail")
 for n in ["West Tonto Trail", "Grandview Trail", "Horseshoe Mesa East Trail", "Cottonwood Creek Trail", "Hance Creek Trail", "Clear Creek Trail", "Hermit Trail"]:
-    for c in o.TRAILS.get(n, []): add("threshold", c)
-add("threshold", DRIP)
+    for c in o.TRAILS.get(n, []): add("threshold", c, name=n)
+add("threshold", DRIP, name="Dripping Springs Trail")
 for n in ["Boucher Trail", "New Hance Trail", "Old Bright Angel Trail", "Escalante Route"]:
-    for c in o.TRAILS.get(n, []): add("primitive", c)
-add("primitive", WALDRON)
+    for c in o.TRAILS.get(n, []): add("primitive", c, name=n)
+add("primitive", WALDRON, name="Waldron Trail")
 for n in ["Rim Trail", "West Rim Trail", "Widforss Trail", "Ken Patrick Trail", "Uncle Jim Trail", "Transept Trail", "Bright Angel Point Trail", "Cape Royal Trail", "Cape Final Trail", "Cliff Spring Trail", "Bridle Trail", "Walhalla Glades Trail", "Roosevelt Point Loop", "Shoshone Point Trail"]:
-    for c in o.TRAILS.get(n, []): add("rim", c)
+    for c in o.TRAILS.get(n, []): add("rim", c, name=n)
 for n in ["Bright Angel Trail", "River Trail", "South Kaibab Trail", "North Kaibab Trail", "Bright Angel Campground Route", "Bright Angel Suspension Bridge", "Kaibab Suspension Bridge", "Phantom Ranch Village Trail", "Plateau Point Trail", "Ribbon Falls Trail", "Roaring Springs Trail", "Supai Tunnel", "Redwall Bridge", "Boat Beach Trail", "Pipe Creek Beach Trail"]:
-    for c in o.TRAILS.get(n, []): add("corridor", c, 0.3)
+    for c in o.TRAILS.get(n, []): add("corridor", c, 0.3, name=n)
 # 4WD tracks to Point Sublime / Tiyo Point
 tracks_svg = "".join(path_el(c, "road road-track") for n in ["Point Sublime Trail", "Tiyo Point Trail"] for c in o.TRAILS.get(n, []))
 
@@ -726,7 +726,7 @@ legend = "".join([
 
 page = f'''<meta charset="utf-8">
 <title>Grand Canyon Trail Sheet</title>
-<style>{embedded_fonts()}{CSS}</style>
+<style>{embedded_fonts()}{CSS}\n[data-layout-id]{{visibility:hidden}}</style>
 <main class="sheet">
 <header class="mast">
   <div>
@@ -780,6 +780,7 @@ page = f'''<meta charset="utf-8">
 </footer>
 </main>
 {M.script()}
+{layout_script()}
 <script>{JS}</script>
 '''
 open("grand_canyon_trails.html", "w").write(page)

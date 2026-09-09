@@ -3,7 +3,7 @@
 with trail/river geometry from OpenStreetMap."""
 import json, math, html, numpy as np
 from skimage.measure import approximate_polygon
-from label_manifest import Manifest, embedded_fonts
+from label_manifest import Manifest, embedded_fonts, layout_script
 M = Manifest("interactive")
 import osmdata as o
 from osmdata import P, hav, length, LAT0, LAT1, LON0, LON1, W, H
@@ -786,17 +786,12 @@ JS = r'''
   var LON0=DEM_LON0, LON1=DEM_LON1, LAT0=DEM_LAT0, LAT1=DEM_LAT1;
   function elevAt(x,y){ var c=Math.min(GW-1,Math.max(0,Math.round(x/W*(GW-1)))), r=Math.min(GH-1,Math.max(0,Math.round(y/H*(GH-1)))); return dem[r*GW+c]; }
   // ---- view
-  function apply(){
-    svg.setAttribute('viewBox', vb.x.toFixed(1)+' '+vb.y.toFixed(1)+' '+vb.w.toFixed(1)+' '+vb.h.toFixed(1));
-    var z = W/vb.w;
-    svg.style.setProperty('--k', Math.pow(z,-0.55).toFixed(3));
-    svg.style.setProperty('--s', Math.pow(z,-0.5).toFixed(3));
-    svg.classList.toggle('zoomed', z>1.02);
-    svg.classList.toggle('z2', z>=2); svg.classList.toggle('z5', z>=4.5);
-    zlabel.textContent = z.toFixed(1)+'×  ·  contours '+(z>=4.5?'50':z>=2?'100':'250')+' ft';
-    clearTimeout(hashT); hashT=setTimeout(function(){ try{ history.replaceState(null,'','#v='+vb.x.toFixed(0)+','+vb.y.toFixed(0)+','+z.toFixed(2)); }catch(e){} }, 250);
-  }
+  function apply(){ window.mapLayout.requestView(vb); }
   var hashT=null, zlabel=document.getElementById('zlabel');
+  window.mapLayout.onCameraChange=function(view){
+    vb={...view};
+    clearTimeout(hashT); hashT=setTimeout(function(){ try{ history.replaceState(null,'','#v='+vb.x.toFixed(0)+','+vb.y.toFixed(0)+','+(W/vb.w).toFixed(2)); }catch(e){} }, 250);
+  };
   (function(){ var m=/v=(-?[\d.]+),(-?[\d.]+),([\d.]+)/.exec(location.hash||''); if(m){ var z=Math.min(MAXZ,Math.max(1,+m[3])); vb.w=W/z; vb.h=vb.w*H/W; vb.x=+m[1]; vb.y=+m[2]; clamp(); } })();
   function clamp(){
     vb.w = Math.min(W, Math.max(W/MAXZ, vb.w)); vb.h = vb.w*H/W;
@@ -839,7 +834,7 @@ JS = r'''
   svg.addEventListener('pointerup', up); svg.addEventListener('pointercancel', up);
   svg.addEventListener('mouseleave', function(){ readout.innerHTML='<small>Cursor</small><br>move over the map for elevation'; });
   // layers
-  document.querySelectorAll('.layers input').forEach(function(cb){ cb.addEventListener('change', function(){ svg.classList.toggle(cb.dataset.layer, !cb.checked); }); });
+  document.querySelectorAll('.layers input').forEach(function(cb){ cb.addEventListener('change', function(){ window.mapLayout.setLayer(cb.dataset.layer.replace('no-',''),cb.checked); }); });
   // trail hover / click
   var CLS={corridor:'Corridor trail',threshold:'Threshold trail',primitive:'Primitive route',rim:'Rim & plateau walk'};
   var miles={}; document.querySelectorAll('.trails .tr').forEach(function(p){ miles[p.dataset.name]=(miles[p.dataset.name]||0)+parseFloat(p.dataset.mi||0); });
@@ -847,7 +842,7 @@ JS = r'''
   function light(name){ document.querySelectorAll('.trails .tr').forEach(function(p){ p.classList.toggle('lit', !!name && p.dataset.name===name); p.classList.toggle('dim', !!name && p.dataset.name!==name); }); }
   function showTip(p, e){ var n=p.dataset.name; var r=fig.getBoundingClientRect();
     ttip.innerHTML='<div class="cls">'+CLS[p.dataset.cls]+'</div><b>'+n+'</b><div>'+miles[n].toFixed(1)+' mi on this sheet</div>';
-    ttip.hidden=false; ttip.style.left=(e.clientX-r.left+14)+'px'; ttip.style.top=(e.clientY-r.top-10)+'px'; }
+    ttip.hidden=true; if(window.mapLayout)window.mapLayout.details.textContent=n+' · '+CLS[p.dataset.cls]+' · '+miles[n].toFixed(1)+' mi on this sheet'; }
   svg.addEventListener('pointerover', function(e){ var p=e.target.closest && e.target.closest('.hit'); if(!p||pinned) return; light(p.dataset.name); showTip(p,e); });
   svg.addEventListener('pointermove', function(e){ var p=e.target.closest && e.target.closest('.hit'); if(p && !pinned) showTip(p,e); else if(!pinned) ttip.hidden=true; if(pinned && !p) ttip.hidden=true; });
   svg.addEventListener('pointerout', function(e){ if(!pinned && e.target.closest && e.target.closest('.hit')){ light(null); ttip.hidden=true; } });
@@ -890,7 +885,7 @@ legend = "".join([
 
 page = f'''<meta charset="utf-8">
 <title>Grand Canyon Trail Explorer</title>
-<style>{embedded_fonts()}{CSS}</style>
+<style>{embedded_fonts()}{CSS}\n[data-layout-id]{{visibility:hidden}}</style>
 <main class="sheet">
 <header class="mast">
   <div>
@@ -962,6 +957,7 @@ page = f'''<meta charset="utf-8">
 </footer>
 </main>
 {M.script()}
+{layout_script()}
 <script>{JS}</script>
 '''
 open("grand_canyon_trails_interactive.html", "w").write(page)

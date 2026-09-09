@@ -228,15 +228,23 @@ export async function runAudit({
         document.querySelector("#audit-overlay")?.remove(),
       );
     }
+    const fontCompleteness=mode==='managed'?await page.evaluate(required=>{
+      const normalize=name=>name.replaceAll('"','').replaceAll("'",'').trim();
+      const loaded=new Set([...document.fonts].filter(f=>f.status==='loaded').map(f=>normalize(f.family))),embedded=new Set();
+      const visit=rules=>{for(const rule of rules){if(rule.type===CSSRule.FONT_FACE_RULE&&/data:font\/[^;]+;base64,/.test(rule.style.getPropertyValue('src')))embedded.add(normalize(rule.style.getPropertyValue('font-family')));if(rule.cssRules)visit(rule.cssRules);}};
+      for(const sheet of document.styleSheets)try{visit(sheet.cssRules);}catch{}
+      return {requiredFamilies:required,missingFamilies:required.filter(f=>!loaded.has(f)),missingEmbeddedFamilies:required.filter(f=>!embedded.has(f))};
+    },auditPolicy.fontFamilies??[]):null;
+    const imageFailures=mode==='managed'?await page.evaluate(()=>[...document.images].filter(img=>!img.complete||!img.naturalWidth).map(img=>({src:img.currentSrc||img.src,complete:img.complete,naturalWidth:img.naturalWidth}))):[];
     const incomplete =
-      !fontReady ||
+      !fontReady || imageFailures.length>0 || (mode==='managed'&&(fontCompleteness.missingFamilies.length>0||(!javaScriptEnabled&&(fontCompleteness.missingEmbeddedFamilies.length>0||(fontCompleteness.requiredFamilies.length>0&&embeddedFonts.length===0))))) ||
       views.some(
         (v) =>
           v.fontStatus !== "loaded" ||
           v.fonts.some((f) => f.status === "error" || f.status === "loading"),
       ) ||
       networkErrors.some((e) =>
-        ["stylesheet", "font"].includes(e.resourceType),
+        ["stylesheet", "font", "image", "script"].includes(e.resourceType) && !/\/favicon\.ico(?:[?#]|$)/.test(e.url),
       );
     const counts = Object.fromEntries(
       [
@@ -278,6 +286,7 @@ export async function runAudit({
           : "pass",
       counts,
       networkErrors,
+      ...(mode==="managed"?{fontCompleteness,imageFailures}:{}),
       views,
     };
     await writeFile(

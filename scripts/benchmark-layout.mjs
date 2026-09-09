@@ -15,7 +15,11 @@ async function measureFile({input,browserName,viewport,steps}){
  const bytes=await readFile(resolve(input)),server=createServer((request,response)=>{response.setHeader('content-type','text/html');response.end(bytes);});
  await new Promise((ok,fail)=>{server.once('error',fail);server.listen(0,'127.0.0.1',ok);});let browser;
  try{
-  browser=await browsers[browserName].launch();const page=await browser.newPage({viewport}),errors=[];
+  browser=await browsers[browserName].launch();const page=await browser.newPage({viewport}),errors=[];let graphics={source:'not-exposed-by-browser-api'};
+  if(browserName==='chromium'){
+   const session=await browser.newBrowserCDPSession(),info=await session.send('SystemInfo.getInfo');
+   graphics={renderer:info.gpu.auxAttributes?.glRenderer,backend:info.gpu.auxAttributes?.skiaBackendType,featureStatus:info.gpu.featureStatus};await session.detach();
+  }
   page.on('pageerror',error=>errors.push(error.message));
   await page.goto(`http://127.0.0.1:${server.address().port}/`,{waitUntil:'load',timeout:120000});
   await page.evaluate(async()=>{await document.fonts.ready;if(window.mapLayout)await window.mapLayout.whenSettled();});
@@ -29,10 +33,11 @@ async function measureFile({input,browserName,viewport,steps}){
     if(layout&&!layout.onCameraChange){const z=1+4*Math.sin(Math.PI*i/(steps-1));layout.requestView({x:0,y:0,w:layout.manifest.map.width/z,h:layout.manifest.map.height/z});}
     await new Promise(requestAnimationFrame);const now=performance.now();if(i)frames.push(now-previous);previous=now;
    }
-   const end=performance.now();if(layout)await layout.whenSettled();else await new Promise(resolve=>setTimeout(resolve,60));
-   return {frames,settled:performance.now()-end,samples:layout?.samples?.slice(begin)||[],cold,status:layout?.status||'legacy',cacheEntries:layout?{point:layout.cache.entries.size,line:layout.lineCache.size}:null,visible:layout?.result?.placements.length??null};
+   const end=performance.now(),midGestureSettled=layout?.samples?.slice(begin).filter(s=>s.kind==='settled').length??null;
+   if(layout)await layout.whenSettled();else await new Promise(resolve=>setTimeout(resolve,60));
+   return {frames,settled:performance.now()-end,midGestureSettled,samples:layout?.samples?.slice(begin)||[],cold,status:layout?.status||'legacy',cacheEntries:layout?{point:layout.cache.entries.size,line:layout.lineCache.size}:null,visible:layout?.result?.placements.length??null};
   },steps);
-  return {input,artifactSha256:createHash('sha256').update(bytes).digest('hex'),browser:browserName,browserVersion:browser.version(),viewport,errors,...raw};
+  return {input,artifactSha256:createHash('sha256').update(bytes).digest('hex'),browser:browserName,browserVersion:browser.version(),viewport,graphics,headless:true,errors,...raw};
  }finally{await browser?.close();await new Promise(ok=>server.close(ok));}
 }
 export async function benchmarkLayout({input,reportDir,baseline,browserName='chromium',viewport={width:1440,height:1000},steps=90}){

@@ -35,8 +35,8 @@ test('camera changes preserve hinted glyph metrics without an intermediate scale
 test('independent frame audit detects a deliberately defective painted frame',async({page})=>{
  await mountFixture(page);await installAudit(page);
  const frame=await page.evaluate(async()=>{
-  window.mapLayout.observer.disconnect();clearTimeout(window.mapLayout.settleTimer);cancelAnimationFrame(window.mapLayout.frame);
-  for(const e of document.querySelectorAll('#label-0,#label-1')){e.style.visibility='visible';e.setAttribute('transform','');e.querySelector('text').setAttribute('style','transform:translate(100px,100px)');}
+  window.mapLayout.observer.disconnect();clearTimeout(window.mapLayout.settleTimer);cancelAnimationFrame(window.mapLayout.frame);cancelAnimationFrame(window.mapLayout.quietFrame);window.mapLayout.settleGeneration++;
+  for(const e of document.querySelectorAll('#label-0,#label-1')){e.style.visibility='visible';e.style.display='inline';e.setAttribute('transform','');e.querySelector('text').setAttribute('style','transform:translate(100px,100px)');}
   await new Promise(requestAnimationFrame);return window.independentInventory();
  });
  expect(checkInventory(frame.inventory,frame.viewport).overlaps.length).toBeGreaterThan(0);
@@ -49,6 +49,8 @@ test('gesture defers fresh optional enumeration and resize completes a settled p
  await page.setViewportSize({width:360,height:800});
  await page.waitForTimeout(150);
  expect(await page.evaluate(()=>window.mapLayout.transactionKind)).toBe('settled');
+ await page.evaluate(()=>window.mapLayout.setLayer('places',false));await page.evaluate(()=>window.mapLayout.whenSettled());
+ expect(await page.evaluate(()=>[...document.querySelectorAll('#label-0,#label-1')].every(e=>getComputedStyle(e).display==='none'))).toBe(true);
 });
 test('delayed fonts keep labels hidden and the latest queued view wins',async({page})=>{
  const html=await fixtureHTML();let release;
@@ -62,4 +64,23 @@ test('delayed fonts keep labels hidden and the latest queued view wins',async({p
  release();await page.evaluate(()=>window.mapLayout.ready);
  expect(await page.evaluate(()=>window.mapLayout.getReport().view)).toEqual({x:20,y:10,w:200,h:160});
  expect(await page.evaluate(()=>window.mapLayout.status)).toBe('ready');
+});
+test('a required font failing after initialization prevents fallback labels',async({page})=>{
+ await mountFixture(page);
+ await page.evaluate(async()=>{
+  // CSS-connected faces cannot be deleted through FontFaceSet in every engine.
+  // Replace the actual required declarations so this really removes the font.
+  for(const style of document.querySelectorAll('style'))style.textContent=style.textContent.replace(/@font-face\s*\{[^}]*\}/g,rule=>rule.includes('Source Sans 3')?'':rule);
+  const broken=document.createElement('style');broken.textContent='@font-face {font-family:"Source Sans 3";src:url(data:font/ttf;base64,AAAA)}';document.head.append(broken);
+  try{await document.fonts.load('12px "Source Sans 3"');}catch{}
+ });
+ await expect.poll(()=>page.evaluate(()=>window.mapLayout.status)).toBe('error');
+ expect(await page.evaluate(()=>[...document.querySelectorAll('[data-layout-id]')].some(e=>getComputedStyle(e).visibility==='visible'&&getComputedStyle(e).display!=='none'))).toBe(false);
+});
+test('the lazy trail query projects only nearby segment bounds from a shared cell',async({page})=>{
+ const html=(await fixtureHTML()).replace('<defs>','<g class="trails"><path id="near" d="M1,1 L3,1" stroke="black" fill="none"/><path id="far" d="M20,20 L25,20" stroke="black" fill="none"/></g><defs>');
+ await page.setContent(html.replaceAll('id="near"','data-layout-obstacle="trail" id="near"').replaceAll('id="far"','data-layout-obstacle="trail" id="far"'));
+ await page.addScriptTag({content:await fs.readFile('pipeline/labels/dist/browser.js','utf8')});await page.evaluate(()=>window.mapLayout.ready);
+ const ids=await page.evaluate(()=>{const l=window.mapLayout;return l.trailQuery(l.svg.getScreenCTM(),1,1)({x:0,y:0,width:4,height:4}).map(o=>o.id);});
+ expect(ids).toEqual(['near:1']);
 });

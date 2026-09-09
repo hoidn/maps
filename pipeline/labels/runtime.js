@@ -1,7 +1,7 @@
 import {validateManifest} from './schema.js';
 import {ensureFonts,measureElement,MetricCache} from './measure.js';
-import {moveShape,intersects,lineHitsRect} from './geometry.js';
-import {pointCandidates,regionCandidates,lineWindows} from './candidates.js';
+import {moveShape,intersects} from './geometry.js';
+import {pointCandidates,regionCandidates} from './candidates.js';
 import {measurePointVariants} from './point-variants.js';
 import {solveLayout} from './place.js';
 import {SpatialIndex} from './spatial-index.js';
@@ -19,7 +19,7 @@ export class LayoutController {
     this.layers={places:true,peaks:true,names:true,contours:true,water:true,relief:true};
     this.elements=new Map();this.cache=new MetricCache();this.previous=null;this.waiters=[];this.timings=[];this.status='loading';
     this.byId=new Map(manifest.annotations.map(a=>[a.id,a]));this.visibleIds=new Set();this.lineCache=new Map();this.samples=[];
-    for(const a of manifest.annotations){const e=document.getElementById(a.elementId);if(!e)throw new Error('Missing annotation '+a.id);this.elements.set(a.id,e);e.style.visibility='hidden';
+    for(const a of manifest.annotations){const e=document.getElementById(a.elementId);if(!e)throw new Error('Missing annotation '+a.id);this.elements.set(a.id,e);e.style.visibility='hidden';e.style.display='none';
       const t=e.querySelector('text');a.originalTextStyle=t?.getAttribute('style')||'';a.originalTextHTML=t?.innerHTML||'';a.originalOffset=t?.querySelector('textPath')?.getAttribute('startOffset')||'0';
     }
     const details=document.createElement('div');details.dataset.layoutDetails='';details.setAttribute('role','status');details.style.cssText='padding:8px 12px;min-height:20px;font:13px var(--sans,sans-serif)';
@@ -47,10 +47,35 @@ export class LayoutController {
       this.observer.observe(this.svg);
       for(const e of this.svg.parentElement.querySelectorAll('.ctl,.layers .box,.readout,.hint,.zlabel'))this.observer.observe(e);
       for(const e of this.svg.parentElement.querySelectorAll('details'))e.addEventListener('toggle',()=>{this.render(false);this.scheduleSettled();});
-      document.fonts.addEventListener('loading',()=>{this.cache.invalidate();this.lineCache.clear();this.previous=null;for(const e of this.elements.values())e.style.visibility='hidden';});
-      document.fonts.addEventListener('loadingdone',()=>this.schedule());
+      document.fonts.addEventListener('loading',()=>this.fontsChanged());
+      for(const event of ['loadingdone','loadingerror'])document.fonts.addEventListener(event,()=>{if(this.status==='ready')this.fontsChanged();});
+      // Face deletion or replacement need not start a loading cycle. Detect face
+      // identity/status changes before paint; this does not force DOM layout.
+      let known=[...document.fonts].map(face=>[face,face.status]);
+      const watchFonts=()=>{
+        const current=[...document.fonts];
+        if(current.length!==known.length||current.some((face,i)=>face!==known[i]?.[0]||face.status!==known[i]?.[1])){
+          known=current.map(face=>[face,face.status]);if(this.status==='ready')this.fontsChanged();
+        }
+        this.fontWatch=requestAnimationFrame(watchFonts);
+      };
+      this.fontWatch=requestAnimationFrame(watchFonts);
       return this.getReport();
     } catch(error){this.status='error';this.error=error.message;this.details.textContent='Map labels unavailable: '+error.message;throw error;}
+  }
+  fontsChanged(){
+    const generation=this.fontGeneration=(this.fontGeneration??0)+1;this.status='loading';
+    this.cache.invalidate();this.lineCache.clear();this.previous=null;
+    clearTimeout(this.settleTimer);cancelAnimationFrame(this.frame);cancelAnimationFrame(this.quietFrame);
+    this.settleTimer=null;this.frame=null;this.quietFrame=null;this.settleGeneration=(this.settleGeneration??0)+1;
+    for(const e of this.elements.values()){e.style.visibility='hidden';e.style.display='none';}this.visibleIds.clear();
+    this.fontReady=document.fonts.ready.then(()=>ensureFonts(this.policy.fontFamilies)).then(()=>{
+      if(generation!==this.fontGeneration)return;
+      this.status='ready';this.render(true);this.resolveWaiters();
+    }).catch(error=>{
+      if(generation!==this.fontGeneration)return;
+      this.status='error';this.error=error.message;this.details.textContent='Map labels unavailable: '+error.message;this.resolveWaiters();
+    });
   }
   requestView(view){this.view={...view};this.onCameraChange?.(this.view);this.schedule();}
   setLayer(layer,visible){if(!(layer in this.layers))throw new Error('Unknown layer');this.layers[layer]=visible;this.schedule();}
@@ -62,8 +87,22 @@ export class LayoutController {
     if(!this.frame)this.frame=requestAnimationFrame(()=>{this.frame=null;this.render(false);});
     this.scheduleSettled();
   }
-  scheduleSettled(){clearTimeout(this.settleTimer);this.settleTimer=setTimeout(()=>{this.settleTimer=null;this.render(true);this.resolveWaiters();},60);}
-  whenSettled(){return this.ready.then(()=>this.frame||this.settleTimer?new Promise(resolve=>this.waiters.push(resolve)):this.getReport());}
+  scheduleSettled(){
+    const generation=this.settleGeneration=(this.settleGeneration??0)+1;
+    clearTimeout(this.settleTimer);cancelAnimationFrame(this.quietFrame);
+    this.settleTimer=setTimeout(()=>{
+      // Heavy SVG paint can outlast the idle delay. Require two paint boundaries
+      // with no newer input, rather than starting full work between gesture frames.
+      this.quietFrame=requestAnimationFrame(()=>{
+        if(generation!==this.settleGeneration)return;
+        this.quietFrame=requestAnimationFrame(()=>{
+          if(generation!==this.settleGeneration)return;
+          this.settleTimer=null;this.quietFrame=null;this.render(true);this.resolveWaiters();
+        });
+      });
+    },60);
+  }
+  whenSettled(){return this.ready.then(()=>this.fontReady).then(()=>this.frame||this.settleTimer?new Promise(resolve=>this.waiters.push(resolve)):this.getReport());}
   resolveWaiters(){for(const resolve of this.waiters.splice(0))resolve(this.getReport());}
   getReport(){return {status:this.status,error:this.error,view:{...this.view},outcomes:this.result?.outcomes||[],missingRequired:this.result?.missingRequired||[],placements:this.result?.placements||[],timings:this.timings.slice(-200),samples:this.samples.slice(-200),transactionKind:this.transactionKind};}
   camera(){
@@ -101,19 +140,6 @@ export class LayoutController {
     }
     return out;
   }
-  trails(m){
-    if(!this.trailPaths)this.trailPaths=[...this.svg.querySelectorAll('[data-layout-obstacle="trail"]')].map(e=>{
-      const numbers=(e.getAttribute('d').match(/-?\d+(?:\.\d+)?/g)||[]).map(Number),points=[];
-      for(let i=0;i<numbers.length;i+=2)points.push([numbers[i],numbers[i+1]]);
-      return {e,points};
-    });
-    const out=[],frame=rectangle(this.svg.getBoundingClientRect());
-    for(const {e,points} of this.trailPaths){const width=parseFloat(getComputedStyle(e).strokeWidth)*Math.hypot(m.a,m.b);let p=project(m,points[0]);
-      for(let i=1;i<points.length;i++){const q=project(m,points[i]),b={x:Math.min(p[0],q[0])-width/2,y:Math.min(p[1],q[1])-width/2,width:Math.abs(q[0]-p[0])+width,height:Math.abs(q[1]-p[1])+width};
-        if(intersects(b,frame))out.push({id:e.id+':'+i,kind:'trail',line:{a:{x:p[0],y:p[1]},b:{x:q[0],y:q[1]},width},shape:shape(b)});p=q;
-      }
-    }return out;
-  }
   trailQuery(m,s,z){
     if(!this.trailIndex){
       this.trailIndex=new SpatialIndex(32);this.trailSegments=[];this.maxTrailWidth=0;
@@ -125,8 +151,9 @@ export class LayoutController {
         this.maxTrailWidth=Math.max(this.maxTrailWidth,width);
         for(let i=2;i<numbers.length;i+=2){
           const a=[numbers[i-2],numbers[i-1]],b=[numbers[i],numbers[i+1]],id=e.id+':'+i/2;
-          const segment={id,a,b,width};this.trailSegments.push(segment);
-          this.trailIndex.insert(this.trailSegments.length-1,{x:Math.min(a[0],b[0]),y:Math.min(a[1],b[1]),width:Math.abs(a[0]-b[0]),height:Math.abs(a[1]-b[1])});
+          const bounds={x:Math.min(a[0],b[0]),y:Math.min(a[1],b[1]),width:Math.abs(a[0]-b[0]),height:Math.abs(a[1]-b[1])};
+          const segment={id,a,b,width,bounds};this.trailSegments.push(segment);
+          this.trailIndex.insert(this.trailSegments.length-1,bounds);
         }
       }
     }
@@ -137,7 +164,12 @@ export class LayoutController {
       const points=[[rect.x,rect.y],[rect.x+rect.width,rect.y],[rect.x,rect.y+rect.height],[rect.x+rect.width,rect.y+rect.height]].map(p=>project(inverse,p));
       const radius=this.maxTrailWidth*strokeScale/2,x=Math.min(...points.map(p=>p[0]))-radius,y=Math.min(...points.map(p=>p[1]))-radius;
       const r={x,y,width:Math.max(...points.map(p=>p[0]))+radius-x,height:Math.max(...points.map(p=>p[1]))+radius-y};
-      const result=this.trailIndex.query(r).map(index=>{
+      const result=this.trailIndex.query(r).filter(index=>{
+        // Grid cells are only a broad phase. Keep boundary contacts and zero-area
+        // segment bounds, but avoid projecting distant occupants of the same cell.
+        const b=this.trailSegments[index].bounds;
+        return b.x<=r.x+r.width&&b.x+b.width>=r.x&&b.y<=r.y+r.height&&b.y+b.height>=r.y;
+      }).map(index=>{
         const segment=this.trailSegments[index],a=project(m,segment.a),b=project(m,segment.b),width=segment.width*strokeScale*s;
         return {id:segment.id,kind:'trail',line:{a:{x:a[0],y:a[1]},b:{x:b[0],y:b[1]},width}};
       });cache.set(key,result);return result;
@@ -171,10 +203,11 @@ export class LayoutController {
   }
   commit(result,m,s){
     const next=new Set(result.placements.map(p=>p.id));
-    for(const id of this.visibleIds)if(!next.has(id))this.elements.get(id).style.visibility='hidden';
+    for(const [id,e] of this.elements)if(!next.has(id)&&e.style.display!=='none'){e.style.visibility='hidden';e.style.display='none';}
     const retained=new Map();
     for(const placement of result.placements){
       const e=this.elements.get(placement.id),a=this.byId.get(placement.id),text=e.querySelector('text');
+      e.style.display='inline';
       if(placement.application)applyLineCandidate(e,placement);
       else e.setAttribute('transform',`translate(${placement.dx/s} ${placement.dy/s})`);
       if(placement.textHTML&&text.innerHTML!==placement.textHTML)text.innerHTML=placement.textHTML;
@@ -196,6 +229,7 @@ export class LayoutController {
         // This avoids forcing style/layout once for every ordinary point label.
         for(const a of this.manifest.annotations){
           const e=this.elements.get(a.id),text=e.querySelector('text');e.style.visibility='hidden';e.setAttribute('transform','');
+          e.style.display=this.eligible(a,project(m,a.anchor),viewport,z)?'none':'inline';
           if(text&&text.innerHTML!==a.originalTextHTML)text.innerHTML=a.originalTextHTML;
           this.normalize(a,e,s);
         }
@@ -219,7 +253,7 @@ export class LayoutController {
               item.repeatDistance=this.policy.repeatDistance;
             }else{
               let cached=this.cache.entries.get(a.id);
-              if(!cached){cached={anchor,metric:measureElement(e),pointVariants:measurePointVariants(e,a)};this.cache.entries.set(a.id,cached);}
+              if(!cached){cached={anchor,metric:measureElement(e),pointVariants:a.variants?.length?measurePointVariants(e,a):[]};this.cache.entries.set(a.id,cached);}
               const dx=anchor[0]-cached.anchor[0],dy=anchor[1]-cached.anchor[1],metric=moveShape(cached.metric,dx,dy);
               if(a.kind==='region-label')item.candidates=regionCandidates(item,metric,this.policy);
               else {

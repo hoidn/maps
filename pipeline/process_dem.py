@@ -1,3 +1,4 @@
+from path_geometry import contour_points
 import numpy as np, json, base64, io, time
 from PIL import Image
 from scipy.ndimage import gaussian_filter
@@ -62,7 +63,7 @@ for lv in levels:
     ds=[]
     for c in cs:
         if len(c) < 12: continue
-        pts = np.column_stack([c[:,1]*SX, c[:,0]*SY])
+        pts = contour_points(c, W, H)
         pts = dp(pts, 0.55)
         if len(pts) < 4: continue
         npts+=len(pts)
@@ -72,5 +73,5 @@ for lv in levels:
     out[key].append({"lv":lv, "d":ds})
     print("level", lv, "segs", len(ds), round(time.time()-t0,1))
 print("total points", npts)
-json.dump({"uri_light":uri_light,"uri_dark":uri_dark,"contours":out}, open("terrain.json","w"))
+json.dump({"pixelRegistration":"center", "uri_light":uri_light,"uri_dark":uri_dark,"contours":out}, open("terrain.json","w"))
 print("bytes of contour d:", sum(len(d) for k in out for l in out[k] for d in l["d"])//1024, "KB")

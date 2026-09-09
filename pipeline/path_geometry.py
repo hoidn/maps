@@ -18,3 +18,10 @@ def detail_points(points, tolerance=DETAIL_TOLERANCE):
 
 def detail_path(points, tolerance=DETAIL_TOLERANCE):
     return 'M' + ' '.join(f'{x:.3f},{y:.3f}' for x, y in detail_points(points, tolerance))
+
+
+def contour_points(row_column, width, height, map_width=1300, map_height=1070):
+    """Map marching-squares sample indices to PixelIsArea image pixel centers."""
+    points=np.asarray(row_column,dtype=float)
+    return np.column_stack([(points[:,1]+.5)*map_width/width,
+                            (points[:,0]+.5)*map_height/height])

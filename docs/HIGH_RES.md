@@ -128,3 +128,33 @@ the 100 ms settled target remains unmet. Reports and the inspected 14× screensh
 are in `artifacts/layout/zoom-quality-*` and `artifacts/layout/geometry-closeup-final.png`.
 The candidate is `pipeline/grand_canyon_trails_interactive.html`; tracked delivery
 files remain unchanged pending the release gate.
+
+## Universal contour smoothing and registration
+
+`contour_smoothing.py` rounds contour corners using quadratic curves bounded by
+source cell size and neighboring contours. It works with the existing DEM and
+requires no lidar coverage. The stored polylines approximate these curves closely
+enough for the explorer's maximum zoom. Subpixel bends do not add points; unsafe
+or non-simple paths retain their original geometry. Trail vertices are preserved.
+See the [terrain contract](specs/map-data.md#terrain-json) for bounds and cache markers.
+
+Inspection of the source GeoTIFFs confirmed PixelIsArea registration. The previous
+contour projection omitted the half-cell offset between pixel corners and sample
+centers; both processors and old-cache migration now account for it. The original
+GeoTIFF values exactly match the cached arrays and contain no non-finite cells.
+A georeferenced comparison at 69,122 locations found median absolute coarse/fine
+difference 0.073 m, 95th percentile 1.255 m and RMS 0.830 m. This argues against a
+large local-pipeline resampling error, but does not prove that upstream elevation
+products contain no local artifacts. The particular location reported by the
+user has not yet been identified. `artifacts/layout/grid-audit.json` records the
+comparison. The temporary raster preview can still pixelate while moving; it is
+replaced by the full SVG when the view settles.
+
+Validation of the rebuilt candidate: 25 Python tests and 51 JavaScript unit tests
+passed. Exact segment intersection checks found zero cross-contour intersections
+among 2,546 generated paths. The 20-state Chromium smoke test found zero overlap,
+clipping, unknown-annotation or typography findings; existing required-name and
+coverage findings remain. The inspected 14× view is saved as
+`artifacts/layout/smoothing-closeup.png`. The candidate is approximately 42 MB;
+transaction p95 was 7.2 ms, frame p95 19.1 ms and settled latency 145.9 ms. The
+100 ms settled target remains unmet, and tracked delivery files are unchanged.

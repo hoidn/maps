@@ -46,7 +46,11 @@ the static fetch currently lacks an equivalent extent check. A changed geographi
 registration needs evidence for the returned extent and samples in narrow terrain,
 not just plausible elevations at broad trailhead locations.
 
-Current raster-to-SVG contours use column × `1300 / width` and row × `1070 / height`.
+Raster-to-SVG contours use `(column + 0.5) × 1300 / width` and
+`(row + 0.5) × 1070 / height`: marching-squares indices refer to sample centers,
+matching the centers of the displayed PixelIsArea raster. This deliberately
+corrects the former half-cell offset. Both cached GeoTIFFs were verified as
+PixelIsArea and byte-equivalent in values to their `.npy` caches.
 Builder bilinear elevation sampling instead maps geographic bounds to indices
 using `width - 1` and `height - 1`, then clamps at edges. These are existing,
 different sampling conventions; do not silently substitute one during a refactor.
@@ -108,9 +112,28 @@ Interactive contours and vector paths retain a maximum simplification tolerance
 of 0.025 map units and three decimal places. At 14× zoom and natural sheet width,
 the simplification plus rounding error is below half a pixel relative to the
 source polyline. This is a rendering bound, not geographic accuracy; DEM sampling
-and contour smoothing still limit the available terrain detail. Fine geometry is
+and the elevation filter still limit the available terrain detail. Fine geometry is
 retained at all zooms so camera changes cannot temporarily mismatch painted trails
-and their collision obstacles. Static geometry remains unchanged.
+and their collision obstacles. This raw-path tolerance is separate from the
+bounded contour smoothing described below. Static contour simplification is
+unchanged; its pixel-center registration is corrected as well.
+
+Terrain caches mark `pixelRegistration: "center"`. Cached builds migrate legacy
+corner-registered contours once, using the source grid dimensions. The interactive
+cache additionally records a `smoothing` report with version, source grid,
+maximum displacement, flattening tolerance and acceptance/fallback counts.
+`smooth_terrain.py` applies bounded quadratic corner rounding to contours only,
+after fine geometry extraction. Open endpoints and loop orientation are retained;
+non-simple source or result paths retain the original geometry. Each corner's
+rounding disk is limited to half the smaller source cell dimension and one quarter
+of its distance to every other contour. Disjoint rounding disks preserve neighboring
+contours and at least half their original gap. A rounding reserve covers coordinate
+serialization. Curves are sampled to 0.008 map-unit chord error; bends already
+within that tolerance retain their original vertices. Trails are never smoothed.
+
+The smoothing version prevents repeated smoothing; a changed version requires
+regeneration from the DEM. Smoothing and registration migrations replace caches atomically. Smoothing adds no elevation
+samples and does not increase the geographic accuracy of the source grid.
 
 Builders consume these field names directly. There is no shared validator or
 embedded frame/provenance metadata.

@@ -125,3 +125,9 @@ test('preview pixels track theme and layer changes without rasterizing labels',a
  });
  expect(colors.light).toEqual([255,0,0,255]);expect(colors.dark).toEqual([0,0,255,255]);expect(colors.off[3]).toBe(0);
 });
+
+test('settlement waits for quiet frames without running full passes inside a gesture',async({page})=>{
+ await mountFixture(page);
+ const result=await page.evaluate(async()=>{const l=window.mapLayout;await l.whenSettled();const begin=l.samples.length;for(let i=0;i<30;i++){l.requestView({...l.view,x:i%4,w:400,h:320});await new Promise(requestAnimationFrame);}const during=l.samples.slice(begin).filter(s=>s.kind==='settled').length;await l.whenSettled();return {during,after:l.samples.at(-1).kind};});
+ expect(result).toEqual({during:0,after:'settled'});
+});

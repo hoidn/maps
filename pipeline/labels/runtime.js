@@ -69,6 +69,7 @@ export class LayoutController {
     } catch(error){this.status='error';this.error=error.message;this.details.textContent='Map labels unavailable: '+error.message;throw error;}
   }
   fontsChanged(){
+    this.preview?.restore();
     const generation=this.fontGeneration=(this.fontGeneration??0)+1;this.status='loading';
     this.cache.invalidate();this.lineCache.clear();this.previous=null;
     clearTimeout(this.settleTimer);cancelAnimationFrame(this.frame);cancelAnimationFrame(this.quietFrame);
@@ -105,7 +106,7 @@ export class LayoutController {
           this.settleTimer=null;this.quietFrame=null;this.render(true);this.resolveWaiters();
         });
       });
-    },60);
+    },0);
   }
   whenSettled(){return this.ready.then(()=>this.fontReady).then(()=>this.frame||this.settleTimer?new Promise(resolve=>this.waiters.push(resolve)):this.getReport());}
   resolveWaiters(){for(const resolve of this.waiters.splice(0))resolve(this.getReport());}

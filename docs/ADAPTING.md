@@ -3,6 +3,13 @@
 The scripts are specific to the Grand Canyon frame in three places: the frame constants, the
 OSM trail names, and the hand-placed labels. Work through this list in order.
 
+Before releasing another area, update required names/routes in `label_manifest.py` and
+`pipeline/labels/policy.json`, register every new annotation class and provide real source
+geometry for path labels. Declare allowed line breaks rather than inventing abbreviations.
+Re-evaluate and freeze scene coverage minima; do not inherit Grand Canyon thresholds blindly.
+Run the full [layout validation](LAYOUT_VALIDATION.md), including frozen static output and
+actual-map performance. Automated placement does not validate the new area's source data.
+
 ## 1. Frame
 
 Set `LON0, LAT0, LON1, LAT1` identically in `osmdata.py`, `fetch_dem.py`, `fetch_dem_hi.py`,

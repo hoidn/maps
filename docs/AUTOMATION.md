@@ -3,10 +3,11 @@
 How the current pipeline was actually run, what is automatic, and what would have to change
 to produce sheets for arbitrary routes without a person in the loop.
 
-Draft follow-up (2026-09-08): [automatic layout design](plans/2026-09-08-automatic-map-layout-design.md)
+Follow-up (2026-09-08): [automatic layout design](plans/2026-09-08-automatic-map-layout-design.md)
 and [implementation plan](plans/2026-09-08-automatic-map-layout-plan.md) specify continuous-zoom
 collision enforcement, information-coverage gates, static finalization and automated browser
-validation. These are proposed changes; the current implementation described below remains unchanged.
+validation. The implementation and release workflow are described in [Layout validation](LAYOUT_VALIDATION.md).
+The visual-inspection account below records how the original maps were made.
 
 ## How the visual check was done here
 
@@ -22,7 +23,7 @@ misplaced names. Two passes per map, about half a dozen fixes each. That check w
   buildings);
 - **not repeatable** — placements are hard-coded offsets for this frame, font and zoom.
 
-## Current automation level
+## Original automation level (2026-09-06)
 
 | Component | Status | Notes |
 |---|---|---|

@@ -12,6 +12,15 @@ fetch_dem.py ──► dem.npy ──► process_dem.py ──► terrain.json �
 fetch_dem_hi.py ──► dem_hi.npy ──► process_dem_hi.py ──► terrain_hi.json ──► build_interactive.py ──► interactive HTML
 ```
 
+## Layout and release stage
+
+The builders now register every map annotation in a manifest and embed the shared browser
+layout bundle and local fonts. Run `npm run build:labels` before either builder. The cached
+entry point is `pipeline/build_maps.sh`; `run_all.sh` remains the explicit data-fetch route.
+Static finalization serializes the measured layout and audits that file without JavaScript.
+`npm run promote:maps` validates both candidates before replacing delivered files. See
+[Layout validation](LAYOUT_VALIDATION.md) for setup, test matrices and failure behavior.
+
 ## 0. Decide the frame
 
 Everything is keyed to one geographic frame, declared identically in `osmdata.py`, the fetch

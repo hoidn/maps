@@ -10,7 +10,7 @@ process can be repeated for another area or another interval.
 | `output/grand_canyon_trail_explorer_interactive.html` | Same sheet with pan/zoom, contour ladders that sharpen with zoom (250 → 100 → 50 ft), layer toggles, place finder, trail hover, cursor elevation, shareable view in the URL hash | 6.9 MB |
 
 Both pages are single files: terrain images are embedded as base64 JPEG, contours as inline SVG
-paths, and the only external requests are Google Fonts. They render in light and dark themes.
+paths, and fonts are embedded from checked-in, licensed assets. They render in light and dark themes.
 
 ![static sheet](docs/preview_static_wide.png)
 ![interactive at 6x](docs/preview_interactive_zoom6x.png)
@@ -18,13 +18,19 @@ paths, and the only external requests are Google Fonts. They render in light and
 ## Repeat the build
 
 ```bash
-cd pipeline
-pip install -r requirements.txt   # numpy, scipy, scikit-image, Pillow, tifffile, requests
-./run_all.sh                       # ~5 minutes, ~120 MB of downloads
+npm ci
+npm run browsers:install
+python3 -m venv .venv
+.venv/bin/pip install -r pipeline/requirements.txt
+./pipeline/run_all.sh          # explicit fetch + process + candidate build
+npm run build:maps             # subsequent builds from local caches
+npm run verify:maps            # independent audits, scenes and performance
+npm run promote:maps           # revalidate and replace both local output files
 ```
 
-The scripts write intermediates and the two HTML files into `pipeline/`. Copy the HTML into
-`output/` when you are happy with it. Intermediates are git-ignored; regenerate them.
+See [layout validation](docs/LAYOUT_VALIDATION.md) for checks, reports, required coverage and
+supported layout limits. Builds write candidates into `pipeline/`; promotion preserves the
+existing outputs if a check fails. Intermediates and browser caches are Git-ignored.
 
 ## Read next
 
@@ -36,7 +42,7 @@ The scripts write intermediates and the two HTML files into `pipeline/`. Copy th
 - `docs/HIGH_RES.md` — plan and size arithmetic for 10 ft contours from the USGS 1 m lidar tiles (`pipeline/fetch_dem_1m.py` lists and fetches them)
 - `docs/STRATEGY.md` — where this has value versus Gaia/NatGeo, monetisation options, market-size estimates, differentiators, the generator idea
 - `docs/AUTOMATION.md` — what is automatic today, how the visual check was really done, and the roadmap to a no-touch generator (label placement is the gate)
-- [Automatic layout design](docs/plans/2026-09-08-automatic-map-layout-design.md) and [implementation plan](docs/plans/2026-09-08-automatic-map-layout-plan.md) — draft for automatic placement, continuous-zoom collision prevention and release validation
+- [Automatic layout design](docs/plans/2026-09-08-automatic-map-layout-design.md) and [implementation plan](docs/plans/2026-09-08-automatic-map-layout-plan.md) — architecture for automatic placement, continuous-zoom collision prevention and release validation
 
 ## Layout
 

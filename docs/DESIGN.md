@@ -4,6 +4,15 @@ The brief was "draw the map yourself", so the sheet uses no map tiles or map lib
 terrain is rendered from the elevation grid and every line, symbol and label is authored SVG.
 Data comes from USGS and OSM; the cartography is ours.
 
+## Automatic annotation placement
+
+Authored offsets are preferred candidates. The browser measures embedded fonts and tries
+bounded point positions, declared line breaks, path windows and local region translations.
+Protected trails, symbols, controls and previously accepted labels constrain placement.
+Required names have explicit coverage gates; optional labels may be hidden with a recorded
+reason. See [Layout validation](LAYOUT_VALIDATION.md) and the
+[layout design](plans/2026-09-08-automatic-map-layout-design.md) for the supported rules.
+
 ## Frame and scale
 
 Hermits Rest to Cape Royal, South Rim to the North Kaibab trailhead. That covers the three

@@ -1,3 +1,4 @@
+import {MotionPreview} from './motion-preview.js';
 import {validateManifest} from './schema.js';
 import {ensureFonts,measureElement,MetricCache} from './measure.js';
 import {moveShape,intersects} from './geometry.js';
@@ -22,6 +23,9 @@ export class LayoutController {
     for(const a of manifest.annotations){const e=document.getElementById(a.elementId);if(!e)throw new Error('Missing annotation '+a.id);this.elements.set(a.id,e);e.style.visibility='hidden';e.style.display='none';
       const t=e.querySelector('text');a.originalTextStyle=t?.getAttribute('style')||'';a.originalTextHTML=t?.innerHTML||'';a.originalOffset=t?.querySelector('textPath')?.getAttribute('startOffset')||'0';
     }
+    const topScope=e=>{while(e.parentElement&&e.parentElement!==svg)e=e.parentElement;return e;};
+    this.fontScopes=[...new Set([...this.elements.values()].map(topScope))];
+    this.strokeScopes=[...new Set([...svg.querySelectorAll('.trails,.hits,.contours,.hydro,.roads,[data-layout-obstacle="trail"]')].map(topScope))];
     const details=document.createElement('div');details.dataset.layoutDetails='';details.setAttribute('role','status');details.style.cssText='padding:8px 12px;min-height:20px;font:13px var(--sans,sans-serif)';
     svg.parentElement.after(details);this.details=details;
     this.createDirectory();this.ready=this.initialize();
@@ -38,6 +42,7 @@ export class LayoutController {
   async initialize(){
     try {
       await ensureFonts(this.policy.fontFamilies);this.status='ready';this.render(true);
+      if(this.mode==='interactive')this.preview=new MotionPreview(this.svg,this.manifest.map);
       this.observer=new ResizeObserver(()=>{
         if(this.status!=='ready')return;
         const r=this.svg.getBoundingClientRect(),resized=!this.lastViewport||r.width!==this.lastViewport.width||r.height!==this.lastViewport.height;
@@ -78,7 +83,7 @@ export class LayoutController {
     });
   }
   requestView(view){this.view={...view};this.onCameraChange?.(this.view);this.schedule();}
-  setLayer(layer,visible){if(!(layer in this.layers))throw new Error('Unknown layer');this.layers[layer]=visible;this.schedule();}
+  setLayer(layer,visible){if(!(layer in this.layers))throw new Error('Unknown layer');this.layers[layer]=visible;this.preview?.restore();this.preview?.release();this.previewDirty=true;this.schedule();}
   select(id){const f=this.manifest.features.find(f=>f.id===id);if(!f)throw new Error('Unknown feature');this.details.textContent=f.name;this.selected=id;
     if(this.mode==='interactive'){const w=this.manifest.map.width/4.5,h=this.manifest.map.height/4.5;this.requestView({x:Math.max(0,Math.min(this.manifest.map.width-w,f.anchor[0]-w/2)),y:Math.max(0,Math.min(this.manifest.map.height-h,f.anchor[1]-h/2)),w,h});}
   }
@@ -115,12 +120,13 @@ export class LayoutController {
     const oldFit=Math.min(width/old.width,height/old.height),newFit=Math.min(width/v.w,height/v.h);
     const s=Math.hypot(before.a,before.b)*newFit/oldFit,z=W/v.w;
     this.svg.setAttribute('viewBox',`${v.x} ${v.y} ${v.w} ${v.h}`);
-    this.svg.style.setProperty('--k',this.mode==='interactive'?String(1/s):'1');
-    this.svg.style.setProperty('--s',String(z**-.5));
+    this.fontScaleValue=this.mode==='interactive'?String(1/s):'1';
+    for(const scope of this.fontScopes)scope.style.setProperty('--k',this.fontScaleValue);
+    for(const scope of this.strokeScopes)scope.style.setProperty('--s',String(z**-.5));
     this.svg.classList.toggle('zoomed',z>1.02);this.svg.classList.toggle('z2',z>=2);this.svg.classList.toggle('z5',z>=4.5);
     for(const [layer,on] of Object.entries(this.layers))this.svg.classList.toggle('no-'+layer,!on);
     const badge=document.getElementById('zlabel');if(badge)badge.textContent=z.toFixed(1)+'× · contours '+(z>=4.5?'50':z>=2?'100':'250')+' ft';
-    return {m:this.svg.getScreenCTM(),s,z};
+    const m=this.svg.getScreenCTM();return {m,s:Math.hypot(m.a,m.b),z};
   }
   normalize(a,e,s){
     if(this.mode!=='interactive')return;
@@ -220,11 +226,17 @@ export class LayoutController {
     this.rendering=true;const started=performance.now(),settled=includeCurves||this.mode==='static';
     this.transactionKind=settled?'settled':'fast';
     try {
+      if(settled)this.preview?.restore();else this.preview?.show();
       if(!settled)for(const p of this.previous?.placements||[])if(!p.application)this.elements.get(p.id).setAttribute('transform','');
       const {m,s,z}=this.camera(),viewport=rectangle(this.svg.getBoundingClientRect()),obstacles=this.controls(),queryObstacles=this.trailQuery(m,s,z);
+      if(this.previewDirty){this.previewDirty=false;this.preview?.invalidate();}
       const cameraDone=performance.now();let prepared;
       if(!settled)prepared=this.fastPrepared(m,viewport,z);
       else {
+        // Fractional zoom can change browser glyph advances despite inverse CSS
+        // scaling. Keep only metrics measured at this exact screen scale.
+        const metricScaleKey=s+':'+this.fontScaleValue;
+        if(this.metricScaleKey!==metricScaleKey){this.cache.invalidate();this.metricScaleKey=metricScaleKey;}
         // Reset/normalize in one write batch before measuring any annotation.
         // This avoids forcing style/layout once for every ordinary point label.
         for(const a of this.manifest.annotations){
@@ -248,12 +260,13 @@ export class LayoutController {
             if(line){
               const parentMatrix=e.parentElement.getScreenCTM(),cached=this.lineCache.get(a.id);
               if(cached)try{item.candidates=cached.candidates.map(c=>reprojectLineCandidate(c,cached.parentMatrix,parentMatrix));}catch{this.lineCache.delete(a.id);}
+              if(!this.lineCache.has(a.id)&&performance.now()>candidateDeadline){item.eligibleReason='budget-deferred';prepared.push(item);continue;}
               if(!this.lineCache.has(a.id))item.candidates=buildLineCandidates({annotation:a,element:e,policy:{...this.policy,maxLineCandidates:this.mode==='interactive'?Math.min(this.policy.maxLineCandidates??24,4):this.policy.maxLineCandidates}});
               this.lineCache.set(a.id,{candidates:item.candidates,parentMatrix});
               item.repeatDistance=this.policy.repeatDistance;
             }else{
               let cached=this.cache.entries.get(a.id);
-              if(!cached){cached={anchor,metric:measureElement(e),pointVariants:a.variants?.length?measurePointVariants(e,a):[]};this.cache.entries.set(a.id,cached);}
+              if(!cached){cached={anchor,scale:s,metric:measureElement(e),pointVariants:a.variants?.length?measurePointVariants(e,a):[]};this.cache.entries.set(a.id,cached);}
               const dx=anchor[0]-cached.anchor[0],dy=anchor[1]-cached.anchor[1],metric=moveShape(cached.metric,dx,dy);
               if(a.kind==='region-label')item.candidates=regionCandidates(item,metric,this.policy);
               else {

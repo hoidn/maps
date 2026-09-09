@@ -22,7 +22,7 @@ async function measureFile({input,browserName,viewport,steps}){
   }
   page.on('pageerror',error=>errors.push(error.message));
   await page.goto(`http://127.0.0.1:${server.address().port}/`,{waitUntil:'load',timeout:120000});
-  await page.evaluate(async()=>{await document.fonts.ready;if(window.mapLayout)await window.mapLayout.whenSettled();});
+  await page.evaluate(async()=>{await document.fonts.ready;if(window.mapLayout){await window.mapLayout.whenSettled();await window.mapLayout.preview?.ready;}});
   const raw=await page.evaluate(async steps=>{
    const layout=window.mapLayout,svg=document.querySelector('#mapsvg,svg.map'),r=svg.getBoundingClientRect();
    const cold=layout?.samples?.find(s=>s.kind==='settled')||null,begin=layout?.samples?.length||0,frames=[];
@@ -35,7 +35,7 @@ async function measureFile({input,browserName,viewport,steps}){
    }
    const end=performance.now(),midGestureSettled=layout?.samples?.slice(begin).filter(s=>s.kind==='settled').length??null;
    if(layout)await layout.whenSettled();else await new Promise(resolve=>setTimeout(resolve,60));
-   return {frames,settled:performance.now()-end,midGestureSettled,samples:layout?.samples?.slice(begin)||[],cold,status:layout?.status||'legacy',cacheEntries:layout?{point:layout.cache.entries.size,line:layout.lineCache.size}:null,visible:layout?.result?.placements.length??null};
+   return {preview:layout?.preview?{buildMs:layout.preview.buildMs,rgbaBytes:layout.preview.rgbaBytes,error:layout.preview.error,warmup:'awaited preview decode before warm gesture'}:null,frames,settled:performance.now()-end,midGestureSettled,samples:layout?.samples?.slice(begin)||[],cold,status:layout?.status||'legacy',cacheEntries:layout?{point:layout.cache.entries.size,line:layout.lineCache.size}:null,visible:layout?.result?.placements.length??null};
   },steps);
   return {input,artifactSha256:createHash('sha256').update(bytes).digest('hex'),browser:browserName,browserVersion:browser.version(),viewport,graphics,headless:true,errors,...raw};
  }finally{await browser?.close();await new Promise(ok=>server.close(ok));}

@@ -84,3 +84,44 @@ test('the lazy trail query projects only nearby segment bounds from a shared cel
  const ids=await page.evaluate(()=>{const l=window.mapLayout;return l.trailQuery(l.svg.getScreenCTM(),1,1)({x:0,y:0,width:4,height:4}).map(o=>o.id);});
  expect(ids).toEqual(['near:1']);
 });
+
+test('motion preview is bounded, preserves vector annotations, and restores source layers',async({page})=>{
+ const html=(await fixtureHTML()).replace('<defs>','<g class="roads"><path id="preview-road" d="M0,10 L400,10" stroke="black"/></g><defs>');
+ await page.setContent(html);await page.addScriptTag({content:await fs.readFile('pipeline/labels/dist/browser.js','utf8')});
+ await page.evaluate(()=>window.mapLayout.ready);
+ await page.evaluate(()=>window.mapLayout.preview.ready);
+ const during=await page.evaluate(async()=>{const l=window.mapLayout;l.requestView({...l.view,w:400,h:320});await new Promise(requestAnimationFrame);return {active:l.preview.active,bytes:l.preview.rgbaBytes,road:!!document.getElementById('preview-road'),vectors:document.querySelectorAll('[data-layout-id]').length,image:!!document.querySelector('[data-layout-preview]')};});
+ expect(during.active).toBe(true);expect(during.bytes).toBeLessThanOrEqual(24*1024*1024);expect(during.road).toBe(false);expect(during.vectors).toBeGreaterThan(0);expect(during.image).toBe(true);
+ await page.evaluate(()=>window.mapLayout.whenSettled());
+ expect(await page.evaluate(()=>({active:window.mapLayout.preview.active,road:!!document.getElementById('preview-road')}))).toEqual({active:false,road:true});
+});
+
+test('preview invalidation discards stale async work and failure restores the vector background',async({page})=>{
+ const html=(await fixtureHTML()).replace('<defs>','<g class="roads"><path id="preview-road" d="M0,10 L400,10" stroke="black"/></g><defs>');
+ await page.setContent(html);await page.addScriptTag({content:await fs.readFile('pipeline/labels/dist/browser.js','utf8')});await page.evaluate(()=>window.mapLayout.ready);
+ const result=await page.evaluate(async()=>{
+  const l=window.mapLayout,p=l.preview;await p.ready;p.show();
+  const stale=p.invalidate();p.destroy();await stale;
+  const cancelled={active:p.active,url:p.url,road:!!document.getElementById('preview-road')};
+  const decode=Image.prototype.decode;Image.prototype.decode=()=>Promise.reject(new Error('decode fixture failure'));
+  await p.invalidate();Image.prototype.decode=decode;p.show();
+  return {cancelled,failed:!!p.error,active:p.active,road:!!document.getElementById('preview-road')};
+ });
+ expect(result).toEqual({cancelled:{active:false,url:null,road:true},failed:true,active:false,road:true});
+});
+
+test('settled point metric caches match the actual current screen scale',async({page})=>{
+ await mountFixture(page);
+ const values=await page.evaluate(async()=>{const l=window.mapLayout;await l.whenSettled();l.requestView({...l.view,w:333.3,h:266.64});await l.whenSettled();return {scale:Math.hypot(l.svg.getScreenCTM().a,l.svg.getScreenCTM().b),entries:[...l.cache.entries.values()].map(c=>c.scale)};});
+ expect(values.entries.length).toBeGreaterThan(0);for(const scale of values.entries)expect(scale).toBeCloseTo(values.scale,10);
+});
+
+test('preview pixels track theme and layer changes without rasterizing labels',async({page})=>{
+ const html=(await fixtureHTML()).replace('<defs>','<g class="hydro"><rect x="0" y="0" width="500" height="400" fill="var(--preview-paint)"/></g><defs>');
+ await page.setContent(html);await page.addStyleTag({content:':root{--preview-paint:rgb(255,0,0)}:root[data-theme="dark"]{--preview-paint:rgb(0,0,255)}.no-water .hydro{display:none}'});await page.addScriptTag({content:await fs.readFile('pipeline/labels/dist/browser.js','utf8')});await page.evaluate(()=>window.mapLayout.ready);
+ const colors=await page.evaluate(async()=>{
+  const l=window.mapLayout;async function pixel(){await l.preview.ready;const image=new Image();image.src=l.preview.url;await image.decode();const canvas=document.createElement('canvas');canvas.width=canvas.height=1;canvas.getContext('2d').drawImage(image,0,0,1,1);return [...canvas.getContext('2d').getImageData(0,0,1,1).data];}
+  const light=await pixel();document.documentElement.dataset.theme='dark';await new Promise(requestAnimationFrame);const dark=await pixel();l.setLayer('water',false);await l.whenSettled();const off=await pixel();return {light,dark,off};
+ });
+ expect(colors.light).toEqual([255,0,0,255]);expect(colors.dark).toEqual([0,0,255,255]);expect(colors.off[3]).toBe(0);
+});

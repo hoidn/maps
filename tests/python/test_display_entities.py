@@ -114,6 +114,20 @@ class DisplayEntityTests(unittest.TestCase):
    spec,m,f,original,_=self.fixture(name,other,role,tags,distance=distance);_,report=render_scene([f],[],spec,m)
    self.assertEqual(report['displayRepeatMatches']['matched'],[]);self.assertEqual(m.annotations[1]['repeatGroup'],original[1]['repeatGroup'])
 
+ def test_numeric_display_repeat_is_not_a_geographic_alias(self):
+  for left,right in [('1½ Mile Resthouse','1.5 Mile Resthouse'),('Cabin 2¼','Cabin 2.25'),('Pool ¾','Pool 0.75')]:
+   m=Manifest()
+   for i,name in enumerate([left,right,'Upper '+right,right+'!',right.replace('2.25','2.5')+' Annex']):
+    m.label('<text>'+name+'</text>',name,'l-place',(100+i*30,200),source_id='source:'+str(i))
+   a,b,*others=m.annotations
+   self.assertEqual(a['repeatGroup'],b['repeatGroup'])
+   self.assertTrue(all(a['repeatGroup']!=o['repeatGroup'] for o in others))
+   self.assertNotEqual(a['featureId'],b['featureId']);self.assertNotEqual(a['anchor'],b['anchor'])
+   self.assertEqual([a['text'],b['text']],[left,right]);self.assertNotIn('displayRepeatMatch',a)
+  m=Manifest()
+  for i,name in enumerate(['Trail 1½','Trail 1.5']):m.label('<text>'+name+'</text>',name,'l-trail',(i,0),kind='line-label')
+  self.assertNotEqual(m.annotations[0]['repeatGroup'],m.annotations[1]['repeatGroup'])
+
  def boundary_fixture(self,other_name='Juniper Wilderness Area',shift=.0001,other_tags=None):
   spec=MapSpec.from_dict({'id':'arbitrary','title':'Arbitrary','bbox':[0,0,.1,.1]});m=Manifest()
   a={'id':'osm:relation:forest','provider':'osm','kind':'boundary','name':'Juniper Wilderness','tags':{'boundary':'protected_area','wikidata':'Q100'},'geometry':{'type':'Polygon','coordinates':[[[.01,.01],[.09,.01],[.09,.09],[.01,.09],[.01,.01]]]}}

@@ -3,6 +3,8 @@
 No text metrics or placement algorithm lives in Python. Geographic anchors and the
 existing preferred SVG positions are preserved for the browser layout adapter.
 """
+from fractions import Fraction
+import unicodedata
 import hashlib
 import html
 import json
@@ -26,6 +28,24 @@ def stable_id(prefix, value):
 
 def safe_json(value):
     return json.dumps(value, ensure_ascii=False, allow_nan=False, separators=(',', ':')).replace('<', '\\u003c').replace('\u2028','\\u2028').replace('\u2029','\\u2029')
+
+VULGAR_FRACTIONS = '¼½¾⅐⅑⅒⅓⅔⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞'
+
+def point_display_name(text):
+    """Normalize numerical spellings for repetition, without asserting identity.
+
+    Preserve every nonnumeric character and the existing case/whitespace rule.
+    Source names, geographic anchors and feature IDs never use this key.
+    """
+    def mixed(match):
+        fraction=Fraction(unicodedata.normalize('NFKC',match[2]).replace('⁄','/'))
+        return str(Fraction(match[1] or '0')+fraction)
+    text=re.sub(r'(\d*)(['+VULGAR_FRACTIONS+'])',mixed,text)
+    def number(match):
+        try:return str(Fraction(match[0]))
+        except (ValueError,ZeroDivisionError):return match[0]
+    text=re.sub(r'(?<![\w.])(?:\d+\.\d+|\.\d+|\d+(?:/\d+)?)(?![\w.])',number,text)
+    return ' '.join(text.casefold().split())
 
 class Manifest:
     def __init__(self, mode='interactive', width=1300, height=1070):
@@ -67,7 +87,7 @@ class Manifest:
         aid=stable_id('label', identity)
         record=dict(id=aid,elementId=aid,featureId=fid,kind=kind,layer=layer,anchor=xy,text=text,
                     style=cls,priority=PRIORITIES.get(cls,500),requiredProfiles=['static-default'] if text in self.required and not any(a.get('text')==text and a.get('requiredProfiles') for a in self.annotations) else [],
-                    angle=angle,geometryId=geometry_id,repeatGroup=stable_id('display-name',[feature_kind,' '.join(text.casefold().split())]),repeatDistance=180,requiredGroup=text if text in self.required_routes else None)
+                    angle=angle,geometryId=geometry_id,repeatGroup=stable_id('display-name',[feature_kind,point_display_name(text) if kind=='point-label' else ' '.join(text.casefold().split())]),repeatDistance=180,requiredGroup=text if text in self.required_routes else None)
         if (kind=='point-label' or self.mode=='static' and kind=='line-label' and text in self.required_routes) and len(text.split())>1:
             words=text.split();mid=min(range(1,len(words)),key=lambda i:abs(len(' '.join(words[:i]))-len(' '.join(words[i:]))))
             splits=[mid]+[i for i in range(1,len(words)) if i!=mid]

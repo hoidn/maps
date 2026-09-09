@@ -1,0 +1,8 @@
+{
+  "id":"grand_canyon", "title":"Grand Canyon", "subtitle":"Trails of the central canyon",
+  "bbox":[-112.262,35.990,-111.898,36.232], "width":1300,"height":1070,
+  "contourIntervalsFeet":[250,100,50], "bufferDegrees":0.015,
+  "requiredNames":["Bright Angel TH","South Kaibab TH","North Kaibab TH","1½ Mile Resthouse","3 Mile Resthouse","Havasupai Gardens","Bright Angel CG","Cottonwood CG","Phantom Ranch"],
+  "requiredRoutes":["Bright Angel Trail","South Kaibab Trail","North Kaibab Trail"],
+  "sources":["osm","3dep","3dhp","gnis","nlcd","padus","nps"]
+}

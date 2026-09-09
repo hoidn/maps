@@ -131,3 +131,9 @@ test('settlement waits for quiet frames without running full passes inside a ges
  const result=await page.evaluate(async()=>{const l=window.mapLayout;await l.whenSettled();const begin=l.samples.length;for(let i=0;i<30;i++){l.requestView({...l.view,x:i%4,w:400,h:320});await new Promise(requestAnimationFrame);}const during=l.samples.slice(begin).filter(s=>s.kind==='settled').length;await l.whenSettled();return {during,after:l.samples.at(-1).kind};});
  expect(result).toEqual({during:0,after:'settled'});
 });
+
+test('an empty retained set updates the camera without querying unused collision geometry',async({page})=>{
+ await mountFixture(page);
+ const result=await page.evaluate(async()=>{const l=window.mapLayout;await l.whenSettled();l.previous={placements:[],outcomes:[],missingRequired:[]};for(const e of l.elements.values()){e.style.display='none';e.style.visibility='hidden';}l.visibleIds.clear();let queries=0;const controls=l.controls.bind(l);l.controls=()=>{queries++;return controls();};l.requestView({...l.view,w:400,h:320});await new Promise(requestAnimationFrame);const result={queries,kind:l.transactionKind,placed:l.result.placements.length,accounted:l.result.outcomes.length,total:l.manifest.annotations.length};l.controls=controls;return result;});
+ expect(result).toEqual({queries:0,kind:'fast',placed:0,accounted:3,total:3});
+});

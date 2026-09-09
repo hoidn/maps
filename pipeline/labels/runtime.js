@@ -111,7 +111,7 @@ export class LayoutController {
   whenSettled(){return this.ready.then(()=>this.fontReady).then(()=>this.frame||this.settleTimer?new Promise(resolve=>this.waiters.push(resolve)):this.getReport());}
   resolveWaiters(){for(const resolve of this.waiters.splice(0))resolve(this.getReport());}
   getReport(){return {status:this.status,error:this.error,view:{...this.view},outcomes:this.result?.outcomes||[],missingRequired:this.result?.missingRequired||[],placements:this.result?.placements||[],timings:this.timings.slice(-200),samples:this.samples.slice(-200),transactionKind:this.transactionKind};}
-  camera(){
+  camera(readAfter=true){
     const v=this.view,W=this.manifest.map.width;
     // Read the old, internally consistent camera before writing either scale.
     // A layout read between viewBox and --k makes Firefox shape text at a
@@ -127,7 +127,7 @@ export class LayoutController {
     this.svg.classList.toggle('zoomed',z>1.02);this.svg.classList.toggle('z2',z>=2);this.svg.classList.toggle('z5',z>=4.5);
     for(const [layer,on] of Object.entries(this.layers))this.svg.classList.toggle('no-'+layer,!on);
     const badge=document.getElementById('zlabel');if(badge)badge.textContent=z.toFixed(1)+'× · contours '+(z>=4.5?'50':z>=2?'100':'250')+' ft';
-    const m=this.svg.getScreenCTM();return {m,s:Math.hypot(m.a,m.b),z};
+    const m=readAfter?this.svg.getScreenCTM():null;return {m,s:m?Math.hypot(m.a,m.b):s,z};
   }
   normalize(a,e,s){
     if(this.mode!=='interactive')return;
@@ -229,10 +229,14 @@ export class LayoutController {
     try {
       if(settled)this.preview?.restore();else this.preview?.show();
       if(!settled)for(const p of this.previous?.placements||[])if(!p.application)this.elements.get(p.id).setAttribute('transform','');
-      const {m,s,z}=this.camera(),viewport=rectangle(this.svg.getBoundingClientRect()),obstacles=this.controls(),queryObstacles=this.trailQuery(m,s,z);
+      // With no retained labels, no painted annotation needs geometry validation.
+      // Keep the camera write atomic and defer its layout to normal browser paint.
+      const dormant=!settled&&this.previous?.placements.length===0&&!!this.lastViewport;
+      const {m,s,z}=this.camera(!dormant),viewport=dormant?this.lastViewport:rectangle(this.svg.getBoundingClientRect()),obstacles=dormant?[]:this.controls(),queryObstacles=dormant?undefined:this.trailQuery(m,s,z);
       if(this.previewDirty){this.previewDirty=false;this.preview?.invalidate();}
       const cameraDone=performance.now();let prepared;
-      if(!settled)prepared=this.fastPrepared(m,viewport,z);
+      if(dormant)prepared=this.manifest.annotations.map(a=>({...a,required:false,candidates:[],eligibleReason:this.layers[a.layer]?'budget-deferred':'layer-off'}));
+      else if(!settled)prepared=this.fastPrepared(m,viewport,z);
       else {
         // Fractional zoom can change browser glyph advances despite inverse CSS
         // scaling. Keep only metrics measured at this exact screen scale.

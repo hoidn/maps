@@ -1,3 +1,5 @@
+import {InitialPlacementClient} from './initial-placement-client.js';
+import {pointFallback} from './point-fallback.js';
 import {MotionPreview} from './motion-preview.js';
 import {validateManifest} from './schema.js';
 import {ensureFonts,measureElement,MetricCache} from './measure.js';
@@ -42,8 +44,14 @@ export class LayoutController {
   }
   async initialize(){
     try {
-      await ensureFonts(this.policy.fontFamilies);this.status='ready';this.render(true);
-      if(this.mode==='interactive')this.preview=new MotionPreview(this.svg,this.manifest.map);
+      await ensureFonts(this.policy.fontFamilies);
+      if(this.mode==='interactive'){
+        this.starting=true;this.initialPlacer=new InitialPlacementClient();
+        this.preview=new MotionPreview(this.svg,this.manifest.map);
+        this.preview.ready.catch(()=>{}); // The initial transaction reports preparation failures.
+        try{let committed=false;while(!committed){this.status='ready';committed=await this.render(true);if(this.status==='error')throw new Error(this.error);}}
+        finally{this.initialPlacer.close();this.starting=false;}
+      }else{this.status='ready';this.render(true);}
       this.observer=new ResizeObserver(()=>{
         if(this.status!=='ready')return;
         const r=this.svg.getBoundingClientRect(),resized=!this.lastViewport||r.width!==this.lastViewport.width||r.height!==this.lastViewport.height;
@@ -89,7 +97,12 @@ export class LayoutController {
   select(id){const f=this.manifest.features.find(f=>f.id===id);if(!f)throw new Error('Unknown feature');this.details.textContent=f.name;this.selected=id;
     if(this.mode==='interactive'){const w=this.manifest.map.width/4.5,h=this.manifest.map.height/4.5;this.requestView({x:Math.max(0,Math.min(this.manifest.map.width-w,f.anchor[0]-w/2)),y:Math.max(0,Math.min(this.manifest.map.height-h,f.anchor[1]-h/2)),w,h});}
   }
+  startupSnapshot(){const r=this.svg.getBoundingClientRect();return JSON.stringify([this.view,this.layers,r.x,r.y,r.width,r.height,this.controls()]);}
   schedule(){
+    if(this.status==='loading'&&this.starting){
+      if(!this.frame)this.frame=requestAnimationFrame(()=>{this.frame=null;if(this.status==='loading'){this.preview?.show();this.camera(false);this.preview?.render(this.view,this.svg.getBoundingClientRect());}else this.render(false);});
+      return;
+    }
     if(this.status!=='ready')return;
     if(!this.frame)this.frame=requestAnimationFrame(()=>{this.frame=null;this.render(false);});
     this.scheduleSettled();
@@ -274,12 +287,10 @@ export class LayoutController {
                 if(a.kind==='symbol'&&facilityCounts.get(a.featureId)>1)item.facilityOffsets=[[16,0],[-16,0],[0,16],[0,-16],[12,12],[-12,12],[12,-12],[-12,-12]];
                 const policy={...this.policy,densePointCandidates:item.required};item.candidates=pointCandidates(item,metric,policy);
                 for(const v of cached.pointVariants||[])item.candidates.push(...pointCandidates(item,moveShape(v.shape,dx,dy),policy).map(c=>({...c,id:v.id+'-'+c.id,textHTML:v.textHTML})));
-                if(a.kind==='point-label'&&!policy.densePointCandidates)item.fallbackCandidates=()=>{
-                  const dense={...policy,densePointCandidates:true,densePointStep:2};
-                  const all=pointCandidates(item,metric,dense).filter(c=>c.id.startsWith('grid-'));
-                  for(const v of cached.pointVariants||[])all.push(...pointCandidates(item,moveShape(v.shape,dx,dy),dense).filter(c=>c.id.startsWith('grid-')).map(c=>({...c,id:v.id+'-'+c.id,textHTML:v.textHTML})));
-                  return all.sort((a,b)=>anchorDistance(a.shape.bounds,item.anchor)-anchorDistance(b.shape.bounds,item.anchor));
-                };
+                if(a.kind==='point-label'&&!policy.densePointCandidates){
+                  item.fallbackData={annotation:{kind:item.kind,anchor:item.anchor},metric,variants:(cached.pointVariants||[]).map(v=>({...v,shape:moveShape(v.shape,dx,dy)})),policy};
+                  item.fallbackCandidates=()=>pointFallback(item.fallbackData);
+                }
               }
             }
           }catch(error){item.eligibleReason=error.message.includes('overflow')?'no-valid-candidate':'invalid-metrics';item.metricError=error.message;}
@@ -288,13 +299,37 @@ export class LayoutController {
       }
       this.prepared=prepared;this.lastObstacles=obstacles;
       const preparedDone=performance.now();
-      this.result=solveLayout({annotations:prepared,obstacles,queryObstacles,viewport,previous:this.previous,policy:{...this.policy,exhaustiveDiagnostics:this.mode!=='interactive',repairMaxNeighbors:this.mode==='interactive'?0:2,requiredGroups:this.mode==='static'?this.policy.requiredRoutes:[]}});
-      const solvedDone=performance.now();this.commit(this.result,m,s);
-      this.phases={camera:cameraDone-started,prepare:preparedDone-cameraDone,solve:solvedDone-preparedDone,commit:performance.now()-solvedDone};
-      const elapsed=performance.now()-started;this.timings.push(elapsed);this.samples.push({kind:this.transactionKind,total:elapsed,...this.phases,placements:this.result.placements.length,candidates:prepared.reduce((n,a)=>n+a.candidates.length,0)});
-      if(this.timings.length>500)this.timings.shift();if(this.samples.length>500)this.samples.shift();
-      this.lastViewport=viewport;
-      this.svg.dataset.layoutState=this.result.missingRequired.length?'missing-required':'ready';
+      const args={annotations:prepared,obstacles,queryObstacles,viewport,previous:this.previous,policy:{...this.policy,exhaustiveDiagnostics:this.mode!=='interactive',repairMaxNeighbors:this.mode==='interactive'?0:2,requiredGroups:this.mode==='static'?this.policy.requiredRoutes:[]}};
+      const finish=result=>{
+        this.result=result;
+        const solvedDone=performance.now();this.commit(this.result,m,s);
+        this.phases={camera:cameraDone-started,prepare:preparedDone-cameraDone,solve:solvedDone-preparedDone,commit:performance.now()-solvedDone};
+        const elapsed=performance.now()-started;this.timings.push(elapsed);this.samples.push({kind:this.transactionKind,total:elapsed,...this.phases,placements:this.result.placements.length,candidates:prepared.reduce((n,a)=>n+a.candidates.length,0)});
+        if(this.timings.length>500)this.timings.shift();if(this.samples.length>500)this.samples.shift();
+        this.lastViewport=viewport;
+        this.svg.dataset.layoutState=this.result.missingRequired.length?'missing-required':'ready';
+        return true;
+      };
+      if(settled&&this.starting){
+        const faces=[...document.fonts].map(face=>[face,face.status]);
+        const snapshot=this.startupSnapshot(),matrix=m=>Object.fromEntries(['a','b','c','d','e','f'].map(k=>[k,m[k]]));
+        const {queryObstacles:unused,...payload}=args;
+        payload.annotations=prepared.map(({fallbackCandidates,...a})=>a);
+        payload.trail={segments:this.trailSegments,matrix:matrix(m),inverse:matrix(m.inverse()),strokeScale:1/z,scale:s,maxWidth:this.maxTrailWidth};
+        this.status='loading';
+        return this.initialPlacer.solve(payload).then(async result=>{
+          // Read the current preparation promise: a layer/theme change can replace it.
+          let ready;do{ready=this.preview.ready;await ready;}while(ready!==this.preview.ready);
+          const current=[...document.fonts];
+          if(current.length!==faces.length||current.some((face,i)=>face!==faces[i]?.[0]||face.status!==faces[i]?.[1])){
+            this.cache.invalidate();this.lineCache.clear();this.previous=null;
+            await ensureFonts(this.policy.fontFamilies);return false;
+          }
+          if(snapshot!==this.startupSnapshot())return false;
+          this.status='ready';return finish(result);
+        });
+      }
+      return finish(solveLayout(args));
     }catch(error){for(const e of this.elements.values())e.style.visibility='hidden';this.visibleIds.clear();this.status='error';this.error=error.message;this.details.textContent='Map labels unavailable: '+error.message;}
     finally{this.rendering=false;}
   }

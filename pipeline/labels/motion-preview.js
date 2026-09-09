@@ -3,26 +3,32 @@ const NS='http://www.w3.org/2000/svg';
 const BACKGROUND='.terrain,[data-layout-background]';
 const VECTOR='[data-layout-id],.trails,.contours,.hydro,.roads,.fixed-ui,text,[data-layout-obstacle="trail"]';
 const backgroundOnly=e=>e.matches(BACKGROUND)&&!e.matches(VECTOR)&&!e.querySelector(VECTOR);
-/** Relief uses a bounded bitmap; contours are drawn at the current zoom on canvas.
+/** Embedded relief images stay live; other backgrounds use a bounded bitmap.
+ * Contours are prepared cooperatively and drawn at the current zoom on canvas.
  * Roads, waterways, trails, annotations, hit targets and fixed UI remain live SVG.
  * Source nodes are retained
  * behind placeholders and restored synchronously before every settled pass. */
 export class MotionPreview {
   constructor(svg,{width,height,maxBytes=24*1024*1024}){
     this.svg=svg;this.width=width;this.height=height;this.maxBytes=maxBytes;
-    this.generation=0;this.active=false;this.detached=[];this.contours=new ContourPreview(svg,{width,height});
+    this.generation=0;this.active=false;this.detached=[];this.contours=new ContourPreview(svg,{width,height},{defer:true});
     this.themeObserver=new MutationObserver(()=>this.invalidate());
     this.themeObserver.observe(document.documentElement,{attributes:true,attributeFilter:['data-theme','class','style']});
     this.media=matchMedia('(prefers-color-scheme: dark)');this.themeChanged=()=>this.invalidate();this.media.addEventListener('change',this.themeChanged);
     this.pageHide=()=>this.destroy();window.addEventListener('pagehide',this.pageHide,{once:true});
-    this.ready=this.build();
+    this.ready=Promise.all([this.contours.ready,this.build()]);
   }
-  invalidate(){this.restore();this.contours.refreshStyles();this.generation++;this.release();this.ready=this.build();return this.ready;}
+  invalidate(){this.restore();this.contours.refreshStyles();this.generation++;this.release();this.ready=Promise.all([this.contours.ready,this.build()]);return this.ready;}
   release(){this.generation++;this.image?.remove();this.image=null;if(this.url)URL.revokeObjectURL(this.url);this.url=null;this.rgbaBytes=0;}
   async build(){
     const generation=++this.generation,started=performance.now();let sourceURL,bitmapURL;
     try{
-      const source=this.svg,clone=source.cloneNode(true);
+      const source=this.svg,backgrounds=[...source.children].filter(backgroundOnly);
+      this.nativeRaster=backgrounds.every(e=>e.tagName.toLowerCase()==='image'&&e.getAttribute('href')?.startsWith('data:image/'));
+      if(this.nativeRaster){
+        this.image=document.createElementNS(NS,'g');this.image.dataset.layoutPreview='';this.backgroundBytes=0;this.rgbaBytes=this.contours.rgbaBytes;this.buildMs=performance.now()-started;this.error=null;return;
+      }
+      const clone=source.cloneNode(true);
       for(const e of [...clone.children])if(e.tagName.toLowerCase()!=='defs'&&!backgroundOnly(e))e.remove();
       for(const e of clone.querySelectorAll('[data-layout-id],.trails,.fixed-ui,text'))e.remove();
       for(const e of clone.querySelectorAll('[href]'))if(!/^(?:data:|#)/.test(e.getAttribute('href')))throw new Error('Preview requires embedded assets');
@@ -47,14 +53,28 @@ export class MotionPreview {
     finally{if(sourceURL)URL.revokeObjectURL(sourceURL);if(bitmapURL)URL.revokeObjectURL(bitmapURL);}
   }
   show(){
-    if(this.active||!this.image)return;
-    for(const node of [...this.svg.children].filter(e=>backgroundOnly(e)||this.contours.layers.includes(e))){
+    if(this.active||!this.image||!this.contours.initialized)return;
+    // Visible textPath labels still need their source geometry in the document.
+    // Move only those original paths into non-painted defs while contours are
+    // detached; copying their large d strings would duplicate geographic data.
+    this.references=[];
+    for(const textPath of this.svg.querySelectorAll('textPath')){
+      const wrapper=textPath.closest('[data-layout-id]');
+      if(wrapper&&(wrapper.style.display==='none'||wrapper.style.visibility==='hidden'))continue;
+      const href=textPath.getAttribute('href')||textPath.getAttributeNS('http://www.w3.org/1999/xlink','href');
+      const path=href?.startsWith('#')?this.svg.ownerDocument.getElementById(href.slice(1)):null;
+      if(!path||!this.contours.layers.some(layer=>layer.contains(path)))continue;
+      if(!this.sources){this.sources=document.createElementNS(NS,'defs');this.sources.dataset.layoutPreviewSources='';this.svg.append(this.sources);}
+      const marker=document.createComment('motion text path');path.replaceWith(marker);this.sources.append(path);this.references.push({path,marker});
+    }
+    for(const node of [...this.svg.children].filter(e=>!this.nativeRaster&&backgroundOnly(e)||this.contours.layers.includes(e))){
       const marker=document.createComment('motion background');node.replaceWith(marker);this.detached.push({node,marker});
     }
-    this.svg.insertBefore(this.image,this.svg.firstChild);
+    const contourMarker=this.detached.find(({node})=>this.contours.layers.includes(node))?.marker;
+    if(this.nativeRaster&&contourMarker)contourMarker.before(this.image);else this.svg.insertBefore(this.image,this.svg.firstChild);
     if(this.contours.layers.length)this.image.after(this.contours.element);this.active=true;
   }
   render(view,viewport){if(!this.active)return;this.contours.render(view,viewport,this.maxBytes/3);this.rgbaBytes=(this.backgroundBytes||0)+this.contours.rgbaBytes;}
-  restore(){if(!this.active)return;this.image?.remove();this.contours.remove();for(const {node,marker} of this.detached)marker.replaceWith(node);this.detached=[];this.active=false;}
+  restore(){if(!this.active)return;this.image?.remove();this.contours.remove();for(const {node,marker} of this.detached)marker.replaceWith(node);for(const {path,marker} of this.references)marker.replaceWith(path);this.sources?.remove();this.sources=null;this.references=[];this.detached=[];this.active=false;}
   destroy(){this.restore();this.generation++;this.release();this.themeObserver.disconnect();this.media.removeEventListener('change',this.themeChanged);window.removeEventListener('pagehide',this.pageHide);}
 }

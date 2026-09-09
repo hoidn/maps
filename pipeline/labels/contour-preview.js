@@ -3,19 +3,24 @@ const NS='http://www.w3.org/2000/svg';
 /** Reuse parsed contour paths, but draw strokes at the current camera scale.
  * Only plain, untransformed contour groups are eligible; other SVG stays live. */
 export class ContourPreview {
-  constructor(svg,map){
+  constructor(svg,map,{defer=false}={}){
     this.svg=svg;this.map=map;this.items=[];this.layers=[];this.rgbaBytes=0;
     this.element=document.createElementNS(NS,'foreignObject');this.element.dataset.layoutContourPreview='';this.element.setAttribute('pointer-events','none');
     this.canvas=document.createElement('canvas');this.canvas.style.cssText='width:100%;height:100%;display:block';this.element.append(this.canvas);
-    this.context=this.canvas.getContext('2d');if(!this.context)return;
+    this.context=this.canvas.getContext('2d');this.initialized=false;
+    this.ready=this.initialize(svg,defer);
+  }
+  async initialize(svg,defer){
+    if(!this.context){this.initialized=true;return;}
+    let deadline=performance.now()+8;
     for(const layer of [...svg.children].filter(e=>e.matches('.contours'))){
       if(layer.querySelector('[data-layout-id],text,[transform]')||layer.hasAttribute('transform')||[layer,...layer.querySelectorAll('g')].some(e=>getComputedStyle(e).transform!=='none'))continue;
       const paths=[...layer.querySelectorAll('path')];
       if(paths.some(p=>getComputedStyle(p).fill!=='none'||getComputedStyle(p).transform!=='none'))continue;
       // Firefox reports empty bounds for paths under display:none detail groups.
-      const groups=[layer,...layer.querySelectorAll('g')],styles=groups.map(e=>e.getAttribute('style'));
-      groups.forEach(e=>e.style.setProperty('display','inline','important'));
-      const items=paths.map(e=>{
+      const groups=[layer,...layer.querySelectorAll('g')];
+      const items=[];
+      for(const e of paths){
         const d=e.getAttribute('d'),runs=contourRuns(d)?.map(points=>{
           let x=Infinity,y=Infinity,right=-Infinity,bottom=-Infinity;
           for(let i=0;i<points.length;i+=2){x=Math.min(x,points[i]);y=Math.min(y,points[i+1]);right=Math.max(right,points[i]);bottom=Math.max(bottom,points[i+1]);}
@@ -23,12 +28,18 @@ export class ContourPreview {
           const original=new Path2D();original.moveTo(points[0],points[1]);for(let i=2;i<points.length;i+=2)original.lineTo(points[i],points[i+1]);
           return {bounds:{x,y,width:right-x,height:bottom-y},points,chunks,original};
         });
-        return {e,runs,path:runs?null:new Path2D(d),bounds:e.getBBox(),minZoom:e.closest('.g-finest')?4.5:e.closest('.g-fine')?2:0};
-      });
-      groups.forEach((e,i)=>styles[i]===null?e.removeAttribute('style'):e.setAttribute('style',styles[i]));
+        let bounds;
+        if(runs){const x=Math.min(...runs.map(r=>r.bounds.x)),y=Math.min(...runs.map(r=>r.bounds.y));bounds={x,y,width:Math.max(...runs.map(r=>r.bounds.x+r.bounds.width))-x,height:Math.max(...runs.map(r=>r.bounds.y+r.bounds.height))-y};}
+        else{
+          const styles=groups.map(e=>e.getAttribute('style'));groups.forEach(e=>e.style.setProperty('display','inline','important'));
+          try{bounds=e.getBBox();}finally{groups.forEach((e,i)=>styles[i]===null?e.removeAttribute('style'):e.setAttribute('style',styles[i]));}
+        }
+        items.push({e,runs,path:runs?null:new Path2D(d),bounds,minZoom:e.closest('.g-finest')?4.5:e.closest('.g-fine')?2:0});
+        if(defer&&performance.now()>=deadline){await new Promise(resolve=>setTimeout(resolve,0));deadline=performance.now()+8;}
+      }
       this.layers.push(layer);this.items.push(...items);
     }
-    this.refreshStyles();
+    this.refreshStyles();this.initialized=true;
   }
   refreshStyles(){
     this.cached=null;

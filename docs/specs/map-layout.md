@@ -107,6 +107,17 @@ settled result. `setLayer(layer, visible)` and `select(featureId)` coordinate
 layer visibility and directory selection. `getReport()` returns current status,
 view, outcomes, placements, missing required content, and timing samples.
 
+Interactive startup measures annotations on the main thread and sends plain geometry
+and fallback-candidate inputs to an embedded worker for the initial solve. While
+that solve and contour preparation are pending, camera/layer input can update the
+map with annotations hidden. A result is committed only if the camera, viewport,
+controls and loaded font identities/status still match; otherwise it is recomputed.
+`ready` resolves after a current initial placement and preview preparation complete.
+Worker construction/execution failure falls back to the same numerical solver;
+that fallback preserves labels but does not promise the worker's responsiveness.
+The initial worker is terminated after startup. Later settled passes and static
+finalization retain their synchronous placement behavior.
+
 Camera changes and accepted annotation visibility are committed together before
 paint. Interaction can temporarily hide optional detail while preserving a safe
 frame; settled layout restores feasible content. Controller diagnostics are
@@ -162,9 +173,9 @@ The camera sets the line-scale variable `--s` to `1 / zoom`. Trails, contours,
 waterway centerlines, roads, trail dash patterns and hit targets retain their overview
 screen dimensions at a fixed viewport size. Protected trail queries use the
 same inverse-zoom factor; cached base widths are recovered by multiplying the
-current SVG stroke width by zoom. Static line styling is unchanged. The cached
-relief preview remains a temporary raster during motion. Contour paths are
-parsed once and redrawn on a bounded canvas at the current camera scale, stroke
+current SVG stroke width by zoom. Static line styling is unchanged. Embedded raster relief images remain in the live SVG without startup re-encoding.
+Other background content retains the bounded temporary raster preview. Contour paths are
+prepared in yielding batches, parsed once and redrawn on a bounded canvas at the current camera scale, stroke
 width, theme, and detail level. Generated polylines retain every vertex; cached
 section bounds exclude offscreen segments, and contiguous sections are merged
 before stroking to preserve joins and opacity. A 64 CSS-pixel overscan margin
@@ -176,5 +187,9 @@ The original contour SVG is restored for settled views. Roads, waterways,
 water-area polygons and trails remain live SVG throughout gestures. Relief and
 contour preview pixel buffers share the 24MiB budget. Unsupported transformed
 or annotated contour groups stay live instead of being rasterized.
+Paths referenced by visible elevation text remain connected in temporary,
+non-painted SVG definitions during motion. The preview moves the original nodes
+and restores their original positions at settlement; it does not duplicate their
+geometry or invalidate the textPath references.
 Filled river-bank polygons retain geographic dimensions and
 widen naturally with zoom; their width is not controlled by `--s`.

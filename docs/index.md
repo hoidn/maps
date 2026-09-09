@@ -38,6 +38,7 @@ references relevant to the task; this index links to authority without duplicati
 |---|---|
 | [Automatic layout design](plans/2026-09-08-automatic-map-layout-design.md) | Design being implemented under the current authorized task; maintained interfaces live in the layout contract |
 | [Automatic layout implementation plan](plans/2026-09-08-automatic-map-layout-plan.md) | Authorized implementation active; release validation pending, not a completion record |
+| [Startup responsiveness](plans/2026-09-08-startup-responsiveness.md) | Startup implementation and measured early-input results; focused validation does not authorize output promotion |
 | [Automation roadmap](AUTOMATION.md) | Current automation inventory plus proposals; implemented interfaces live in the layout contract |
 | [High-resolution path](HIGH_RES.md) | Proposal with a dated catalogue snapshot; lidar processing/delivery is not implemented |
 | [Agent documentation plan](plans/2026-09-08-agent-documentation.md) | Documentation task and verification record; not a map feature or a reusable workflow requirement |

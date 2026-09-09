@@ -37,6 +37,7 @@ function check(r, obstacles, extra = {}) {
     owner: "feature",
     anchor: { x: 50, y: 50 },
     anchorTrailRadius: annotation.anchorTrailRadius,
+    anchorTrailFootprint: annotation.anchorTrailFootprint,
     polygons: [poly(r)],
   };
   const data = {
@@ -169,4 +170,11 @@ test("production quadratic and independent chord clipping retain the same exact 
           ) < 1e-8,
         );
   }
+});
+
+test("anchored full-size campground marker can cover its access trail", () =>
+  assert.equal(check(rect(42,43,16,13),[obstacle([0,50],[100,50])],{anchorTrailFootprint:true}),true));
+test("footprint permission does not follow a displaced marker or apply to text", () => {
+  assert.equal(check(rect(68,43,16,13),[obstacle([0,50],[100,50])],{anchorTrailFootprint:true}),false);
+  assert.equal(check(rect(42,43,16,13),[obstacle([0,50],[100,50])],{anchorTrailFootprint:true,kind:'point-label'}),false);
 });

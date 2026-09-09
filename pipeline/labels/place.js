@@ -12,13 +12,15 @@ const center=s=>[s.bounds.x+s.bounds.width/2,s.bounds.y+s.bounds.height/2];
  * Opt-in exhaustiveDiagnostics:false with repairMaxNeighbors:0 reports blockers
  * observed at placement time. Accepted placements only grow in that mode, so those
  * blocker IDs remain valid but can omit later blockers. All other modes report final blockers.
+ * Optional fallbackCandidates() iterables are evaluated only after ordinary candidates fail.
+ * A true-anchor symbol footprint may cover a trail; displaced candidates retain strict checks.
  * A symbol with anchorTrailRadius=6 permits only trail centerline portions inside
  * its true-anchor disk. Explicit allowedObstacleIds never exempt protected trails. */
 export function solveLayout({annotations,obstacles=[],viewport,previous,policy={},queryObstacles}) {
   const placementDiagnostics=policy.exhaustiveDiagnostics===false&&policy.repairMaxNeighbors===0,attemptFailures=new Map();
   const clearance=policy.clearance??2,padding=policy.edgePadding??4;
   const frame={x:viewport.x??0,y:viewport.y??0,width:viewport.width,height:viewport.height};validRect(frame);
-  const ordered=[...annotations].sort((a,b)=>Number(!!b.required)-Number(!!a.required)||(b.priority??0)-(a.priority??0)||stable(a.id,b.id));
+  const ordered=annotations.map(a=>({...a,candidates:[...(a.candidates??[])]})).sort((a,b)=>Number(!!b.required)-Number(!!a.required)||(b.priority??0)-(a.priority??0)||stable(a.id,b.id));
   const byId=new Map(ordered.map(a=>[a.id,a]));if(byId.size!==ordered.length)throw new Error('Duplicate annotation ID');
   const featureGroups=new Map(),repeatDistances=new Map();
   for(const a of ordered){const distance=a.repeatDistance??0;repeatDistances.set(a.id,distance);if(!a.featureId)continue;let group=featureGroups.get(a.featureId);if(!group){group={ids:[],maximum:0};featureGroups.set(a.featureId,group);}group.ids.push(a.id);group.maximum=Math.max(group.maximum,distance);}
@@ -42,6 +44,9 @@ export function solveLayout({annotations,obstacles=[],viewport,previous,policy={
     if(queryObstacles)nearby.push(...queryObstacles(query));
     for(const o of nearby) {
       if(allowed.has(o.id)&&o.kind!=='trail')continue;
+      // A geographic marker is painted over the trail at its true location.
+      // This permission is confined to its footprint and cannot move with a facility.
+      if(o.kind==='trail'&&a.kind==='symbol'&&a.anchorTrailFootprint&&contains(c.shape.bounds,{x:a.anchor[0],y:a.anchor[1],width:0,height:0}))continue;
       const lines=o.line&&(o.kind==='trail'&&a.kind==='symbol'&&a.anchorTrailRadius===6?lineOutsideCircle(o.line,a.anchor,6):[o.line]);
       if(lines?lines.some(line=>c.shape.parts.some(r=>lineHitsRect(line,r,clearance))):shapeIntersects(c.shape,o.shape,clearance))hard.push(o.id);
       if(placementDiagnostics&&hard.length)break;
@@ -68,6 +73,10 @@ export function solveLayout({annotations,obstacles=[],viewport,previous,policy={
     accepted.clear();for(const [id,v] of snapshot)accepted.set(id,v);rebuild();return false;
   }
   function place(a){if(a.eligibleReason||accepted.has(a.id))return;const recorded=[];if(placementDiagnostics)attemptFailures.set(a.id,recorded);for(const c of candidates(a)){const b=blockers(a,c);if(placementDiagnostics)recorded.push(b);if(!b.hard.length&&!b.labels.length&&!b.repeat.length){accept(a,c);break;}}
+    if(!accepted.has(a.id)&&a.fallbackCandidates){
+      const extra=a.fallbackCandidates();a.fallbackCandidates=null;
+      for(const c of extra){a.candidates.push(c);const b=blockers(a,c);if(placementDiagnostics)recorded.push(b);if(!b.hard.length&&!b.labels.length&&!b.repeat.length){accept(a,c);break;}}
+    }
     if(!accepted.has(a.id)&&(policy.repairMaxNeighbors??2)>0)for(const c of candidates(a)){const b=blockers(a,c);if(b.labels.length&&repair(a,c,b))break;}
   }
   // Reserve just one successfully placed representative of each required group.

@@ -66,12 +66,24 @@ Required content takes precedence over optional detail. Hiding every eligible
 place name is not a successful interactive layout; release scenes require their
 reviewed content coverage as well as geometric validity.
 
-Protected trail strokes remain obstacles. The narrow symbol relationship is
-`kind: 'symbol'`, a true anchor in CSS pixels, and `anchorTrailRadius: 6`.
-Only trail centerline portions inside that anchor disk are exempt; portions
-outside retain their normal stroke and clearance. This does not exempt labels,
-a displaced facility away from its anchor, or an entire crossing trail segment.
-Generic allowed-obstacle IDs do not waive protected trails.
+Protected trail strokes remain obstacles for text and displaced facilities. An
+anchored symbol can cover a trail within its own measured footprint when that
+footprint contains its true geographic anchor (`anchorTrailFootprint: true`).
+This deliberate cartographic precedence keeps a campground or trailhead marker
+visible on its access trail; it does not authorize text overlap, movement of the
+feature, or overlap with another symbol. The independent DOM audit applies the
+same rule using its own measured polygon bounds. The older 6px anchor-disk
+exception remains available for displaced facility candidates; only trail
+centerline portions inside that disk are exempt. Generic allowed-obstacle IDs
+do not waive protected trails.
+
+Place names try their usual positions first. If none fits, the solver lazily
+requests a denser set of placements (2px grid interactively) within the same
+32px distance limit, including declared two- and three-line word-preserving
+wraps. Every fallback undergoes the same collision and frame checks. Point
+names and symbols are not dropped because the curved-label candidate budget
+expires. Truly crowded or frame-edge content may still be omitted; these rules
+do not guarantee every name can fit every possible view.
 
 ## Interactive controller
 
@@ -133,9 +145,10 @@ release validation remains pending.
 ## Interactive line widths
 
 The camera sets the line-scale variable `--s` to `1 / zoom`. Trails, contours,
-waterways, roads, trail dash patterns and hit targets retain their overview
+waterway centerlines, roads, trail dash patterns and hit targets retain their overview
 screen dimensions at a fixed viewport size. Protected trail queries use the
 same inverse-zoom factor; cached base widths are recovered by multiplying the
 current SVG stroke width by zoom. Static line styling is unchanged. The cached
 background preview remains a temporary raster during motion; settled views use
-the original SVG.
+the original SVG. Filled river-bank polygons retain geographic dimensions and
+widen naturally with zoom; their width is not controlled by `--s`.

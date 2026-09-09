@@ -191,7 +191,7 @@ export class LayoutController {
     const previous=new Map((this.previous?.placements||[]).map(p=>[p.id,p]));
     return this.manifest.annotations.map(a=>{
       const anchor=project(m,a.anchor),item={...a,anchor,candidates:[],required:false};
-      if(a.kind==='symbol')item.anchorTrailRadius=6;
+      if(a.kind==='symbol'){item.anchorTrailRadius=6;item.anchorTrailFootprint=true;}
       item.eligibleReason=this.eligible(a,anchor,viewport,z);if(item.eligibleReason)return item;
       const old=previous.get(a.id),retained=this.retained?.get(a.id);
       if(!old||!retained){item.eligibleReason='budget-deferred';return item;}
@@ -258,10 +258,10 @@ export class LayoutController {
         const ordered=[...this.manifest.annotations].sort((a,b)=>(b.priority??0)-(a.priority??0)||a.id.localeCompare(b.id));
         for(const a of ordered){
           const e=this.elements.get(a.id),anchor=project(m,a.anchor),item={...a,anchor,candidates:[],required:this.mode==='static'&&a.requiredProfiles.includes('static-default')};
-          if(a.kind==='symbol')item.anchorTrailRadius=6;
+          if(a.kind==='symbol'){item.anchorTrailRadius=6;item.anchorTrailFootprint=true;}
           item.eligibleReason=this.eligible(a,anchor,viewport,z);
           if(item.eligibleReason){prepared.push(item);continue;}
-          if(performance.now()>=candidateDeadline&&!this.cache.entries.has(a.id)&&!this.lineCache.has(a.id)){item.eligibleReason='budget-deferred';prepared.push(item);continue;}
+          if(a.kind==='line-label'&&performance.now()>=candidateDeadline&&!this.cache.entries.has(a.id)&&!this.lineCache.has(a.id)){item.eligibleReason='budget-deferred';prepared.push(item);continue;}
           try {
             const line=a.kind==='line-label'&&(a.geometryId||a.geometryIds?.length);
             if(line){
@@ -286,6 +286,11 @@ export class LayoutController {
                 if(a.kind==='symbol'&&facilityCounts.get(a.featureId)>1)item.facilityOffsets=[[16,0],[-16,0],[0,16],[0,-16],[12,12],[-12,12],[12,-12],[-12,-12]];
                 const policy={...this.policy,densePointCandidates:item.required};item.candidates=pointCandidates(item,metric,policy);
                 for(const v of cached.pointVariants||[])item.candidates.push(...pointCandidates(item,moveShape(v.shape,dx,dy),policy).map(c=>({...c,id:v.id+'-'+c.id,textHTML:v.textHTML})));
+                if(a.kind==='point-label'&&!policy.densePointCandidates)item.fallbackCandidates=function*(){
+                  const dense={...policy,densePointCandidates:true,densePointStep:2};
+                  yield* pointCandidates(item,metric,dense).filter(c=>c.id.startsWith('grid-'));
+                  for(const v of cached.pointVariants||[])yield* pointCandidates(item,moveShape(v.shape,dx,dy),dense).filter(c=>c.id.startsWith('grid-')).map(c=>({...c,id:v.id+'-'+c.id,textHTML:v.textHTML}));
+                };
               }
             }
           }catch(error){item.eligibleReason=error.message.includes('overflow')?'no-valid-candidate':'invalid-metrics';item.metricError=error.message;}

@@ -19,3 +19,6 @@ pipeline/labels/dist/
 pipeline/grand_canyon_trails*.html
 
 .browser-cache/
+
+water.json
+water.json.tmp

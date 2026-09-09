@@ -150,6 +150,7 @@ export function collectManagedInventory() {
         geometryId: a.geometryId,
         anchor,
         anchorTrailRadius: a.kind === "symbol" ? 6 : undefined,
+        anchorTrailFootprint: a.kind === "symbol",
         polygons: shapes,
         clip: viewport,
       });
@@ -412,6 +413,9 @@ export function checkManagedInventory(data, policy = {}) {
       if (collide(a, data.inventory[j]))
         overlaps.push({ ids: [a.id, data.inventory[j].id] });
     for (const b of data.obstacles) {
+      const ab = boundCache.get(a);
+      if (a.kind === "symbol" && a.anchorTrailFootprint && b.kind === "trail" &&
+          a.anchor.x >= ab.left && a.anchor.x <= ab.right && a.anchor.y >= ab.top && a.anchor.y <= ab.bottom) continue;
       if (
         a.kind === "symbol" &&
         a.anchorTrailRadius === 6 &&

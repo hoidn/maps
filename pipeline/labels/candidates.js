@@ -23,7 +23,8 @@ export function pointCandidates(annotation,metric,policy={}) {
   }
   if(policy.densePointCandidates){
     const radius=Math.min(32,policy.maxPointDisplacement??32);
-    for(let dx=-radius;dx<=radius;dx+=4)for(let dy=-radius;dy<=radius;dy+=4){
+    const step=Math.max(1,policy.densePointStep??4);
+    for(let dx=-radius;dx<=radius;dx+=step)for(let dy=-radius;dy<=radius;dy+=step){
       const d=Math.hypot(dx,dy);if(d>radius||d<gap)continue;
       result.push(shifted(metric,`grid-${dx}-${dy}`,ax+dx-(dx<0?w:dx===0?w/2:0),ay+dy-(dy<0?h:dy===0?h/2:0)));
     }

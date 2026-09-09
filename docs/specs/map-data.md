@@ -65,6 +65,7 @@ build entry points establish it before invoking those stages.
 | Producer | Artifact | Consumer or destination |
 |---|---|---|
 | `fetch_osm.py`, `fetch_osm2.py` | `osm.json`, `osm2.json` | `osmdata.py` and both builders |
+| `fetch_water.py` | `water.json` | Shared `water_areas.py` adapter and both builders |
 | `fetch_dem.py` | `dem.tif`, `dem.npy` | Static processor/builder; `osmdata.py` diagnostic reads `dem.npy` |
 | `fetch_dem_hi.py` | `dem_hi.tif`, `dem_hi.npy` | Interactive processor/builder |
 | `process_dem.py` | `terrain.json`, light/dark JPEGs | `build_static.py` reads the JSON |
@@ -183,3 +184,24 @@ verified promotion now exist, but they do not close these geographic-data gaps.
 Those gaps need scoped implementation work, not stronger claims in documentation.
 The [map layout contract](map-layout.md) defines the separate rendering interfaces;
 release validation of the generated pair remains pending.
+
+## River water areas
+
+`fetch_water.py` fetches OSM river-area ways and multipolygons into a separate
+`water.json` cache, preserving existing trails and terrain when only banks need
+refreshing. It uses `natural=water` + `water=river`, with legacy
+`waterway=riverbank` support. See the [OSM river-area definition](https://wiki.openstreetmap.org/wiki/Tag:water%3Driver).
+The explicit full build fetches this cache; cached builds never fetch it. Older
+cache sets remain usable with an announced centerline-only fallback. To add
+banks to such a checkout, run `../.venv/bin/python fetch_water.py` from `pipeline/`
+then `npm run build:maps` from the repository root.
+
+The shared adapter assembles member rings by node identity, handles reversed
+fragments and inner islands, unions adjacent polygons, clips to the map frame,
+and simplifies at 0.025 map units with topology preservation. Missing members,
+unclosed rings and invalid polygons are errors, rather than invented banks.
+Both builders paint opaque filled SVG water areas above terrain/contours and
+below trails. Centerline strokes remain only outside mapped area coverage;
+islands do not trigger a centerline fallback. These are mapped bank extents,
+not a live water-level measurement. The 2026-09-08 cache contains OSM relations
+253640 and 382232, tagged as originating from NHD; source angularity remains.

@@ -71,7 +71,7 @@ class Manifest:
             words=text.split();mid=min(range(1,len(words)),key=lambda i:abs(len(' '.join(words[:i]))-len(' '.join(words[i:]))))
             splits=[mid]+[i for i in range(1,len(words)) if i!=mid]
             record['variants']=[dict(lines=[' '.join(words[:i]),' '.join(words[i:])]) for i in splits]
-            if text in REQUIRED or text in REQUIRED_ROUTES:
+            if kind=='point-label' or text in REQUIRED or text in REQUIRED_ROUTES:
                 record['variants'] += [dict(lines=[' '.join(words[:i]),' '.join(words[i:j]),' '.join(words[j:])]) for i in range(1,len(words)-1) for j in range(i+1,len(words))]
         return self._wrap(raw, record)
 

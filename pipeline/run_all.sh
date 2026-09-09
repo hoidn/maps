@@ -8,6 +8,7 @@ map_python="${MAP_PYTHON:-python3}"
 cd "$pipeline_dir"
 "$map_python" fetch_osm.py
 "$map_python" fetch_osm2.py
+"$map_python" fetch_water.py
 "$map_python" fetch_dem.py
 "$map_python" process_dem.py
 "$map_python" fetch_dem_hi.py

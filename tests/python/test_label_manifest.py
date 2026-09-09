@@ -24,6 +24,14 @@ class ManifestTests(unittest.TestCase):
         self.assertNotIn('</script>', m.json())
         self.assertIn('static-default',m.data()['annotations'][1]['requiredProfiles'])
         json.loads(m.json())
+    def test_all_place_names_offer_word_preserving_three_line_wraps(self):
+        m=Manifest()
+        for name in ['Horseshoe Mesa CG', 'Example Remote Camp']:
+            m.label('<text>'+name+'</text>',name,'l-place',(10,len(m.annotations)*20))
+        for a in m.annotations:
+            self.assertTrue(any(len(v['lines'])==3 for v in a['variants']))
+            self.assertTrue(all(' '.join(v['lines'])==a['text'] for v in a['variants']))
+
     def test_nonfinite_anchor_rejected(self):
         with self.assertRaises(ValueError):
             Manifest().label('<text>A</text>','A','l-place',(float('nan'),0))

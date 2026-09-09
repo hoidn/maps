@@ -5,6 +5,7 @@ import json, math, html, numpy as np
 from skimage.measure import approximate_polygon
 from label_manifest import Manifest, embedded_fonts, layout_script
 M = Manifest("static")
+from water_areas import WaterAreas
 import osmdata as o
 from osmdata import P, hav, length, LAT0, LAT1, LON0, LON1, W, H
 
@@ -186,7 +187,9 @@ for name, hw, coords in o.roads:
             roads_fill.append(f'<path class="road-fill {cls}" d="{d}"/>')
 
 # hydrography
-hydro, hydro_defs, hydro_labels = [], [], []
+water_areas = WaterAreas.from_cache("water.json", P, (0, 0, W, H))
+hydro = [f'<path class="river-area" fill-rule="evenodd" d="{d}"/>' for d in water_areas.paths()]
+hydro_defs, hydro_labels = [], []
 def run_length(run): return sum(math.hypot(run[i+1][0]-run[i][0], run[i+1][1]-run[i][1]) for i in range(len(run)-1))
 def oriented(run):
     dx = run[-1][0] - run[0][0]; dy = run[-1][1] - run[0][1]
@@ -202,7 +205,8 @@ for name, chains in o.streams.items():
     for c in chains:
         for run in clip_runs(c):
             if len(run) < 2: continue
-            hydro.append(f'<path class="{cls}" d="{d_of(run, 0.3 if is_river else 0.4)}"/>')
+            for water_run in (water_areas.uncovered_runs(run) if is_river else [run]):
+                hydro.append(f'<path class="{cls}" d="{d_of(water_run, 0.3 if is_river else 0.4)}"/>')
             rl = run_length(run)
             if rl > bestlen: bestlen, best = rl, run
     if best is None: continue
@@ -585,6 +589,7 @@ figure{margin:0}
 .ci{fill:none;stroke:var(--contour);stroke-width:.55;opacity:var(--c-op);stroke-linejoin:round}
 .cx{fill:none;stroke:var(--contour-idx);stroke-width:1;opacity:var(--cx-op);stroke-linejoin:round}
 .l-contour{font-size:8px;fill:var(--contour-lbl);font-weight:600;letter-spacing:.03em;stroke-width:2px}
+.river-area{fill:var(--river);stroke:none}
 .river{fill:none;stroke:var(--river);stroke-width:4.2;stroke-linejoin:round;stroke-linecap:round}
 .creek{fill:none;stroke:var(--creek);stroke-width:.9;stroke-linejoin:round;stroke-linecap:round;opacity:.9}
 .creek-major{stroke-width:1.7}

@@ -221,3 +221,40 @@ test("managed audit reserves visible legacy popup extents", async ({
     "popup",
   ]);
 });
+test("rotated straight labels are independently measured character by character", async ({
+  page,
+}) => {
+  const { collectManagedInventory } = await import(
+    "../support/managed-map-adapter.js"
+  );
+  await page.setContent(html());
+  await page
+    .locator("#label-a text")
+    .evaluate((e) => e.setAttribute("transform", "rotate(30 50 60)"));
+  const item = (await page.evaluate(collectManagedInventory)).inventory[0];
+  expect(item.polygons.length).toBe("Camp A".length);
+});
+test("independent trail inventory preserves authored polyline bends before anchor clipping", async ({
+  page,
+}) => {
+  const { collectManagedInventory } = await import(
+    "../support/managed-map-adapter.js"
+  );
+  await page.setContent(html());
+  await page
+    .locator("#mapsvg")
+    .evaluate((svg) =>
+      svg.insertAdjacentHTML(
+        "beforeend",
+        '<path id="bend" data-layout-obstacle="trail" d="M70 100 L100 101 L130 100" stroke="black" stroke-width="1"/>',
+      ),
+    );
+  const segments = (
+    await page.evaluate(collectManagedInventory)
+  ).obstacles.filter((o) => o.kind === "trail");
+  expect(
+    segments.some((o) =>
+      [o.segment.a, o.segment.b].some((p) => p.x === 100 && p.y === 101),
+    ),
+  ).toBe(true);
+});

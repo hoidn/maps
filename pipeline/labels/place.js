@@ -1,4 +1,4 @@
-import {contains,expand,shapeIntersects,lineHitsRect,validRect} from './geometry.js';
+import {contains,expand,shapeIntersects,lineHitsRect,lineOutsideCircle,validRect} from './geometry.js';
 import {SpatialIndex} from './spatial-index.js';
 const stable=(a,b)=>a<b?-1:a>b?1:0;
 const validShape=s=>{try{return Array.isArray(s?.parts)&&s.parts.length>0&&s.parts.every(r=>contains(validRect(s.bounds),validRect(r)));}catch{return false;}};
@@ -8,7 +8,8 @@ const center=s=>[s.bounds.x+s.bounds.width/2,s.bounds.y+s.bounds.height/2];
  * Every accepted candidate is checked, including during bounded transactional repair.
  * Optional queryObstacles(expandedBounds) is a deterministic provider of additional
  * CSS-space obstacles; it must conservatively return every nearby painted segment.
- * Explicit allowedObstacleIds are the only exemptions for anchor/line relationships. */
+ * A symbol with anchorTrailRadius=6 permits only trail centerline portions inside
+ * its true-anchor disk. Explicit allowedObstacleIds never exempt protected trails. */
 export function solveLayout({annotations,obstacles=[],viewport,previous,policy={},queryObstacles}) {
   const clearance=policy.clearance??2,padding=policy.edgePadding??4;
   const frame={x:viewport.x??0,y:viewport.y??0,width:viewport.width,height:viewport.height};validRect(frame);
@@ -29,8 +30,9 @@ export function solveLayout({annotations,obstacles=[],viewport,previous,policy={
     const nearby=obstacleIndex.query(query).map(key=>obstacleMap.get(key));
     if(queryObstacles)nearby.push(...queryObstacles(query));
     for(const o of nearby) {
-      if(allowed.has(o.id))continue;
-      if(o.line?c.shape.parts.some(r=>lineHitsRect(o.line,r,clearance)):shapeIntersects(c.shape,o.shape,clearance))hard.push(o.id);
+      if(allowed.has(o.id)&&o.kind!=='trail')continue;
+      const lines=o.line&&(o.kind==='trail'&&a.kind==='symbol'&&a.anchorTrailRadius===6?lineOutsideCircle(o.line,a.anchor,6):[o.line]);
+      if(lines?lines.some(line=>c.shape.parts.some(r=>lineHitsRect(line,r,clearance))):shapeIntersects(c.shape,o.shape,clearance))hard.push(o.id);
     }
     for(const id of placedIndex.query(expand(c.shape.bounds,clearance))){if(id===a.id)continue;const other=accepted.get(id);if(other&&shapeIntersects(c.shape,other.shape,clearance))labels.push(id);}
     // Repeat distance is a feature-level constraint, not a rectangle approximation.

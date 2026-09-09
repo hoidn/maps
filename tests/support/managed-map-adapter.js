@@ -64,7 +64,9 @@ export function collectManagedInventory() {
             : (parseFloat(style.strokeWidth) || 0) / 2;
       if (
         child.tagName.toLowerCase() === "text" &&
-        child.querySelector("textPath")
+        (child.querySelector("textPath") ||
+          Math.abs(m.b) > 1e-8 ||
+          Math.abs(m.c) > 1e-8)
       ) {
         for (let i = 0; i < child.getNumberOfChars(); i++)
           result.push(quad(child.getExtentOfChar(i), m, pad));
@@ -113,6 +115,7 @@ export function collectManagedInventory() {
         owner: a.featureId,
         geometryId: a.geometryId,
         anchor,
+        anchorTrailRadius: a.kind === "symbol" ? 6 : undefined,
         polygons: shapes,
         clip: viewport,
       });
@@ -171,9 +174,51 @@ export function collectManagedInventory() {
         (s.vectorEffect === "non-scaling-stroke" ? 1 : scale),
       length = e.getTotalLength(),
       steps = Math.max(1, Math.ceil((length * scale) / 3));
-    let a = project(m, e.getPointAtLength(0));
-    for (let i = 1; i <= steps; i++) {
-      const b = project(m, e.getPointAtLength((length * i) / steps)),
+    // Preserve exact authored M/L vertices (including separate subpaths). Uniform
+    // sampling across a corner would invent a chord through an anchor disk.
+    const tokens =
+      (e.getAttribute("d") || "").match(
+        /[a-zA-Z]|[-+]?(?:\d*\.\d+|\d+\.?\d*)(?:[eE][-+]?\d+)?/g,
+      ) || [];
+    let pairs = [],
+      command = null,
+      previous = { x: 0, y: 0 },
+      valid = tokens.length > 0;
+    for (let index = 0; index < tokens.length && valid; ) {
+      if (/^[a-zA-Z]$/.test(tokens[index])) command = tokens[index++];
+      if (
+        !["M", "m", "L", "l"].includes(command) ||
+        index + 1 >= tokens.length
+      ) {
+        valid = false;
+        break;
+      }
+      const x = Number(tokens[index++]),
+        y = Number(tokens[index++]);
+      if (!Number.isFinite(x + y)) {
+        valid = false;
+        break;
+      }
+      const next = {
+        x: x + (command === command.toLowerCase() ? previous.x : 0),
+        y: y + (command === command.toLowerCase() ? previous.y : 0),
+      };
+      if (command === "L" || command === "l")
+        pairs.push([project(m, previous), project(m, next)]);
+      previous = next;
+      command = command === "M" ? "L" : command === "m" ? "l" : command;
+    }
+    if (!valid) {
+      pairs = [];
+      let previous = project(m, e.getPointAtLength(0));
+      for (let i = 1; i <= steps; i++) {
+        const next = project(m, e.getPointAtLength((length * i) / steps));
+        pairs.push([previous, next]);
+        previous = next;
+      }
+    }
+    for (let i = 0; i < pairs.length; i++) {
+      const [a, b] = pairs[i],
         dx = b.x - a.x,
         dy = b.y - a.y,
         len = Math.hypot(dx, dy),
@@ -203,7 +248,6 @@ export function collectManagedInventory() {
             polygons: [poly],
           });
       }
-      a = b;
     }
   }
   return {
@@ -334,17 +378,46 @@ export function checkManagedInventory(data, policy = {}) {
       if (collide(a, data.inventory[j]))
         overlaps.push({ ids: [a.id, data.inventory[j].id] });
     for (const b of data.obstacles) {
-      // Only segments wholly inside the symbol's declared six-pixel anchor area
-      // are permitted; sharing a feature or trail ID is not a blanket exemption.
       if (
         a.kind === "symbol" &&
+        a.anchorTrailRadius === 6 &&
         b.kind === "trail" &&
-        [b.segment.a, b.segment.b].every(
-          (p) => Math.hypot(p.x - a.anchor.x, p.y - a.anchor.y) <= 6,
+        b.segment
+      ) {
+        const aa = boundCache.get(a),
+          bb = boundCache.get(b),
+          gap = clearance + (b.segment.width || 0) / 2;
+        if (
+          !rectanglesOverlap(
+            {
+              left: aa.left - gap,
+              top: aa.top - gap,
+              right: aa.right + gap,
+              bottom: aa.bottom + gap,
+            },
+            bb,
+          )
         )
-      )
-        continue;
-      if (collide(a, b))
+          continue;
+        const outside = referenceOutsideAnchor(b.segment, a.anchor, 6);
+        const ac = a.clip || v,
+          bc = b.clip || v,
+          clip = {
+            left: Math.max(ac.left, bc.left),
+            top: Math.max(ac.top, bc.top),
+            right: Math.min(ac.right, bc.right),
+            bottom: Math.min(ac.bottom, bc.bottom),
+          };
+        const parts = a.polygons
+          .map((p) => clipPolygon(p, clip))
+          .filter((p) => p.length >= 3);
+        if (
+          outside.some((segment) =>
+            parts.some((p) => referenceLineNearPolygon(segment, p, clearance)),
+          )
+        )
+          overlaps.push({ ids: [a.id, b.id], obstacleKind: b.kind });
+      } else if (collide(a, b))
         overlaps.push({ ids: [a.id, b.id], obstacleKind: b.kind });
     }
   }
@@ -368,4 +441,63 @@ export function checkManagedInventory(data, policy = {}) {
   )
     missingRequired.push("interactive-visible-point-name");
   return { overlaps, clipped, missingRequired, unknown, unresolved: unknown };
+}
+
+// Independent reference construction: project the circle center onto the unit
+// segment and subtract its chord interval. No production clipping code is used.
+export function referenceOutsideAnchor(segment, center, radius) {
+  const { a, b } = segment,
+    dx = b.x - a.x,
+    dy = b.y - a.y,
+    length = Math.hypot(dx, dy);
+  if (!length)
+    return Math.hypot(a.x - center.x, a.y - center.y) < radius ? [] : [segment];
+  const ux = dx / length,
+    uy = dy / length,
+    along = (center.x - a.x) * ux + (center.y - a.y) * uy;
+  const normal = (center.x - a.x) * uy - (center.y - a.y) * ux,
+    squared = radius * radius - normal * normal;
+  if (squared <= 0) return [segment];
+  const halfChord = Math.sqrt(squared),
+    entry = Math.max(0, along - halfChord),
+    exit = Math.min(length, along + halfChord);
+  if (exit <= entry) return [segment];
+  const point = (s) => ({ x: a.x + ux * s, y: a.y + uy * s }),
+    result = [];
+  if (entry > 0) result.push({ ...segment, b: point(entry) });
+  if (exit < length) result.push({ ...segment, a: point(exit) });
+  return result;
+}
+function referenceLineNearPolygon(segment, polygon, clearance) {
+  const a = segment.a,
+    b = segment.b,
+    limit = (segment.width || 0) / 2 + clearance;
+  const cross = (u, v, w) =>
+    (v.x - u.x) * (w.y - u.y) - (v.y - u.y) * (w.x - u.x);
+  const inside = (p) => {
+    const sides = polygon.map((v, i) =>
+      cross(v, polygon[(i + 1) % polygon.length], p),
+    );
+    return sides.every((v) => v >= 0) || sides.every((v) => v <= 0);
+  };
+  if (inside(a) || inside(b)) return true;
+  for (let i = 0; i < polygon.length; i++) {
+    const p = polygon[i],
+      q = polygon[(i + 1) % polygon.length];
+    if (
+      cross(a, b, p) * cross(a, b, q) < 0 &&
+      cross(p, q, a) * cross(p, q, b) < 0
+    )
+      return true;
+    if (
+      Math.min(
+        pointSegmentDistance(a, p, q),
+        pointSegmentDistance(b, p, q),
+        pointSegmentDistance(p, a, b),
+        pointSegmentDistance(q, a, b),
+      ) <= limit
+    )
+      return true;
+  }
+  return false;
 }

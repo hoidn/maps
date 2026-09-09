@@ -29,3 +29,21 @@ export function lineHitsRect(line,rect,gap=0) {
   }
   return true;
 }
+
+/** Exact centerline portions outside a CSS-space disk, preserving stroke width.
+ * This does not exempt a whole segment merely because it crosses the anchor. */
+export function lineOutsideCircle(line,anchor,radius) {
+  const [cx,cy]=anchor;
+  if(![cx,cy,radius,line.a.x,line.a.y,line.b.x,line.b.y].every(Number.isFinite)||radius<0)throw new Error('Invalid anchor circle');
+  const dx=line.b.x-line.a.x,dy=line.b.y-line.a.y,fx=line.a.x-cx,fy=line.a.y-cy;
+  const aa=dx*dx+dy*dy,bb=2*(fx*dx+fy*dy),cc=fx*fx+fy*fy-radius*radius;
+  if(!aa)return cc<0?[]:[line];
+  const discriminant=bb*bb-4*aa*cc;
+  if(discriminant<=0)return [line]; // Tangency removes no interval.
+  const root=Math.sqrt(discriminant),enter=Math.max(0,(-bb-root)/(2*aa)),leave=Math.min(1,(-bb+root)/(2*aa));
+  if(enter>=leave)return [line];
+  const at=t=>({x:line.a.x+dx*t,y:line.a.y+dy*t}),parts=[];
+  if(enter>0)parts.push({...line,b:at(enter)});
+  if(leave<1)parts.push({...line,a:at(leave)});
+  return parts;
+}

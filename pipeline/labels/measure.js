@@ -1,3 +1,4 @@
+const advanceCache = new Map();
 /** Conservative painted footprints in CSS screen pixels, including SVG ancestors. */
 export function measureElement(element, padding=0) {
   if(!element) throw new Error('Missing annotation element');
@@ -13,9 +14,31 @@ export function measureElement(element, padding=0) {
     const matrix=text.getScreenCTM(), style=getComputedStyle(text);
     const halo=style.stroke==='none'?0:parseFloat(style.strokeWidth)*Math.max(Math.hypot(matrix.a,matrix.b),Math.hypot(matrix.c,matrix.d))/2;
     if(text.querySelector('textPath')) {
+      const textPath=text.querySelector('textPath');
+      const path=document.getElementById((textPath.getAttribute('href')||'').slice(1));
+      if(!path) throw new Error('Missing text path');
+      const length=path.getTotalLength(), raw=textPath.getAttribute('startOffset')||'0';
+      const offset=raw.endsWith('%')?parseFloat(raw)*length/100:parseFloat(raw);
+      const pathStyle=getComputedStyle(textPath), anchor=pathStyle.textAnchor;
+      const fontKey=[textPath.textContent,pathStyle.fontFamily,pathStyle.fontSize,pathStyle.fontWeight,pathStyle.fontStyle,pathStyle.letterSpacing,text.getAttribute('textLength'),text.getAttribute('lengthAdjust')].join('|');
+      // Firefox/WebKit can report only the portion that fit on the path. Measure
+      // an unconstrained copy so clipped characters cannot disappear from the test.
+      if(!advanceCache.has(fontKey)) {
+        const plain=document.createElementNS('http://www.w3.org/2000/svg','text');
+        for(const property of ['fontFamily','fontSize','fontWeight','fontStyle','letterSpacing'])plain.style[property]=pathStyle[property];
+        plain.style.visibility='hidden';plain.textContent=textPath.textContent;
+        for(const attribute of ['textLength','lengthAdjust'])if(text.hasAttribute(attribute))plain.setAttribute(attribute,text.getAttribute(attribute));
+        text.ownerSVGElement.append(plain);
+        try {advanceCache.set(fontKey,plain.getComputedTextLength());} finally {plain.remove();}
+      }
+      const advance=advanceCache.get(fontKey);
+      const start=offset-(anchor==='middle'?advance/2:anchor==='end'?advance:0);
+      if(start < -1e-4 || start+advance > length+1e-4) throw new Error('Text path overflow');
       const n=text.getNumberOfChars();
       if(!n) throw new Error('Empty path label');
       for(let i=0;i<n;i++) push(text.getExtentOfChar(i),matrix,halo);
+    } else if(Math.abs(matrix.b)>1e-7||Math.abs(matrix.c)>1e-7){
+      for(let i=0;i<text.getNumberOfChars();i++)push(text.getExtentOfChar(i),matrix,halo);
     } else push(text.getBBox(),matrix,halo);
   } else {
     const matrix=element.getScreenCTM();
@@ -42,4 +65,11 @@ export async function ensureFonts(families=['Source Sans 3','Alegreya','Bree Ser
     if(required.some(f=>f.status!=='loaded')) throw new Error('Unavailable font: '+name);
   }
   await document.fonts.ready;
+  advanceCache.clear();
+}
+
+export class MetricCache {
+  constructor() { this.entries=new Map(); }
+  get(key,measure) { if(!this.entries.has(key))this.entries.set(key,measure());return this.entries.get(key); }
+  invalidate() {this.entries.clear();}
 }

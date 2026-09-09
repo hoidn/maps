@@ -1,0 +1,2816 @@
+{
+  "version": 1,
+  "status": "current-source-catalog-scene-inventory; final-paint-review-pending",
+  "generatedAt": "2026-09-09T13:16:20.328551+00:00",
+  "profileEvidence": {
+    "path": "tests/fixtures/cartography-scenes.json",
+    "sha256": "1a9398e168d4f877be25a238e424195baa59018d4fab896ea46dbddfbd344fdd",
+    "bytes": 662
+  },
+  "visualReviewComplete": false,
+  "sourceCurrencyEstablished": false,
+  "finalArtifactHashes": null,
+  "method": {
+    "sceneNeighborhood": "500 metre radius around an in-frame source-derived representative point; local WGS84 azimuthal-equidistant working CRS",
+    "anchorSelection": "Exact profile-name match: point before polygon before line, then OSM before national source; choose in-frame geometry. Lines use their midpoint; polygons use an interior point. No production selections are changed.",
+    "expectedKindsMeaning": "At least one catalog geometry of each expected kind intersects the geographic neighborhood. This is source existence evidence, not a browser viewport, label placement or painted visibility assertion.",
+    "featureExamples": "Up to three nearest source-identity examples per expected kind; counts include all neighborhood matches.",
+    "groundScalesMetersPerPixel": [
+      32,
+      12,
+      3
+    ],
+    "selectionCaveat": "Scene reports have aggregate selected counts and explicit omission IDs, not a positive per-feature paint inventory. Absence from their omission list is recorded only as not-explicitly-omitted.",
+    "preFixBrowserEvidence": "artifacts/cartography/grand-canyon-coverage.json and sequoia-coverage.json predate fixes; neither is used to approve this baseline.",
+    "enrichmentInterpretation": "Hydro duplicates are explicitly deduplicated source coverage, not missing geography. Unmatched GNIS identities have no explicit-ID match in other catalog features and remain standalone named features; this count is not missing-label or missing-source count.",
+    "physicalAndSemanticCounts": "Catalog kind counts partition physical features. Semantic role counts overlap: a tagged building retains its footprint and also contributes a public POI role with the same source identity. Scene selected.poi counts those roles, not only physical kind=poi. A role-only omission never means its building footprint is missing.",
+    "candidateEvidence": "Candidate HTML/manifest hashes bind generated annotations and source inventories only; these are not final promoted artifact hashes or evidence that browser placement painted them.",
+    "pendingFinalContentRefresh": "Final cached-node normalization is incorporated in these current catalog/scene/candidate snapshots. Raw acquisition bytes and provenance metadata were unchanged; the future explicit standalone-ford selector has not been claimed as run. Final browser paint review and promotion hashes remain separate."
+  },
+  "regions": {
+    "grand_canyon": {
+      "frame": {
+        "version": 1,
+        "bbox": [
+          -112.262,
+          35.99,
+          -111.898,
+          36.232
+        ],
+        "width": 1300,
+        "height": 1070,
+        "projection": "geographic-affine",
+        "coordinateOrder": "latitude-longitude",
+        "workingCRS": "+proj=aeqd +lat_0=36.111000000000004 +lon_0=-112.08 +datum=WGS84 +units=m +no_defs +type=crs"
+      },
+      "snapshots": {
+        "catalog": {
+          "path": "pipeline/cache/grand_canyon/catalog.json",
+          "sha256": "477ab81016f441c241c284e9a88cc271f321dd03afbf5a39eced53938d23d936",
+          "bytes": 57183712
+        },
+        "scene": {
+          "path": "pipeline/cache/grand_canyon/scene-interactive.json",
+          "sha256": "7272127b8acb8361d54a54642a8609cfcbc210d37f02898c6e3e32aabd0d9b83",
+          "bytes": 229580
+        },
+        "normalizedSources": {
+          "osm": {
+            "path": "pipeline/cache/grand_canyon/features.json",
+            "sha256": "9d8701e521e98505ef4399b7f9f9309fe48bc1b7a7356c2c4eb15a4de998e214",
+            "bytes": 21911619
+          },
+          "gnis": {
+            "path": "pipeline/cache/grand_canyon/gnis-features.json",
+            "sha256": "ce151cc162797936645ccb6f09398f25ad2d3a475d97a1fafc4a13eee4aaadfb",
+            "bytes": 126973
+          },
+          "3dhp": {
+            "path": "pipeline/cache/grand_canyon/usgs_hydro-features.json",
+            "sha256": "54e5dc847b953baf754cb913d83047423a2e1bad6fb1cd9e4056f950121539db",
+            "bytes": 7204588
+          },
+          "padus": {
+            "path": "pipeline/cache/grand_canyon/boundaries-features.json",
+            "sha256": "807fa16990f817a7cbe69a30dd8190cef95c84e1741744cbf403ab9aa69e648c",
+            "bytes": 32924964
+          }
+        },
+        "interactiveCandidate": {
+          "path": "pipeline/grand_canyon_trails_interactive.html",
+          "sha256": "51fa1c64d888aa21ed96630287bcbf1a42a3d46c2ac2ffb43bd0c7c65ebb0efd",
+          "bytes": 52957280
+        },
+        "previousInteractiveCandidate": {
+          "path": "pipeline/grand_canyon_trails_interactive.html",
+          "sha256": "6ac84053ea92c203ed3920b950d4552a1caa2d953ed10b9c9de6e319bb940fcd",
+          "bytes": 52221957
+        }
+      },
+      "sourceToCatalog": {
+        "normalizedInputs": [
+          {
+            "provider": "osm",
+            "normalizedFeatures": 13675,
+            "kindCounts": {
+              "barrier": 62,
+              "boundary": 3,
+              "building": 892,
+              "landcover": 9354,
+              "poi": 1180,
+              "railway": 22,
+              "road": 855,
+              "trail": 678,
+              "waterbody": 20,
+              "waterway": 609
+            },
+            "semanticRoleCounts": {
+              "barrier": 62,
+              "boundary": 3,
+              "building": 892,
+              "landcover": 9354,
+              "poi": 1276,
+              "railway": 22,
+              "road": 855,
+              "trail": 678,
+              "waterbody": 20,
+              "waterway": 609
+            },
+            "issues": 0
+          },
+          {
+            "provider": "gnis",
+            "normalizedFeatures": 222,
+            "kindCounts": {
+              "poi": 222
+            },
+            "semanticRoleCounts": {
+              "poi": 222
+            },
+            "issues": 0
+          },
+          {
+            "provider": "3dhp",
+            "normalizedFeatures": 1009,
+            "kindCounts": {
+              "waterbody": 19,
+              "waterway": 990
+            },
+            "semanticRoleCounts": {
+              "waterbody": 19,
+              "waterway": 990
+            },
+            "issues": 0
+          },
+          {
+            "provider": "padus",
+            "normalizedFeatures": 8,
+            "kindCounts": {
+              "boundary": 8
+            },
+            "semanticRoleCounts": {
+              "boundary": 8
+            },
+            "issues": 0
+          }
+        ],
+        "catalogFeatureCount": 14119,
+        "catalogKindCounts": {
+          "barrier": 62,
+          "boundary": 11,
+          "building": 892,
+          "landcover": 9354,
+          "poi": 1281,
+          "railway": 22,
+          "road": 855,
+          "trail": 678,
+          "waterbody": 24,
+          "waterway": 940
+        },
+        "catalogProviderCounts": {
+          "3dhp": 335,
+          "gnis": 101,
+          "osm": 13675,
+          "padus": 8
+        },
+        "recordedSources": [
+          {
+            "provider": "USGS 3DHP",
+            "url": "https://3dhp.nationalmap.gov/arcgis/rest/services/usgs_3dhp_all/FeatureServer/50",
+            "retrievedAt": "2026-09-09T10:01:02.015884+00:00",
+            "datasetVersion": "service snapshot; survey date varies",
+            "bbox": [
+              -112.262,
+              35.99,
+              -111.898,
+              36.232
+            ],
+            "sha256": "e40bb0883b6180c2238ef3a2ac3b5f5b2f87ab402fda33f80704d1e736e4f863",
+            "bytes": 4311087,
+            "attribution": "USGS 3DHP"
+          },
+          {
+            "provider": "USGS 3DHP",
+            "url": "https://3dhp.nationalmap.gov/arcgis/rest/services/usgs_3dhp_all/FeatureServer/60",
+            "retrievedAt": "2026-09-09T10:01:03.289927+00:00",
+            "datasetVersion": "service snapshot; survey date varies",
+            "bbox": [
+              -112.262,
+              35.99,
+              -111.898,
+              36.232
+            ],
+            "sha256": "1fae12c7b52f23a14fb19080bc033e80adf3e6f2f89de3bb56b63d2fcba5d31a",
+            "bytes": 1780132,
+            "attribution": "USGS 3DHP"
+          },
+          {
+            "provider": "USGS GNIS",
+            "url": "https://carto.nationalmap.gov/arcgis/rest/services/geonames/MapServer/3",
+            "retrievedAt": "2026-09-09T10:09:25.547442+00:00",
+            "datasetVersion": "service snapshot; survey date varies",
+            "bbox": [
+              -112.262,
+              35.99,
+              -111.898,
+              36.232
+            ],
+            "sha256": "e07940ce9f60ffb255177a260e9aa572c550c73caf5da609bcb01e41e7f26977",
+            "bytes": 7103,
+            "attribution": "USGS GNIS"
+          },
+          {
+            "provider": "USGS GNIS",
+            "url": "https://carto.nationalmap.gov/arcgis/rest/services/geonames/MapServer/5",
+            "retrievedAt": "2026-09-09T10:09:26.057898+00:00",
+            "datasetVersion": "service snapshot; survey date varies",
+            "bbox": [
+              -112.262,
+              35.99,
+              -111.898,
+              36.232
+            ],
+            "sha256": "9f424dd71c0b016242cca6fd3e074ab2e93cbfdde45f900cf73e6015e2ed93c9",
+            "bytes": 51766,
+            "attribution": "USGS GNIS"
+          },
+          {
+            "provider": "USGS GNIS",
+            "url": "https://carto.nationalmap.gov/arcgis/rest/services/geonames/MapServer/6",
+            "retrievedAt": "2026-09-09T10:09:26.517673+00:00",
+            "datasetVersion": "service snapshot; survey date varies",
+            "bbox": [
+              -112.262,
+              35.99,
+              -111.898,
+              36.232
+            ],
+            "sha256": "29f8f2cb96302aa365b6d749c66b36f2886e2926111ba752b307b24059b74061",
+            "bytes": 170166,
+            "attribution": "USGS GNIS"
+          },
+          {
+            "provider": "USGS GNIS",
+            "url": "https://carto.nationalmap.gov/arcgis/rest/services/geonames/MapServer/7",
+            "retrievedAt": "2026-09-09T10:09:27.088048+00:00",
+            "datasetVersion": "service snapshot; survey date varies",
+            "bbox": [
+              -112.262,
+              35.99,
+              -111.898,
+              36.232
+            ],
+            "sha256": "d18b7d1909c27ff08156764e49b32cb478bd25b587404f9eb5d4b9b3a5ed51e1",
+            "bytes": 16612,
+            "attribution": "USGS GNIS"
+          },
+          {
+            "provider": "USGS Annual NLCD WCS grid description",
+            "url": "https://dmsdata.cr.usgs.gov/geoserver/mrlc_Land-Cover-Native_conus_year_data/wcs?service=WCS&version=1.0.0&request=DescribeCoverage&coverage=mrlc_Land-Cover-Native_conus_year_data%3ALand-Cover-Native_conus_year_data",
+            "retrievedAt": "2026-09-09T10:22:08.920536+00:00",
+            "datasetVersion": "Annual NLCD grid description for 2025 request",
+            "bbox": [
+              -112.262,
+              35.99,
+              -111.898,
+              36.232
+            ],
+            "sha256": "4dececb0732be0e94e33b4ec850efdb35ff6db2420de5793f8a979fe7e13ac5e",
+            "bytes": 5471,
+            "attribution": "USGS Annual NLCD WCS grid description"
+          },
+          {
+            "provider": "USGS Annual NLCD",
+            "url": "https://dmsdata.cr.usgs.gov/geoserver/mrlc_Land-Cover-Native_conus_year_data/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=mrlc_Land-Cover-Native_conus_year_data%3ALand-Cover-Native_conus_year_data&crs=EPSG%3A5070&response_crs=EPSG%3A5070&bbox=-1445955.0%2C1556145.0%2C-1409355.0%2C1588365.0&width=1220&height=1074&format=GeoTIFF&time=2025-01-01T00%3A00%3A00.000Z&interpolation=nearest+neighbor",
+            "retrievedAt": "2026-09-09T10:22:09.215565+00:00",
+            "datasetVersion": "Annual NLCD land cover 2025; native 30 m",
+            "bbox": [
+              -112.262,
+              35.99,
+              -111.898,
+              36.232
+            ],
+            "sha256": "9793319ffb4d3a2657a78b3f341770cfb3ea1d3db274abf395ee82c8abb8f02c",
+            "bytes": 1986498,
+            "attribution": "USGS Annual NLCD"
+          },
+          {
+            "provider": "OpenStreetMap",
+            "url": "https://overpass-api.de/api/interpreter",
+            "retrievedAt": "2026-09-09T12:06:24.317846+00:00",
+            "datasetVersion": "2026-09-09T12:04:47Z",
+            "bbox": [
+              -112.262,
+              35.99,
+              -111.898,
+              36.232
+            ],
+            "sha256": "ee19b1e5a3f4ef8272da206579a89bfe106ab7dca340c37ab0d1fca982f9d29f",
+            "bytes": 61355351,
+            "attribution": "© OpenStreetMap contributors, ODbL"
+          },
+          {
+            "provider": "USGS PAD-US 4.1",
+            "url": "https://services.arcgis.com/v01gqwM5QqNysAAi/arcgis/rest/services/Manager_Name_PADUS/FeatureServer/0",
+            "retrievedAt": "2026-09-09T10:22:10.329619+00:00",
+            "datasetVersion": 1776873249014,
+            "bbox": [
+              -112.262,
+              35.99,
+              -111.898,
+              36.232
+            ],
+            "sha256": "3ccfb8d649c417508bb12477affad81ebd00948293c69c400e65b9c3c37074b2",
+            "bytes": 33026481,
+            "attribution": "USGS PAD-US 4.1"
+          }
+        ],
+        "sourceInventory": {
+          "requested": [
+            "osm",
+            "3dep",
+            "3dhp",
+            "gnis",
+            "nlcd",
+            "padus"
+          ],
+          "available": [
+            "osm",
+            "3dhp",
+            "gnis",
+            "nlcd",
+            "padus"
+          ],
+          "missing": [
+            "3dep"
+          ],
+          "details": [
+            {
+              "provider": "osm",
+              "status": "cached",
+              "missingFiles": [],
+              "reason": null
+            },
+            {
+              "provider": "3dep",
+              "status": "missing",
+              "missingFiles": [
+                "dem.npy",
+                "dem.json"
+              ],
+              "reason": "Requested region cache unavailable; fallback does not establish source currency"
+            },
+            {
+              "provider": "3dhp",
+              "status": "cached",
+              "missingFiles": [],
+              "reason": null
+            },
+            {
+              "provider": "gnis",
+              "status": "cached",
+              "missingFiles": [],
+              "reason": null
+            },
+            {
+              "provider": "nlcd",
+              "status": "cached",
+              "missingFiles": [],
+              "reason": null
+            },
+            {
+              "provider": "padus",
+              "status": "cached",
+              "missingFiles": [],
+              "reason": null
+            }
+          ]
+        },
+        "sourceIssueCounts": {
+          "osm": 0,
+          "gnis": 0,
+          "usgs_hydro": 0,
+          "boundaries": 0
+        },
+        "repairs": [
+          {
+            "id": "padus:5156",
+            "sourceId": "5156",
+            "provider": "padus",
+            "kind": "boundary",
+            "name": "Grand Canyon National Park",
+            "repairCount": 1,
+            "ringRepairCount": 1,
+            "assembledRepairCount": 0,
+            "sumAbsoluteAreaChangeDegrees2": 3.1086244689504383e-15
+          },
+          {
+            "id": "padus:305432",
+            "sourceId": "305432",
+            "provider": "padus",
+            "kind": "boundary",
+            "name": "Grand Canyon Proposed or Recommended Wilderness Area",
+            "repairCount": 1,
+            "ringRepairCount": 1,
+            "assembledRepairCount": 0,
+            "sumAbsoluteAreaChangeDegrees2": 2.498001805406602e-16
+          }
+        ],
+        "enrichment": {
+          "hydro": {
+            "clippedOverlap": 812,
+            "duplicates": 674,
+            "supplemented": 335,
+            "toleranceMeters": 18,
+            "duplicatesExamples": [
+              {
+                "id": "3dhp:50:13LK5"
+              },
+              {
+                "id": "3dhp:50:13MJP"
+              },
+              {
+                "id": "3dhp:50:15YZ3"
+              }
+            ]
+          },
+          "names": {
+            "idMatches": 0,
+            "conflicts": 3,
+            "unmatchedNames": 101,
+            "conflictsExamples": [
+              {
+                "id": "osm:node:2006087963",
+                "name": "Dripping Springs",
+                "alternate": "Dripping Spring",
+                "sourceId": "gnis:4113"
+              },
+              {
+                "id": "osm:node:2006091746",
+                "name": "Miners Spring",
+                "alternate": "Page Spring",
+                "sourceId": "gnis:24233"
+              },
+              {
+                "id": "osm:node:359285715",
+                "name": "Sumner Butte",
+                "alternate": "Sumner Point",
+                "sourceId": "gnis:42731"
+              }
+            ],
+            "unmatchedNamesExamples": [
+              {
+                "id": "gnis:4879",
+                "sourceId": "4879",
+                "provider": "gnis",
+                "kind": "poi",
+                "name": "Fuller Canyon"
+              },
+              {
+                "id": "gnis:7367",
+                "sourceId": "7367",
+                "provider": "gnis",
+                "kind": "poi",
+                "name": "Lookout Point"
+              },
+              {
+                "id": "gnis:13741",
+                "sourceId": "13741",
+                "provider": "gnis",
+                "kind": "poi",
+                "name": "Widforss Point"
+              }
+            ]
+          }
+        },
+        "rasterCaches": [
+          {
+            "kind": "landcover",
+            "metadataPath": "pipeline/cache/grand_canyon/landcover.json",
+            "metadataSha256": "f269a7cb855eee2005d70e7b609f991940d129f5f23ba29a5d7c4275d94d8fdb",
+            "arrayPath": "pipeline/cache/grand_canyon/landcover.npy",
+            "arraySha256": "22df439a484e660c13eddf08a2e5915515ca44adb64a61d04c31011a88332000",
+            "shape": [
+              1070,
+              1300
+            ],
+            "dtype": "uint8",
+            "bbox": [
+              -112.262,
+              35.99,
+              -111.898,
+              36.232
+            ],
+            "nativeGrid": {
+              "epsg": 5070,
+              "centerOrigin": [
+                -2415570.0,
+                3314790.0
+              ],
+              "edgeOrigin": [
+                -2415585.0,
+                3314805.0
+              ],
+              "pixelSize": [
+                30.0,
+                30.0
+              ],
+              "shape": [
+                105000,
+                160000
+              ]
+            },
+            "registration": null,
+            "resampling": "nearest"
+          }
+        ],
+        "catalogSemanticRoleCounts": {
+          "barrier": 62,
+          "boundary": 11,
+          "building": 892,
+          "landcover": 9354,
+          "poi": 1377,
+          "railway": 22,
+          "road": 855,
+          "trail": 678,
+          "waterbody": 24,
+          "waterway": 940
+        },
+        "buildingFacilityRoles": {
+          "catalogFeatureCount": 96,
+          "namedCatalogFeatureCount": 57,
+          "withGeneratedPointLabel": 57,
+          "withGeneratedSymbol": 83,
+          "examples": [
+            {
+              "id": "osm:relation:15975689",
+              "sourceId": "osm:relation:15975689",
+              "provider": "osm",
+              "kind": "building",
+              "name": "Phantom Ranch Lodge and Canteen"
+            },
+            {
+              "id": "osm:relation:2739268",
+              "sourceId": "osm:relation:2739268",
+              "provider": "osm",
+              "kind": "building",
+              "name": "Park Headquarters"
+            },
+            {
+              "id": "osm:way:1014985808",
+              "sourceId": "osm:way:1014985808",
+              "provider": "osm",
+              "kind": "building",
+              "name": "Bright Angel Campground Restroom"
+            },
+            {
+              "id": "osm:way:1014985809",
+              "sourceId": "osm:way:1014985809",
+              "provider": "osm",
+              "kind": "building",
+              "name": "Group Site 32"
+            },
+            {
+              "id": "osm:way:1181523991",
+              "sourceId": "osm:way:1181523991",
+              "provider": "osm",
+              "kind": "building",
+              "name": "Supai Tunnel Restroom"
+            }
+          ],
+          "meaning": "Additional POI roles retain the building polygon and same source ID. Generated does not establish painted visibility."
+        },
+        "shopCoverage": {
+          "taggedCatalogFeatureCount": 18,
+          "shopTypeCounts": {
+            "convenience": 2,
+            "gift": 7,
+            "kiosk": 5,
+            "laundry": 2,
+            "rental": 1,
+            "supermarket": 1
+          },
+          "osmQueryIncludesShopSelector": true
+        },
+        "catalogSnapshotMatchesLatestNormalizedOsm": true,
+        "lastNormalization": {
+          "region": "grand_canyon",
+          "beforeCounts": {
+            "boundary": 3,
+            "waterbody": 20,
+            "landcover": 9354,
+            "poi": 931,
+            "building": 892,
+            "waterway": 609,
+            "road": 855,
+            "railway": 22,
+            "trail": 678
+          },
+          "afterCounts": {
+            "boundary": 3,
+            "waterbody": 20,
+            "landcover": 9354,
+            "poi": 1180,
+            "building": 892,
+            "waterway": 609,
+            "road": 855,
+            "railway": 22,
+            "trail": 678,
+            "barrier": 62
+          },
+          "newFeatures": 311,
+          "newTagCounts": {
+            "wall": 1,
+            "fence": 1,
+            "ford": 230,
+            "crossing": 66,
+            "picnic_table": 13
+          },
+          "issues": 0,
+          "rawSha256": "ee19b1e5a3f4ef8272da206579a89bfe106ab7dca340c37ab0d1fca982f9d29f",
+          "rawMetadataSha256": "770149acf4c11cb9f4633a4f8c0480fad74463683945c0588ece7e86fdc07a6c",
+          "normalizedSha256": "9d8701e521e98505ef4399b7f9f9309fe48bc1b7a7356c2c4eb15a4de998e214",
+          "liveRefresh": false,
+          "futureExplicitFordQueryNotUsedForThisSnapshot": true
+        }
+      },
+      "catalogToScene": {
+        "reportedCatalogCounts": {
+          "boundary": 11,
+          "landcover": 9354,
+          "poi": 1281,
+          "building": 892,
+          "road": 855,
+          "railway": 22,
+          "trail": 678,
+          "barrier": 62,
+          "waterbody": 24,
+          "waterway": 940
+        },
+        "reportedSelectedCounts": {
+          "waterway": 936,
+          "waterbody": 24,
+          "poi": 1103,
+          "building": 892,
+          "boundary": 11,
+          "barrier": 62,
+          "road": 855,
+          "trail": 678,
+          "railway": 22
+        },
+        "countSnapshotAgrees": true,
+        "omissionReasonCounts": {
+          "existing-source-identity": 57,
+          "outside-frame": 4,
+          "unclassified-unnamed-point": 217
+        },
+        "omittedFeatureExamples": [
+          {
+            "id": "osm:node:359241952",
+            "sourceId": "osm:node:359241952",
+            "provider": "osm",
+            "kind": "poi",
+            "name": "Angels Gate",
+            "role": "poi",
+            "reason": "existing-source-identity",
+            "existingId": "feature-2031d6c6ddb86f38"
+          },
+          {
+            "id": "osm:node:359243359",
+            "sourceId": "osm:node:359243359",
+            "provider": "osm",
+            "kind": "poi",
+            "name": "Brahma Temple",
+            "role": "poi",
+            "reason": "existing-source-identity",
+            "existingId": "feature-d8f975f8298adcac"
+          },
+          {
+            "id": "osm:node:359243561",
+            "sourceId": "osm:node:359243561",
+            "provider": "osm",
+            "kind": "poi",
+            "name": "Buddha Temple",
+            "role": "poi",
+            "reason": "existing-source-identity",
+            "existingId": "feature-fc45d05f67cc6edb"
+          },
+          {
+            "id": "3dhp:50:4LGQP",
+            "sourceId": "4LGQP",
+            "provider": "3dhp",
+            "kind": "waterway",
+            "name": null,
+            "reason": "outside-frame"
+          },
+          {
+            "id": "3dhp:50:BHB9P",
+            "sourceId": "BHB9P",
+            "provider": "3dhp",
+            "kind": "waterway",
+            "name": null,
+            "reason": "outside-frame"
+          },
+          {
+            "id": "3dhp:50:BK76C",
+            "sourceId": "BK76C",
+            "provider": "3dhp",
+            "kind": "waterway",
+            "name": null,
+            "reason": "outside-frame"
+          },
+          {
+            "id": "osm:node:10974591244",
+            "sourceId": "osm:node:10974591244",
+            "provider": "osm",
+            "kind": "poi",
+            "name": null,
+            "role": "poi",
+            "reason": "unclassified-unnamed-point"
+          },
+          {
+            "id": "osm:node:10974591245",
+            "sourceId": "osm:node:10974591245",
+            "provider": "osm",
+            "kind": "poi",
+            "name": null,
+            "role": "poi",
+            "reason": "unclassified-unnamed-point"
+          },
+          {
+            "id": "osm:node:10975463863",
+            "sourceId": "osm:node:10975463863",
+            "provider": "osm",
+            "kind": "poi",
+            "name": null,
+            "role": "poi",
+            "reason": "unclassified-unnamed-point"
+          }
+        ],
+        "rasterizedLandCover": "Catalog land-cover polygons are not counted as selected vector features; the independent land-cover image uses NLCD when available.",
+        "roleOnlyOmissionCounts": {
+          "existing-source-identity": 57,
+          "unclassified-unnamed-point": 217
+        },
+        "generatedAnnotationInventory": {
+          "total": 3690,
+          "kindCounts": {
+            "edge-pointer": 2,
+            "line-label": 2094,
+            "point-label": 558,
+            "region-label": 23,
+            "symbol": 1013
+          },
+          "pointLabelPriorityReasonCounts": {
+            "campground-or-refuge": 30,
+            "mapped-water-facility": 4,
+            "natural-water-feature": 17,
+            "parking": 10,
+            "ranger-station": 6,
+            "required-destination": 9,
+            "secondary-destination": 16,
+            "secondary-feature": 303,
+            "settlement": 3,
+            "topographic-point": 6,
+            "trailhead": 24,
+            "unclassified-authored": 78,
+            "viewpoint": 52
+          },
+          "primaryPointLabelCount": 73,
+          "explicitRequiredPointLabels": [
+            {
+              "id": "label-b854c8abbaab9e47",
+              "featureId": "feature-153bbdb894e42fc8",
+              "sourceId": null,
+              "text": "Bright Angel TH",
+              "priority": 1000,
+              "requiredProfiles": [
+                "static-default"
+              ],
+              "anchor": [
+                422.9,
+                772.4
+              ]
+            },
+            {
+              "id": "label-c64452c86cb09455",
+              "featureId": "feature-43c1f484be6936c8",
+              "sourceId": null,
+              "text": "South Kaibab TH",
+              "priority": 1000,
+              "requiredProfiles": [
+                "static-default"
+              ],
+              "anchor": [
+                636.8,
+                791.9
+              ]
+            },
+            {
+              "id": "label-b4e0de1778f54d15",
+              "featureId": "feature-7ceb5874781761f2",
+              "sourceId": null,
+              "text": "North Kaibab TH",
+              "priority": 1000,
+              "requiredProfiles": [
+                "static-default"
+              ],
+              "anchor": [
+                736.1,
+                62.8
+              ]
+            },
+            {
+              "id": "label-57fe2194a9fa64cd",
+              "featureId": "feature-231b3771e0f18cc6",
+              "sourceId": null,
+              "text": "1½ Mile Resthouse",
+              "priority": 1000,
+              "requiredProfiles": [
+                "static-default"
+              ],
+              "anchor": [
+                434.2,
+                758.0
+              ]
+            },
+            {
+              "id": "label-71ffccc0f53195fc",
+              "featureId": "feature-df76723e77ee5cbf",
+              "sourceId": null,
+              "text": "3 Mile Resthouse",
+              "priority": 1000,
+              "requiredProfiles": [
+                "static-default"
+              ],
+              "anchor": [
+                448.1,
+                738.9
+              ]
+            },
+            {
+              "id": "label-fc8a44dc7fbcb943",
+              "featureId": "feature-11d08bb043f69772",
+              "sourceId": null,
+              "text": "Havasupai Gardens",
+              "priority": 1000,
+              "requiredProfiles": [
+                "static-default"
+              ],
+              "anchor": [
+                476.8,
+                681.4
+              ]
+            },
+            {
+              "id": "label-1b3f25de8e2f46ce",
+              "featureId": "feature-d37f27ee28e081a1",
+              "sourceId": null,
+              "text": "Bright Angel CG",
+              "priority": 1000,
+              "requiredProfiles": [
+                "static-default"
+              ],
+              "anchor": [
+                592.9,
+                578.3
+              ]
+            },
+            {
+              "id": "label-2bda34b9e33d8e10",
+              "featureId": "feature-c8eab70fa6dfb8af",
+              "sourceId": null,
+              "text": "Phantom Ranch",
+              "priority": 1000,
+              "requiredProfiles": [
+                "static-default"
+              ],
+              "anchor": [
+                598.2,
+                559.3
+              ]
+            },
+            {
+              "id": "label-94c343079e49d3de",
+              "featureId": "feature-2c531ff2890981d0",
+              "sourceId": null,
+              "text": "Cottonwood CG",
+              "priority": 1000,
+              "requiredProfiles": [
+                "static-default"
+              ],
+              "anchor": [
+                789.3,
+                274.1
+              ]
+            }
+          ],
+          "status": "current-candidate; painted-visibility-not-established"
+        },
+        "status": "current-generated-scene; independent-paint-review-pending",
+        "facilitySymbolCounts": {
+          "th": 27,
+          "view": 66,
+          "camp": 34,
+          "lodge": 11,
+          "spring": 43,
+          "shelter": 19,
+          "water": 52,
+          "bridge": 3,
+          "wp": 6,
+          "falls": 5,
+          "peak": 108,
+          "crossing": 66,
+          "gate": 14,
+          "waste": 13,
+          "ford": 230,
+          "info": 46,
+          "toilets": 65,
+          "ranger": 5,
+          "bench": 31,
+          "bus": 37,
+          "food": 7,
+          "barrier": 2,
+          "historic": 12,
+          "picnic": 28,
+          "parking": 77,
+          "fuel": 1,
+          "telephone": 1,
+          "saddle": 1,
+          "shop": 3
+        },
+        "sourcePeakElevationAnnotations": {
+          "count": 6,
+          "method": "Numeric OSM ele metres converted to ft for display; source metadata retained; vertical datum unknown; no DEM estimates",
+          "legacyAuthoredElevationsCounted": false
+        },
+        "distanceLabelInventory": {
+          "fullCatalogSegments": 1051,
+          "generatedInteractiveAnnotations": 211,
+          "omissionReasonCounts": {
+            "distance-window-too-short-at-supported-scale": 839,
+            "outside-frame": 1
+          },
+          "omissionExamples": [
+            {
+              "id": "osm:way:1014985814:0-6",
+              "sourceId": "osm:way:1014985814",
+              "reason": "distance-window-too-short-at-supported-scale",
+              "maxZoom": 14,
+              "minimumTextWidthPixels": 102.14,
+              "availablePathPixels": 14.43
+            },
+            {
+              "id": "osm:way:1022897709:0-3",
+              "sourceId": "osm:way:1022897709",
+              "reason": "distance-window-too-short-at-supported-scale",
+              "maxZoom": 14,
+              "minimumTextWidthPixels": 102.14,
+              "availablePathPixels": 21.31
+            },
+            {
+              "id": "osm:way:1022903020:0-1",
+              "sourceId": "osm:way:1022903020",
+              "reason": "distance-window-too-short-at-supported-scale",
+              "maxZoom": 14,
+              "minimumTextWidthPixels": 102.14,
+              "availablePathPixels": 6.13
+            }
+          ],
+          "method": "Font advance lower bound at native sheet width; supported maximum 14x interactive or 1x static; final browser placement remains authoritative",
+          "sourceGraphRetained": true,
+          "independentPaintReviewed": false
+        }
+      },
+      "missingSourceCoverage": {
+        "requestedProvidersMissing": [
+          "3dep"
+        ],
+        "knownUnavailableCategories": [
+          "current NPS conditions and maintenance classifications",
+          "current backcountry-use regulations and management-unit codes",
+          "authoritative river-mile stationing",
+          "current airspace rules"
+        ],
+        "enumeratedMissingRealWorldFeatures": null,
+        "reason": "These snapshots cannot enumerate features absent from all retained sources; cache availability is not geographic completeness or currency."
+      },
+      "runtimeOmissions": {
+        "collisionCounts": null,
+        "detailGateCounts": null,
+        "unpreparedLabelCounts": null,
+        "paintedExpectedFeatureCounts": null,
+        "status": "pending-post-fix-browser-review; source or scene omission counts are not collision counts"
+      },
+      "profiles": [
+        {
+          "name": "Phantom Ranch",
+          "expectedKinds": [
+            "trail",
+            "waterway",
+            "poi"
+          ],
+          "anchor": {
+            "coordinates": [
+              -112.09535435,
+              36.10197124
+            ],
+            "coordinateOrder": "longitude-latitude",
+            "feature": {
+              "id": "osm:way:1014985806",
+              "sourceId": "osm:way:1014985806",
+              "provider": "osm",
+              "kind": "poi",
+              "name": "Phantom Ranch"
+            },
+            "exactNameMatchCount": 1
+          },
+          "neighborhoodRadiusMeters": 500,
+          "expectedKindPresence": {
+            "trail": {
+              "catalogCountWithin500m": 29,
+              "explicitlySceneOmittedCount": 0,
+              "examples": [
+                {
+                  "id": "osm:way:230997054",
+                  "sourceId": "osm:way:230997054",
+                  "provider": "osm",
+                  "kind": "trail",
+                  "name": "Phantom Ranch Village Trail",
+                  "geometryType": "LineString",
+                  "distanceMeters": 42.53,
+                  "sceneDisposition": "not-explicitly-omitted"
+                },
+                {
+                  "id": "osm:way:230992583",
+                  "sourceId": "osm:way:230992583",
+                  "provider": "osm",
+                  "kind": "trail",
+                  "name": "Bright Angel Campground Route",
+                  "geometryType": "LineString",
+                  "distanceMeters": 69.23,
+                  "sceneDisposition": "not-explicitly-omitted"
+                },
+                {
+                  "id": "osm:way:230997068",
+                  "sourceId": "osm:way:230997068",
+                  "provider": "osm",
+                  "kind": "trail",
+                  "name": null,
+                  "geometryType": "LineString",
+                  "distanceMeters": 76.22,
+                  "sceneDisposition": "not-explicitly-omitted"
+                }
+              ]
+            },
+            "waterway": {
+              "catalogCountWithin500m": 6,
+              "explicitlySceneOmittedCount": 0,
+              "examples": [
+                {
+                  "id": "osm:way:321019526",
+                  "sourceId": "osm:way:321019526",
+                  "provider": "osm",
+                  "kind": "waterway",
+                  "name": "Bright Angel Creek",
+                  "geometryType": "LineString",
+                  "distanceMeters": 49.54,
+                  "sceneDisposition": "not-explicitly-omitted"
+                },
+                {
+                  "id": "osm:way:230421690",
+                  "sourceId": "osm:way:230421690",
+                  "provider": "osm",
+                  "kind": "waterway",
+                  "name": null,
+                  "geometryType": "LineString",
+                  "distanceMeters": 397.73,
+                  "sceneDisposition": "not-explicitly-omitted"
+                },
+                {
+                  "id": "osm:way:586954690",
+                  "sourceId": "osm:way:586954690",
+                  "provider": "osm",
+                  "kind": "waterway",
+                  "name": "Colorado River",
+                  "geometryType": "LineString",
+                  "distanceMeters": 425.97,
+                  "sceneDisposition": "not-explicitly-omitted"
+                }
+              ]
+            },
+            "poi": {
+              "catalogCountWithin500m": 53,
+              "explicitlySceneOmittedCount": 5,
+              "examples": [
+                {
+                  "id": "osm:way:1014985806",
+                  "sourceId": "osm:way:1014985806",
+                  "provider": "osm",
+                  "kind": "poi",
+                  "name": "Phantom Ranch",
+                  "geometryType": "LineString",
+                  "distanceMeters": 0.0,
+                  "sceneDisposition": "not-explicitly-omitted"
+                },
+                {
+                  "id": "osm:relation:15973307",
+                  "sourceId": "osm:relation:15973307",
+                  "provider": "osm",
+                  "kind": "poi",
+                  "name": "Bright Angel Campground",
+                  "geometryType": "MultiPolygon",
+                  "distanceMeters": 54.12,
+                  "sceneDisposition": "not-explicitly-omitted"
+                },
+                {
+                  "id": "osm:node:10974591219",
+                  "sourceId": "osm:node:10974591219",
+                  "provider": "osm",
+                  "kind": "poi",
+                  "name": "Site 6",
+                  "geometryType": "Point",
+                  "distanceMeters": 63.2,
+                  "sceneDisposition": "not-explicitly-omitted"
+                }
+              ]
+            }
+          },
+          "missingExpectedKindsInCatalogNeighborhood": [],
+          "status": "source-existence-confirmed; final-paint-pending",
+          "groundScaleReviews": [
+            {
+              "targetMetersPerPixel": 32,
+              "status": "pending",
+              "artifactSha256": null,
+              "paintedSourceIds": null,
+              "detailOmissions": null,
+              "collisionOmissions": null
+            },
+            {
+              "targetMetersPerPixel": 12,
+              "status": "pending",
+              "artifactSha256": null,
+              "paintedSourceIds": null,
+              "detailOmissions": null,
+              "collisionOmissions": null
+            },
+            {
+              "targetMetersPerPixel": 3,
+              "status": "pending",
+              "artifactSha256": null,
+              "paintedSourceIds": null,
+              "detailOmissions": null,
+              "collisionOmissions": null
+            }
+          ],
+          "semanticPoiNeighborhood": {
+            "countWithin500m": 59,
+            "physicalPoiCount": 53,
+            "buildingFacilityRoleCount": 6,
+            "explicitRoleOmissions": 5
+          }
+        },
+        {
+          "name": "Grand Canyon Village",
+          "expectedKinds": [
+            "road",
+            "building",
+            "poi"
+          ],
+          "anchor": {
+            "coordinates": [
+              -112.14063,
+              36.0545151
+            ],
+            "coordinateOrder": "longitude-latitude",
+            "feature": {
+              "id": "osm:node:150952317",
+              "sourceId": "osm:node:150952317",
+              "provider": "osm",
+              "kind": "poi",
+              "name": "Grand Canyon Village"
+            },
+            "exactNameMatchCount": 1
+          },
+          "neighborhoodRadiusMeters": 500,
+          "expectedKindPresence": {
+            "road": {
+              "catalogCountWithin500m": 122,
+              "explicitlySceneOmittedCount": 0,
+              "examples": [
+                {
+                  "id": "osm:way:170991039",
+                  "sourceId": "osm:way:170991039",
+                  "provider": "osm",
+                  "kind": "road",
+                  "name": null,
+                  "geometryType": "LineString",
+                  "distanceMeters": 37.66,
+                  "sceneDisposition": "not-explicitly-omitted"
+                },
+                {
+                  "id": "osm:way:170991024",
+                  "sourceId": "osm:way:170991024",
+                  "provider": "osm",
+                  "kind": "road",
+                  "name": "Village Loop Drive",
+                  "geometryType": "LineString",
+                  "distanceMeters": 38.02,
+                  "sceneDisposition": "not-explicitly-omitted"
+                },
+                {
+                  "id": "osm:way:204644410",
+                  "sourceId": "osm:way:204644410",
+                  "provider": "osm",
+                  "kind": "road",
+                  "name": null,
+                  "geometryType": "LineString",
+                  "distanceMeters": 54.02,
+                  "sceneDisposition": "not-explicitly-omitted"
+                }
+              ]
+            },
+            "building": {
+              "catalogCountWithin500m": 240,
+              "explicitlySceneOmittedCount": 0,
+              "examples": [
+                {
+                  "id": "osm:way:1239680159",
+                  "sourceId": "osm:way:1239680159",
+                  "provider": "osm",
+                  "kind": "building",
+                  "name": null,
+                  "geometryType": "Polygon",
+                  "distanceMeters": 24.38,
+                  "sceneDisposition": "not-explicitly-omitted"
+                },
+                {
+                  "id": "osm:way:204086545",
+                  "sourceId": "osm:way:204086545",
+                  "provider": "osm",
+                  "kind": "building",
+                  "name": null,
+                  "geometryType": "Polygon",
+                  "distanceMeters": 52.22,
+                  "sceneDisposition": "not-explicitly-omitted"
+                },
+                {
+                  "id": "osm:way:204086526",
+                  "sourceId": "osm:way:204086526",
+                  "provider": "osm",
+                  "kind": "building",
+                  "name": null,
+                  "geometryType": "Polygon",
+                  "distanceMeters": 55.05,
+                  "sceneDisposition": "not-explicitly-omitted"
+                }
+              ]
+            },
+            "poi": {
+              "catalogCountWithin500m": 120,
+              "explicitlySceneOmittedCount": 28,
+              "examples": [
+                {
+                  "id": "osm:node:150952317",
+                  "sourceId": "osm:node:150952317",
+                  "provider": "osm",
+                  "kind": "poi",
+                  "name": "Grand Canyon Village",
+                  "geometryType": "Point",
+                  "distanceMeters": 0.0,
+                  "sceneDisposition": "not-explicitly-omitted"
+                },
+                {
+                  "id": "osm:node:3241200190",
+                  "sourceId": "osm:node:3241200190",
+                  "provider": "osm",
+                  "kind": "poi",
+                  "name": null,
+                  "geometryType": "Point",
+                  "distanceMeters": 104.95,
+                  "sceneDisposition": "not-explicitly-omitted"
+                },
+                {
+                  "id": "osm:node:1820961786",
+                  "sourceId": "osm:node:1820961786",
+                  "provider": "osm",
+                  "kind": "poi",
+                  "name": null,
+                  "geometryType": "Point",
+                  "distanceMeters": 116.87,
+                  "sceneDisposition": "not-explicitly-omitted"
+                }
+              ]
+            }
+          },
+          "missingExpectedKindsInCatalogNeighborhood": [],
+          "status": "source-existence-confirmed; final-paint-pending",
+          "groundScaleReviews": [
+            {
+              "targetMetersPerPixel": 32,
+              "status": "pending",
+              "artifactSha256": null,
+              "paintedSourceIds": null,
+              "detailOmissions": null,
+              "collisionOmissions": null
+            },
+            {
+              "targetMetersPerPixel": 12,
+              "status": "pending",
+              "artifactSha256": null,
+              "paintedSourceIds": null,
+              "detailOmissions": null,
+              "collisionOmissions": null
+            },
+            {
+              "targetMetersPerPixel": 3,
+              "status": "pending",
+              "artifactSha256": null,
+              "paintedSourceIds": null,
+              "detailOmissions": null,
+              "collisionOmissions": null
+            }
+          ],
+          "semanticPoiNeighborhood": {
+            "countWithin500m": 138,
+            "physicalPoiCount": 120,
+            "buildingFacilityRoleCount": 18,
+            "explicitRoleOmissions": 28
+          }
+        },
+        {
+          "name": "Bright Angel Creek",
+          "expectedKinds": [
+            "waterway",
+            "trail"
+          ],
+          "anchor": {
+            "coordinates": [
+              -112.05261244,
+              36.15938976
+            ],
+            "coordinateOrder": "longitude-latitude",
+            "feature": {
+              "id": "osm:way:321019526",
+              "sourceId": "osm:way:321019526",
+              "provider": "osm",
+              "kind": "waterway",
+              "name": "Bright Angel Creek"
+            },
+            "exactNameMatchCount": 16
+          },
+          "neighborhoodRadiusMeters": 500,
+          "expectedKindPresence": {
+            "waterway": {
+              "catalogCountWithin500m": 7,
+              "explicitlySceneOmittedCount": 0,
+              "examples": [
+                {
+                  "id": "osm:way:321019526",
+                  "sourceId": "osm:way:321019526",
+                  "provider": "osm",
+                  "kind": "waterway",
+                  "name": "Bright Angel Creek",
+                  "geometryType": "LineString",
+                  "distanceMeters": 0.0,
+                  "sceneDisposition": "not-explicitly-omitted"
+                },
+                {
+                  "id": "osm:way:231019387",
+                  "sourceId": "osm:way:231019387",
+                  "provider": "osm",
+                  "kind": "waterway",
+                  "name": null,
+                  "geometryType": "LineString",
+                  "distanceMeters": 184.04,
+                  "sceneDisposition": "not-explicitly-omitted"
+                },
+                {
+                  "id": "3dhp:50:9BI84",
+                  "sourceId": "9BI84",
+                  "provider": "3dhp",
+                  "kind": "waterway",
+                  "name": "Bright Angel Creek",
+                  "geometryType": "MultiLineString",
+                  "distanceMeters": 199.9,
+                  "sceneDisposition": "not-explicitly-omitted"
+                }
+              ]
+            },
+            "trail": {
+              "catalogCountWithin500m": 5,
+              "explicitlySceneOmittedCount": 0,
+              "examples": [
+                {
+                  "id": "osm:way:133337522",
+                  "sourceId": "osm:way:133337522",
+                  "provider": "osm",
+                  "kind": "trail",
+                  "name": "Ribbon Falls Trail",
+                  "geometryType": "LineString",
+                  "distanceMeters": 44.09,
+                  "sceneDisposition": "not-explicitly-omitted"
+                },
+                {
+                  "id": "osm:way:39704573",
+                  "sourceId": "osm:way:39704573",
+                  "provider": "osm",
+                  "kind": "trail",
+                  "name": "Ribbon Falls Trail",
+                  "geometryType": "LineString",
+                  "distanceMeters": 50.2,
+                  "sceneDisposition": "not-explicitly-omitted"
+                },
+                {
+                  "id": "osm:way:1242586957",
+                  "sourceId": "osm:way:1242586957",
+                  "provider": "osm",
+                  "kind": "trail",
+                  "name": "Ribbon Falls Trail",
+                  "geometryType": "LineString",
+                  "distanceMeters": 51.46,
+                  "sceneDisposition": "not-explicitly-omitted"
+                }
+              ]
+            }
+          },
+          "missingExpectedKindsInCatalogNeighborhood": [],
+          "status": "source-existence-confirmed; final-paint-pending",
+          "groundScaleReviews": [
+            {
+              "targetMetersPerPixel": 32,
+              "status": "pending",
+              "artifactSha256": null,
+              "paintedSourceIds": null,
+              "detailOmissions": null,
+              "collisionOmissions": null
+            },
+            {
+              "targetMetersPerPixel": 12,
+              "status": "pending",
+              "artifactSha256": null,
+              "paintedSourceIds": null,
+              "detailOmissions": null,
+              "collisionOmissions": null
+            },
+            {
+              "targetMetersPerPixel": 3,
+              "status": "pending",
+              "artifactSha256": null,
+              "paintedSourceIds": null,
+              "detailOmissions": null,
+              "collisionOmissions": null
+            }
+          ],
+          "semanticPoiNeighborhood": {
+            "countWithin500m": 8,
+            "physicalPoiCount": 8,
+            "buildingFacilityRoleCount": 0,
+            "explicitRoleOmissions": 0
+          }
+        }
+      ]
+    },
+    "sequoia": {
+      "frame": {
+        "version": 1,
+        "bbox": [
+          -118.89,
+          36.42,
+          -118.51,
+          36.69
+        ],
+        "width": 1300,
+        "height": 1140,
+        "projection": "geographic-affine",
+        "coordinateOrder": "latitude-longitude",
+        "workingCRS": "+proj=aeqd +lat_0=36.555 +lon_0=-118.7 +datum=WGS84 +units=m +no_defs +type=crs"
+      },
+      "snapshots": {
+        "catalog": {
+          "path": "pipeline/cache/sequoia/catalog.json",
+          "sha256": "08a695fd698e84674d27a8bcdcdf2d9e1db0c5c1a3ae2d9e588b38553b720de4",
+          "bytes": 24250560
+        },
+        "scene": {
+          "path": "pipeline/cache/sequoia/scene-interactive.json",
+          "sha256": "afefdb8ba24ed3b761e9b96afaac251c3a4bc41a713785e90b4a8283b3528407",
+          "bytes": 121072
+        },
+        "normalizedSources": {
+          "osm": {
+            "path": "pipeline/cache/sequoia/features.json",
+            "sha256": "681a38aa65ac95548c1941a5e904c288e6391836ea297e020ae81b6451c55ce2",
+            "bytes": 8836536
+          },
+          "gnis": {
+            "path": "pipeline/cache/sequoia/gnis-features.json",
+            "sha256": "215d70bd40eea9ad5cf547d7daef0952c7ed9c9f7ff241432b356f354f053210",
+            "bytes": 155835
+          },
+          "3dhp": {
+            "path": "pipeline/cache/sequoia/usgs_hydro-features.json",
+            "sha256": "df9cd16c3452237775a686ffc318a62e1bc8f7b82de89ebfa9e22c0b36a93b72",
+            "bytes": 16393081
+          },
+          "padus": {
+            "path": "pipeline/cache/sequoia/boundaries-features.json",
+            "sha256": "20356747a08b260d7b7f5b133517c0d1f48f063a35a823691defb117a0b65b72",
+            "bytes": 4206370
+          }
+        },
+        "interactiveCandidate": {
+          "path": "pipeline/sequoia_trails_interactive.html",
+          "sha256": "ae854218f227235ea4814f8080110625d46569d363c9ccad4f2b003918c4063c",
+          "bytes": 38360351
+        },
+        "previousInteractiveCandidate": {
+          "path": "pipeline/sequoia_trails_interactive.html",
+          "sha256": "3b84262536ad42b7256c9022aea40be7a5ca04e4e1446c23754f7cbcf28ea2cc",
+          "bytes": 37579036
+        }
+      },
+      "sourceToCatalog": {
+        "normalizedInputs": [
+          {
+            "provider": "osm",
+            "normalizedFeatures": 4891,
+            "kindCounts": {
+              "barrier": 6,
+              "boundary": 7,
+              "building": 1006,
+              "landcover": 271,
+              "poi": 784,
+              "road": 536,
+              "trail": 389,
+              "waterbody": 356,
+              "waterway": 1536
+            },
+            "semanticRoleCounts": {
+              "barrier": 6,
+              "boundary": 7,
+              "building": 1006,
+              "landcover": 271,
+              "poi": 829,
+              "road": 536,
+              "trail": 389,
+              "waterbody": 356,
+              "waterway": 1536
+            },
+            "issues": 4
+          },
+          {
+            "provider": "gnis",
+            "normalizedFeatures": 270,
+            "kindCounts": {
+              "poi": 270
+            },
+            "semanticRoleCounts": {
+              "poi": 270
+            },
+            "issues": 0
+          },
+          {
+            "provider": "3dhp",
+            "normalizedFeatures": 6164,
+            "kindCounts": {
+              "waterbody": 363,
+              "waterway": 5801
+            },
+            "semanticRoleCounts": {
+              "waterbody": 363,
+              "waterway": 5801
+            },
+            "issues": 0
+          },
+          {
+            "provider": "padus",
+            "normalizedFeatures": 16,
+            "kindCounts": {
+              "boundary": 16
+            },
+            "semanticRoleCounts": {
+              "boundary": 16
+            },
+            "issues": 0
+          }
+        ],
+        "catalogFeatureCount": 8935,
+        "catalogKindCounts": {
+          "barrier": 6,
+          "boundary": 23,
+          "building": 1006,
+          "landcover": 271,
+          "poi": 843,
+          "road": 536,
+          "trail": 389,
+          "waterbody": 577,
+          "waterway": 5284
+        },
+        "catalogProviderCounts": {
+          "3dhp": 3969,
+          "gnis": 59,
+          "osm": 4891,
+          "padus": 16
+        },
+        "recordedSources": [
+          {
+            "provider": "USGS 3DHP",
+            "url": "https://3dhp.nationalmap.gov/arcgis/rest/services/usgs_3dhp_all/FeatureServer/50",
+            "retrievedAt": "2026-09-09T10:01:31.468136+00:00",
+            "datasetVersion": "service snapshot; survey date varies",
+            "bbox": [
+              -118.89,
+              36.42,
+              -118.51,
+              36.69
+            ],
+            "sha256": "4e7f38a896fec5907b6cdfe991b56cf5838811a926ba2e28e7f064483b3fa3da",
+            "bytes": 8893657,
+            "attribution": "USGS 3DHP"
+          },
+          {
+            "provider": "USGS 3DHP",
+            "url": "https://3dhp.nationalmap.gov/arcgis/rest/services/usgs_3dhp_all/FeatureServer/60",
+            "retrievedAt": "2026-09-09T10:01:33.635225+00:00",
+            "datasetVersion": "service snapshot; survey date varies",
+            "bbox": [
+              -118.89,
+              36.42,
+              -118.51,
+              36.69
+            ],
+            "sha256": "f1aeb9206ee4937b4c26b3fd020b80a76fe5fa9082033081d9d80da52de452c7",
+            "bytes": 651306,
+            "attribution": "USGS 3DHP"
+          },
+          {
+            "provider": "USGS 3DEP",
+            "url": "https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer/exportImage?bbox=-118.89%2C36.42%2C-118.51%2C36.69&bboxSR=4326&imageSR=4326&size=2600%2C1847&format=tiff&pixelType=F32&noDataInterpretation=esriNoDataMatchAny&interpolation=RSP_BilinearInterpolation&f=json",
+            "retrievedAt": "2026-09-09T10:12:44.817694+00:00",
+            "datasetVersion": "3DEP service snapshot; constituent survey dates vary",
+            "bbox": [
+              -118.89,
+              36.42,
+              -118.51,
+              36.69
+            ],
+            "sha256": "fc99d595688fbdfa6c3a3bf0355b7d203fc84ea4d84be50f1f35f8967e597cf6",
+            "bytes": 20647166,
+            "attribution": "USGS 3DEP"
+          },
+          {
+            "provider": "USGS GNIS",
+            "url": "https://carto.nationalmap.gov/arcgis/rest/services/geonames/MapServer/3",
+            "retrievedAt": "2026-09-09T10:09:41.896286+00:00",
+            "datasetVersion": "service snapshot; survey date varies",
+            "bbox": [
+              -118.89,
+              36.42,
+              -118.51,
+              36.69
+            ],
+            "sha256": "e10ceb393701d4cfcce7b70b60d6aaba62dc642efb84a000d0f838c2fad2e2d8",
+            "bytes": 8709,
+            "attribution": "USGS GNIS"
+          },
+          {
+            "provider": "USGS GNIS",
+            "url": "https://carto.nationalmap.gov/arcgis/rest/services/geonames/MapServer/5",
+            "retrievedAt": "2026-09-09T10:09:42.532599+00:00",
+            "datasetVersion": "service snapshot; survey date varies",
+            "bbox": [
+              -118.89,
+              36.42,
+              -118.51,
+              36.69
+            ],
+            "sha256": "a8c6e8f01030067f2b4026f24be709af06d4255e93858e7a244bbc9a84d16053",
+            "bytes": 257958,
+            "attribution": "USGS GNIS"
+          },
+          {
+            "provider": "USGS GNIS",
+            "url": "https://carto.nationalmap.gov/arcgis/rest/services/geonames/MapServer/6",
+            "retrievedAt": "2026-09-09T10:09:42.951758+00:00",
+            "datasetVersion": "service snapshot; survey date varies",
+            "bbox": [
+              -118.89,
+              36.42,
+              -118.51,
+              36.69
+            ],
+            "sha256": "128806ba77269d821c54f1df045a3357eac3183fef586e503386c0d363142591",
+            "bytes": 32423,
+            "attribution": "USGS GNIS"
+          },
+          {
+            "provider": "USGS GNIS",
+            "url": "https://carto.nationalmap.gov/arcgis/rest/services/geonames/MapServer/7",
+            "retrievedAt": "2026-09-09T10:09:43.258650+00:00",
+            "datasetVersion": "service snapshot; survey date varies",
+            "bbox": [
+              -118.89,
+              36.42,
+              -118.51,
+              36.69
+            ],
+            "sha256": "8cd83a61a00071b200133037f16acb215c796bc77be52879fe7008c93b626c02",
+            "bytes": 18968,
+            "attribution": "USGS GNIS"
+          },
+          {
+            "provider": "USGS Annual NLCD WCS grid description",
+            "url": "https://dmsdata.cr.usgs.gov/geoserver/mrlc_Land-Cover-Native_conus_year_data/wcs?service=WCS&version=1.0.0&request=DescribeCoverage&coverage=mrlc_Land-Cover-Native_conus_year_data%3ALand-Cover-Native_conus_year_data",
+            "retrievedAt": "2026-09-09T10:22:05.391664+00:00",
+            "datasetVersion": "Annual NLCD grid description for 2025 request",
+            "bbox": [
+              -118.89,
+              36.42,
+              -118.51,
+              36.69
+            ],
+            "sha256": "4dececb0732be0e94e33b4ec850efdb35ff6db2420de5793f8a979fe7e13ac5e",
+            "bytes": 5471,
+            "attribution": "USGS Annual NLCD WCS grid description"
+          },
+          {
+            "provider": "USGS Annual NLCD",
+            "url": "https://dmsdata.cr.usgs.gov/geoserver/mrlc_Land-Cover-Native_conus_year_data/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=mrlc_Land-Cover-Native_conus_year_data%3ALand-Cover-Native_conus_year_data&crs=EPSG%3A5070&response_crs=EPSG%3A5070&bbox=-2014065.0%2C1721505.0%2C-1974135.0%2C1758885.0&width=1331&height=1246&format=GeoTIFF&time=2025-01-01T00%3A00%3A00.000Z&interpolation=nearest+neighbor",
+            "retrievedAt": "2026-09-09T10:22:06.269638+00:00",
+            "datasetVersion": "Annual NLCD land cover 2025; native 30 m",
+            "bbox": [
+              -118.89,
+              36.42,
+              -118.51,
+              36.69
+            ],
+            "sha256": "b2b128d1210bee73a75e882972cbca6a8c6225411256687b115c98fb880d9135",
+            "bytes": 1679282,
+            "attribution": "USGS Annual NLCD"
+          },
+          {
+            "provider": "OpenStreetMap",
+            "url": "https://overpass-api.de/api/interpreter",
+            "retrievedAt": "2026-09-09T12:06:18.138956+00:00",
+            "datasetVersion": "2026-09-09T12:04:47Z",
+            "bbox": [
+              -118.89,
+              36.42,
+              -118.51,
+              36.69
+            ],
+            "sha256": "6862dd264082e9474af278fe15d331b3fd565381bf9ddb18201ea7598e842505",
+            "bytes": 22907046,
+            "attribution": "© OpenStreetMap contributors, ODbL"
+          },
+          {
+            "provider": "USGS PAD-US 4.1",
+            "url": "https://services.arcgis.com/v01gqwM5QqNysAAi/arcgis/rest/services/Manager_Name_PADUS/FeatureServer/0",
+            "retrievedAt": "2026-09-09T10:22:07.242386+00:00",
+            "datasetVersion": 1776873249014,
+            "bbox": [
+              -118.89,
+              36.42,
+              -118.51,
+              36.69
+            ],
+            "sha256": "7b89ff8e4d34d9f01e65146dd8de4563217447a45419a1b129aa18b0772b117b",
+            "bytes": 4292301,
+            "attribution": "USGS PAD-US 4.1"
+          }
+        ],
+        "sourceInventory": {
+          "requested": [
+            "osm",
+            "3dep",
+            "3dhp",
+            "gnis",
+            "nlcd",
+            "padus"
+          ],
+          "available": [
+            "osm",
+            "3dep",
+            "3dhp",
+            "gnis",
+            "nlcd",
+            "padus"
+          ],
+          "missing": [],
+          "details": [
+            {
+              "provider": "osm",
+              "status": "cached",
+              "missingFiles": [],
+              "reason": null
+            },
+            {
+              "provider": "3dep",
+              "status": "cached",
+              "missingFiles": [],
+              "reason": null
+            },
+            {
+              "provider": "3dhp",
+              "status": "cached",
+              "missingFiles": [],
+              "reason": null
+            },
+            {
+              "provider": "gnis",
+              "status": "cached",
+              "missingFiles": [],
+              "reason": null
+            },
+            {
+              "provider": "nlcd",
+              "status": "cached",
+              "missingFiles": [],
+              "reason": null
+            },
+            {
+              "provider": "padus",
+              "status": "cached",
+              "missingFiles": [],
+              "reason": null
+            }
+          ]
+        },
+        "sourceIssueCounts": {
+          "osm": 4,
+          "gnis": 0,
+          "usgs_hydro": 0,
+          "boundaries": 0
+        },
+        "repairs": [
+          {
+            "id": "padus:3919",
+            "sourceId": "3919",
+            "provider": "padus",
+            "kind": "boundary",
+            "name": "Bakersfield Field Office",
+            "repairCount": 14,
+            "ringRepairCount": 14,
+            "assembledRepairCount": 0,
+            "sumAbsoluteAreaChangeDegrees2": 3.571260312213581e-17
+          },
+          {
+            "id": "padus:5172",
+            "sourceId": "5172",
+            "provider": "padus",
+            "kind": "boundary",
+            "name": "Kings Canyon National Park",
+            "repairCount": 2,
+            "ringRepairCount": 2,
+            "assembledRepairCount": 0,
+            "sumAbsoluteAreaChangeDegrees2": 1.0587911840678754e-22
+          }
+        ],
+        "enrichment": {
+          "hydro": {
+            "clippedOverlap": 2580,
+            "duplicates": 2195,
+            "supplemented": 3969,
+            "toleranceMeters": 18,
+            "duplicatesExamples": [
+              {
+                "id": "3dhp:50:11QNU"
+              },
+              {
+                "id": "3dhp:50:11QPP"
+              },
+              {
+                "id": "3dhp:50:11QPV"
+              }
+            ]
+          },
+          "names": {
+            "idMatches": 0,
+            "conflicts": 4,
+            "unmatchedNames": 59,
+            "conflictsExamples": [
+              {
+                "id": "osm:node:3635688063",
+                "name": "JO Pass",
+                "alternate": "J.O. Pass",
+                "sourceId": "gnis:261953"
+              },
+              {
+                "id": "osm:way:79593658",
+                "name": "South Fork Granite Creek",
+                "alternate": "Granite Creek",
+                "sourceId": "gnis:260743"
+              },
+              {
+                "id": "osm:way:79592955",
+                "name": "South Fork Granite Creek",
+                "alternate": "Granite Creek",
+                "sourceId": "gnis:260743"
+              }
+            ],
+            "unmatchedNamesExamples": [
+              {
+                "id": "gnis:1659431",
+                "sourceId": "1659431",
+                "provider": "gnis",
+                "kind": "poi",
+                "name": "Potwisha"
+              },
+              {
+                "id": "gnis:255438",
+                "sourceId": "255438",
+                "provider": "gnis",
+                "kind": "poi",
+                "name": "Castle Rocks"
+              },
+              {
+                "id": "gnis:256874",
+                "sourceId": "256874",
+                "provider": "gnis",
+                "kind": "poi",
+                "name": "Big Baldy Ridge"
+              }
+            ]
+          }
+        },
+        "rasterCaches": [
+          {
+            "kind": "landcover",
+            "metadataPath": "pipeline/cache/sequoia/landcover.json",
+            "metadataSha256": "9c4997669d286ba6addd16f51051594fd0ad7a6a2eb6ecdfdd52da4e83f2c1ab",
+            "arrayPath": "pipeline/cache/sequoia/landcover.npy",
+            "arraySha256": "47a0bdb63de338ffd19ac169da3f3672d6d8797c8d9039ad032fb5bafd3cb5e8",
+            "shape": [
+              1140,
+              1300
+            ],
+            "dtype": "uint8",
+            "bbox": [
+              -118.89,
+              36.42,
+              -118.51,
+              36.69
+            ],
+            "nativeGrid": {
+              "epsg": 5070,
+              "centerOrigin": [
+                -2415570.0,
+                3314790.0
+              ],
+              "edgeOrigin": [
+                -2415585.0,
+                3314805.0
+              ],
+              "pixelSize": [
+                30.0,
+                30.0
+              ],
+              "shape": [
+                105000,
+                160000
+              ]
+            },
+            "registration": null,
+            "resampling": "nearest"
+          },
+          {
+            "kind": "dem",
+            "metadataPath": "pipeline/cache/sequoia/dem.json",
+            "metadataSha256": "bcd4e2754090c4a164d8a77b770b3991b0ad33d80b81c127fe0806067d672a57",
+            "arrayPath": "pipeline/cache/sequoia/dem.npy",
+            "arraySha256": "a3e3b3009b5e386cd230f51eefb38a60c423a3e1fb7cfd5a506e8fc13459fb6b",
+            "shape": [
+              1847,
+              2600
+            ],
+            "dtype": "float32",
+            "bbox": [
+              -118.89,
+              36.42,
+              -118.51,
+              36.69
+            ],
+            "nativeGrid": null,
+            "registration": {
+              "bbox": [
+                -118.89,
+                36.42,
+                -118.51,
+                36.69
+              ],
+              "shape": [
+                1847,
+                2600
+              ],
+              "epsg": 4326,
+              "pixelRegistration": "area",
+              "sampleLocation": "center",
+              "pixelSize": [
+                0.00014615384615384441,
+                0.00014618299945857934
+              ],
+              "nodata": null
+            },
+            "resampling": "bilinear at pixel centers"
+          }
+        ],
+        "catalogSemanticRoleCounts": {
+          "barrier": 6,
+          "boundary": 23,
+          "building": 1006,
+          "landcover": 271,
+          "poi": 888,
+          "road": 536,
+          "trail": 389,
+          "waterbody": 577,
+          "waterway": 5284
+        },
+        "buildingFacilityRoles": {
+          "catalogFeatureCount": 45,
+          "namedCatalogFeatureCount": 23,
+          "withGeneratedPointLabel": 23,
+          "withGeneratedSymbol": 32,
+          "examples": [
+            {
+              "id": "osm:relation:6132734",
+              "sourceId": "osm:relation:6132734",
+              "provider": "osm",
+              "kind": "building",
+              "name": "Sierra Lodge"
+            },
+            {
+              "id": "osm:way:1384083604",
+              "sourceId": "osm:way:1384083604",
+              "provider": "osm",
+              "kind": "building",
+              "name": "Cabin Creek Dormitory"
+            },
+            {
+              "id": "osm:way:1384083605",
+              "sourceId": "osm:way:1384083605",
+              "provider": "osm",
+              "kind": "building",
+              "name": "Cabin Creek Ranger Residence"
+            },
+            {
+              "id": "osm:way:163148751",
+              "sourceId": "osm:way:163148751",
+              "provider": "osm",
+              "kind": "building",
+              "name": "Wuksachi Lodge"
+            },
+            {
+              "id": "osm:way:179757261",
+              "sourceId": "osm:way:179757261",
+              "provider": "osm",
+              "kind": "building",
+              "name": "Foothills Visitor Center"
+            }
+          ],
+          "meaning": "Additional POI roles retain the building polygon and same source ID. Generated does not establish painted visibility."
+        },
+        "shopCoverage": {
+          "taggedCatalogFeatureCount": 6,
+          "shopTypeCounts": {
+            "convenience": 4,
+            "gift": 1,
+            "laundry": 1
+          },
+          "osmQueryIncludesShopSelector": true
+        },
+        "catalogSnapshotMatchesLatestNormalizedOsm": true,
+        "lastNormalization": {
+          "region": "sequoia",
+          "beforeCounts": {
+            "boundary": 7,
+            "landcover": 271,
+            "waterbody": 356,
+            "building": 1006,
+            "poi": 711,
+            "road": 536,
+            "waterway": 1536,
+            "trail": 389
+          },
+          "afterCounts": {
+            "boundary": 7,
+            "landcover": 271,
+            "waterbody": 356,
+            "building": 1006,
+            "poi": 784,
+            "road": 536,
+            "waterway": 1536,
+            "barrier": 6,
+            "trail": 389
+          },
+          "newFeatures": 79,
+          "newTagCounts": {
+            "ford": 67,
+            "crossing": 6,
+            "picnic_table": 6
+          },
+          "issues": 4,
+          "rawSha256": "6862dd264082e9474af278fe15d331b3fd565381bf9ddb18201ea7598e842505",
+          "rawMetadataSha256": "0645b220ebad3cc20f580e1d1cdf1a4affaaba88e209085e16d2234d638802ca",
+          "normalizedSha256": "681a38aa65ac95548c1941a5e904c288e6391836ea297e020ae81b6451c55ce2",
+          "liveRefresh": false,
+          "futureExplicitFordQueryNotUsedForThisSnapshot": true
+        }
+      },
+      "catalogToScene": {
+        "reportedCatalogCounts": {
+          "boundary": 23,
+          "landcover": 271,
+          "building": 1006,
+          "poi": 843,
+          "road": 536,
+          "barrier": 6,
+          "trail": 389,
+          "waterbody": 577,
+          "waterway": 5284
+        },
+        "reportedSelectedCounts": {
+          "waterway": 5281,
+          "waterbody": 576,
+          "poi": 774,
+          "boundary": 23,
+          "building": 1006,
+          "road": 536,
+          "trail": 389,
+          "barrier": 6
+        },
+        "countSnapshotAgrees": true,
+        "omissionReasonCounts": {
+          "outside-frame": 4,
+          "unclassified-unnamed-point": 114
+        },
+        "omittedFeatureExamples": [
+          {
+            "id": "3dhp:50:6KOYI",
+            "sourceId": "6KOYI",
+            "provider": "3dhp",
+            "kind": "waterway",
+            "name": null,
+            "reason": "outside-frame"
+          },
+          {
+            "id": "3dhp:50:73NLK",
+            "sourceId": "73NLK",
+            "provider": "3dhp",
+            "kind": "waterway",
+            "name": "Kern-Kaweah River",
+            "reason": "outside-frame"
+          },
+          {
+            "id": "3dhp:50:7DIIV",
+            "sourceId": "7DIIV",
+            "provider": "3dhp",
+            "kind": "waterway",
+            "name": null,
+            "reason": "outside-frame"
+          },
+          {
+            "id": "osm:node:11777688764",
+            "sourceId": "osm:node:11777688764",
+            "provider": "osm",
+            "kind": "poi",
+            "name": null,
+            "role": "poi",
+            "reason": "unclassified-unnamed-point"
+          },
+          {
+            "id": "osm:node:11923419635",
+            "sourceId": "osm:node:11923419635",
+            "provider": "osm",
+            "kind": "poi",
+            "name": null,
+            "role": "poi",
+            "reason": "unclassified-unnamed-point"
+          },
+          {
+            "id": "osm:node:11923467065",
+            "sourceId": "osm:node:11923467065",
+            "provider": "osm",
+            "kind": "poi",
+            "name": null,
+            "role": "poi",
+            "reason": "unclassified-unnamed-point"
+          }
+        ],
+        "rasterizedLandCover": "Catalog land-cover polygons are not counted as selected vector features; the independent land-cover image uses NLCD when available.",
+        "roleOnlyOmissionCounts": {
+          "unclassified-unnamed-point": 114
+        },
+        "generatedAnnotationInventory": {
+          "total": 2933,
+          "kindCounts": {
+            "line-label": 1853,
+            "point-label": 396,
+            "region-label": 23,
+            "symbol": 661
+          },
+          "pointLabelPriorityReasonCounts": {
+            "campground-or-refuge": 17,
+            "local-convenience": 1,
+            "natural-water-feature": 16,
+            "parking": 7,
+            "ranger-station": 9,
+            "secondary-destination": 11,
+            "secondary-feature": 151,
+            "settlement": 9,
+            "topographic-point": 90,
+            "trailhead": 15,
+            "unclassified-authored": 61,
+            "viewpoint": 9
+          },
+          "primaryPointLabelCount": 50,
+          "explicitRequiredPointLabels": [],
+          "status": "current-candidate; painted-visibility-not-established"
+        },
+        "status": "current-generated-scene; independent-paint-review-pending",
+        "facilitySymbolCounts": {
+          "peak": 87,
+          "bus": 11,
+          "ford": 67,
+          "falls": 31,
+          "saddle": 31,
+          "historic": 22,
+          "info": 52,
+          "th": 15,
+          "toilets": 57,
+          "spring": 19,
+          "camp": 35,
+          "shop": 4,
+          "waste": 25,
+          "ranger": 8,
+          "picnic": 23,
+          "view": 25,
+          "bench": 24,
+          "barrier": 1,
+          "gate": 23,
+          "crossing": 6,
+          "water": 25,
+          "parking": 61,
+          "telephone": 2,
+          "food": 4,
+          "fuel": 1,
+          "lodge": 2
+        },
+        "sourcePeakElevationAnnotations": {
+          "count": 56,
+          "method": "Numeric OSM ele metres converted to ft for display; source metadata retained; vertical datum unknown; no DEM estimates",
+          "legacyAuthoredElevationsCounted": false
+        },
+        "distanceLabelInventory": {
+          "fullCatalogSegments": 585,
+          "generatedInteractiveAnnotations": 303,
+          "omissionReasonCounts": {
+            "distance-window-too-short-at-supported-scale": 281,
+            "outside-frame": 1
+          },
+          "omissionExamples": [
+            {
+              "id": "osm:way:1005623139:0-1",
+              "sourceId": "osm:way:1005623139",
+              "reason": "distance-window-too-short-at-supported-scale",
+              "maxZoom": 14,
+              "minimumTextWidthPixels": 102.14,
+              "availablePathPixels": 9.59
+            },
+            {
+              "id": "osm:way:1009744625:0-5",
+              "sourceId": "osm:way:1009744625",
+              "reason": "distance-window-too-short-at-supported-scale",
+              "maxZoom": 14,
+              "minimumTextWidthPixels": 102.14,
+              "availablePathPixels": 84.99
+            },
+            {
+              "id": "osm:way:1009952843:0-2",
+              "sourceId": "osm:way:1009952843",
+              "reason": "distance-window-too-short-at-supported-scale",
+              "maxZoom": 14,
+              "minimumTextWidthPixels": 102.14,
+              "availablePathPixels": 11.41
+            }
+          ],
+          "method": "Font advance lower bound at native sheet width; supported maximum 14x interactive or 1x static; final browser placement remains authoritative",
+          "sourceGraphRetained": true,
+          "independentPaintReviewed": false
+        }
+      },
+      "missingSourceCoverage": {
+        "requestedProvidersMissing": [],
+        "knownUnavailableCategories": [
+          "current NPS conditions and maintenance classifications",
+          "current backcountry-use regulations and management-unit codes",
+          "authoritative river-mile stationing",
+          "current airspace rules"
+        ],
+        "enumeratedMissingRealWorldFeatures": null,
+        "reason": "These snapshots cannot enumerate features absent from all retained sources; cache availability is not geographic completeness or currency."
+      },
+      "runtimeOmissions": {
+        "collisionCounts": null,
+        "detailGateCounts": null,
+        "unpreparedLabelCounts": null,
+        "paintedExpectedFeatureCounts": null,
+        "status": "pending-post-fix-browser-review; source or scene omission counts are not collision counts"
+      },
+      "profiles": [
+        {
+          "name": "Giant Forest Museum",
+          "expectedKinds": [
+            "road",
+            "building",
+            "poi"
+          ],
+          "anchor": {
+            "coordinates": [
+              -118.773226,
+              36.5641426
+            ],
+            "coordinateOrder": "longitude-latitude",
+            "feature": {
+              "id": "osm:node:3557301621",
+              "sourceId": "osm:node:3557301621",
+              "provider": "osm",
+              "kind": "poi",
+              "name": "Giant Forest Museum"
+            },
+            "exactNameMatchCount": 2
+          },
+          "neighborhoodRadiusMeters": 500,
+          "expectedKindPresence": {
+            "road": {
+              "catalogCountWithin500m": 9,
+              "explicitlySceneOmittedCount": 0,
+              "examples": [
+                {
+                  "id": "osm:way:485433987",
+                  "sourceId": "osm:way:485433987",
+                  "provider": "osm",
+                  "kind": "road",
+                  "name": null,
+                  "geometryType": "LineString",
+                  "distanceMeters": 5.18,
+                  "sceneDisposition": "not-explicitly-omitted"
+                },
+                {
+                  "id": "osm:way:1051778358",
+                  "sourceId": "osm:way:1051778358",
+                  "provider": "osm",
+                  "kind": "road",
+                  "name": "Crescent Meadow Road",
+                  "geometryType": "LineString",
+                  "distanceMeters": 27.21,
+                  "sceneDisposition": "not-explicitly-omitted"
+                },
+                {
+                  "id": "osm:way:163024577",
+                  "sourceId": "osm:way:163024577",
+                  "provider": "osm",
+                  "kind": "road",
+                  "name": "Crescent Meadow Road",
+                  "geometryType": "LineString",
+                  "distanceMeters": 31.45,
+                  "sceneDisposition": "not-explicitly-omitted"
+                }
+              ]
+            },
+            "building": {
+              "catalogCountWithin500m": 4,
+              "explicitlySceneOmittedCount": 0,
+              "examples": [
+                {
+                  "id": "osm:way:485536683",
+                  "sourceId": "osm:way:485536683",
+                  "provider": "osm",
+                  "kind": "building",
+                  "name": null,
+                  "geometryType": "Polygon",
+                  "distanceMeters": 45.74,
+                  "sceneDisposition": "not-explicitly-omitted"
+                },
+                {
+                  "id": "osm:way:229138120",
+                  "sourceId": "osm:way:229138120",
+                  "provider": "osm",
+                  "kind": "building",
+                  "name": "Giant Forest Museum",
+                  "geometryType": "Polygon",
+                  "distanceMeters": 52.51,
+                  "sceneDisposition": "not-explicitly-omitted"
+                },
+                {
+                  "id": "osm:way:179757985",
+                  "sourceId": "osm:way:179757985",
+                  "provider": "osm",
+                  "kind": "building",
+                  "name": "Beetle Rock Education Center",
+                  "geometryType": "Polygon",
+                  "distanceMeters": 171.01,
+                  "sceneDisposition": "not-explicitly-omitted"
+                }
+              ]
+            },
+            "poi": {
+              "catalogCountWithin500m": 31,
+              "explicitlySceneOmittedCount": 0,
+              "examples": [
+                {
+                  "id": "osm:node:3557301621",
+                  "sourceId": "osm:node:3557301621",
+                  "provider": "osm",
+                  "kind": "poi",
+                  "name": "Giant Forest Museum",
+                  "geometryType": "Point",
+                  "distanceMeters": 0.0,
+                  "sceneDisposition": "not-explicitly-omitted"
+                },
+                {
+                  "id": "osm:node:4783165728",
+                  "sourceId": "osm:node:4783165728",
+                  "provider": "osm",
+                  "kind": "poi",
+                  "name": "Giant Forest museum shuttle",
+                  "geometryType": "Point",
+                  "distanceMeters": 5.56,
+                  "sceneDisposition": "not-explicitly-omitted"
+                },
+                {
+                  "id": "osm:way:485536682",
+                  "sourceId": "osm:way:485536682",
+                  "provider": "osm",
+                  "kind": "poi",
+                  "name": null,
+                  "geometryType": "LineString",
+                  "distanceMeters": 10.15,
+                  "sceneDisposition": "not-explicitly-omitted"
+                }
+              ]
+            }
+          },
+          "missingExpectedKindsInCatalogNeighborhood": [],
+          "status": "source-existence-confirmed; final-paint-pending",
+          "groundScaleReviews": [
+            {
+              "targetMetersPerPixel": 32,
+              "status": "pending",
+              "artifactSha256": null,
+              "paintedSourceIds": null,
+              "detailOmissions": null,
+              "collisionOmissions": null
+            },
+            {
+              "targetMetersPerPixel": 12,
+              "status": "pending",
+              "artifactSha256": null,
+              "paintedSourceIds": null,
+              "detailOmissions": null,
+              "collisionOmissions": null
+            },
+            {
+              "targetMetersPerPixel": 3,
+              "status": "pending",
+              "artifactSha256": null,
+              "paintedSourceIds": null,
+              "detailOmissions": null,
+              "collisionOmissions": null
+            }
+          ],
+          "semanticPoiNeighborhood": {
+            "countWithin500m": 33,
+            "physicalPoiCount": 31,
+            "buildingFacilityRoleCount": 2,
+            "explicitRoleOmissions": 0
+          }
+        },
+        {
+          "name": "General Sherman Tree",
+          "expectedKinds": [
+            "trail",
+            "poi"
+          ],
+          "anchor": {
+            "coordinates": [
+              -118.751443,
+              36.5816453
+            ],
+            "coordinateOrder": "longitude-latitude",
+            "feature": {
+              "id": "osm:node:313753662",
+              "sourceId": "osm:node:313753662",
+              "provider": "osm",
+              "kind": "poi",
+              "name": "General Sherman Tree"
+            },
+            "exactNameMatchCount": 1
+          },
+          "neighborhoodRadiusMeters": 500,
+          "expectedKindPresence": {
+            "trail": {
+              "catalogCountWithin500m": 16,
+              "explicitlySceneOmittedCount": 0,
+              "examples": [
+                {
+                  "id": "osm:way:163224218",
+                  "sourceId": "osm:way:163224218",
+                  "provider": "osm",
+                  "kind": "trail",
+                  "name": "Sherman Tree Trail",
+                  "geometryType": "LineString",
+                  "distanceMeters": 16.98,
+                  "sceneDisposition": "not-explicitly-omitted"
+                },
+                {
+                  "id": "osm:way:73532160",
+                  "sourceId": "osm:way:73532160",
+                  "provider": "osm",
+                  "kind": "trail",
+                  "name": "Sherman Tree Trail",
+                  "geometryType": "LineString",
+                  "distanceMeters": 21.51,
+                  "sceneDisposition": "not-explicitly-omitted"
+                },
+                {
+                  "id": "osm:way:73532163",
+                  "sourceId": "osm:way:73532163",
+                  "provider": "osm",
+                  "kind": "trail",
+                  "name": "Sherman Tree Trail",
+                  "geometryType": "LineString",
+                  "distanceMeters": 22.4,
+                  "sceneDisposition": "not-explicitly-omitted"
+                }
+              ]
+            },
+            "poi": {
+              "catalogCountWithin500m": 29,
+              "explicitlySceneOmittedCount": 0,
+              "examples": [
+                {
+                  "id": "osm:node:313753662",
+                  "sourceId": "osm:node:313753662",
+                  "provider": "osm",
+                  "kind": "poi",
+                  "name": "General Sherman Tree",
+                  "geometryType": "Point",
+                  "distanceMeters": 0.0,
+                  "sceneDisposition": "not-explicitly-omitted"
+                },
+                {
+                  "id": "osm:node:4796913822",
+                  "sourceId": "osm:node:4796913822",
+                  "provider": "osm",
+                  "kind": "poi",
+                  "name": "The General Sherman Tree",
+                  "geometryType": "Point",
+                  "distanceMeters": 15.54,
+                  "sceneDisposition": "not-explicitly-omitted"
+                },
+                {
+                  "id": "osm:node:4796913725",
+                  "sourceId": "osm:node:4796913725",
+                  "provider": "osm",
+                  "kind": "poi",
+                  "name": null,
+                  "geometryType": "Point",
+                  "distanceMeters": 16.74,
+                  "sceneDisposition": "not-explicitly-omitted"
+                }
+              ]
+            }
+          },
+          "missingExpectedKindsInCatalogNeighborhood": [],
+          "status": "source-existence-confirmed; final-paint-pending",
+          "groundScaleReviews": [
+            {
+              "targetMetersPerPixel": 32,
+              "status": "pending",
+              "artifactSha256": null,
+              "paintedSourceIds": null,
+              "detailOmissions": null,
+              "collisionOmissions": null
+            },
+            {
+              "targetMetersPerPixel": 12,
+              "status": "pending",
+              "artifactSha256": null,
+              "paintedSourceIds": null,
+              "detailOmissions": null,
+              "collisionOmissions": null
+            },
+            {
+              "targetMetersPerPixel": 3,
+              "status": "pending",
+              "artifactSha256": null,
+              "paintedSourceIds": null,
+              "detailOmissions": null,
+              "collisionOmissions": null
+            }
+          ],
+          "semanticPoiNeighborhood": {
+            "countWithin500m": 30,
+            "physicalPoiCount": 29,
+            "buildingFacilityRoleCount": 1,
+            "explicitRoleOmissions": 0
+          }
+        },
+        {
+          "name": "Pear Lake",
+          "expectedKinds": [
+            "waterbody",
+            "trail"
+          ],
+          "anchor": {
+            "coordinates": [
+              -118.66732208,
+              36.60130985
+            ],
+            "coordinateOrder": "longitude-latitude",
+            "feature": {
+              "id": "osm:way:79588449",
+              "sourceId": "osm:way:79588449",
+              "provider": "osm",
+              "kind": "waterbody",
+              "name": "Pear Lake"
+            },
+            "exactNameMatchCount": 2
+          },
+          "neighborhoodRadiusMeters": 500,
+          "expectedKindPresence": {
+            "waterbody": {
+              "catalogCountWithin500m": 2,
+              "explicitlySceneOmittedCount": 0,
+              "examples": [
+                {
+                  "id": "osm:way:79588449",
+                  "sourceId": "osm:way:79588449",
+                  "provider": "osm",
+                  "kind": "waterbody",
+                  "name": "Pear Lake",
+                  "geometryType": "Polygon",
+                  "distanceMeters": 0.0,
+                  "sceneDisposition": "not-explicitly-omitted"
+                },
+                {
+                  "id": "3dhp:60:L15D1",
+                  "sourceId": "L15D1",
+                  "provider": "3dhp",
+                  "kind": "waterbody",
+                  "name": "Pear Lake",
+                  "geometryType": "MultiPolygon",
+                  "distanceMeters": 105.05,
+                  "sceneDisposition": "not-explicitly-omitted"
+                }
+              ]
+            },
+            "trail": {
+              "catalogCountWithin500m": 1,
+              "explicitlySceneOmittedCount": 0,
+              "examples": [
+                {
+                  "id": "osm:way:179839893",
+                  "sourceId": "osm:way:179839893",
+                  "provider": "osm",
+                  "kind": "trail",
+                  "name": "Lakes Trail",
+                  "geometryType": "LineString",
+                  "distanceMeters": 174.47,
+                  "sceneDisposition": "not-explicitly-omitted"
+                }
+              ]
+            }
+          },
+          "missingExpectedKindsInCatalogNeighborhood": [],
+          "status": "source-existence-confirmed; final-paint-pending",
+          "groundScaleReviews": [
+            {
+              "targetMetersPerPixel": 32,
+              "status": "pending",
+              "artifactSha256": null,
+              "paintedSourceIds": null,
+              "detailOmissions": null,
+              "collisionOmissions": null
+            },
+            {
+              "targetMetersPerPixel": 12,
+              "status": "pending",
+              "artifactSha256": null,
+              "paintedSourceIds": null,
+              "detailOmissions": null,
+              "collisionOmissions": null
+            },
+            {
+              "targetMetersPerPixel": 3,
+              "status": "pending",
+              "artifactSha256": null,
+              "paintedSourceIds": null,
+              "detailOmissions": null,
+              "collisionOmissions": null
+            }
+          ],
+          "semanticPoiNeighborhood": {
+            "countWithin500m": 2,
+            "physicalPoiCount": 2,
+            "buildingFacilityRoleCount": 0,
+            "explicitRoleOmissions": 0
+          }
+        },
+        {
+          "name": "Alta Peak",
+          "expectedKinds": [
+            "trail",
+            "poi"
+          ],
+          "anchor": {
+            "coordinates": [
+              -118.6633845,
+              36.5905818
+            ],
+            "coordinateOrder": "longitude-latitude",
+            "feature": {
+              "id": "osm:node:358796609",
+              "sourceId": "osm:node:358796609",
+              "provider": "osm",
+              "kind": "poi",
+              "name": "Alta Peak"
+            },
+            "exactNameMatchCount": 1
+          },
+          "neighborhoodRadiusMeters": 500,
+          "expectedKindPresence": {
+            "trail": {
+              "catalogCountWithin500m": 1,
+              "explicitlySceneOmittedCount": 0,
+              "examples": [
+                {
+                  "id": "osm:way:1127839519",
+                  "sourceId": "osm:way:1127839519",
+                  "provider": "osm",
+                  "kind": "trail",
+                  "name": "Alta Peak Trail",
+                  "geometryType": "LineString",
+                  "distanceMeters": 25.51,
+                  "sceneDisposition": "not-explicitly-omitted"
+                }
+              ]
+            },
+            "poi": {
+              "catalogCountWithin500m": 1,
+              "explicitlySceneOmittedCount": 0,
+              "examples": [
+                {
+                  "id": "osm:node:358796609",
+                  "sourceId": "osm:node:358796609",
+                  "provider": "osm",
+                  "kind": "poi",
+                  "name": "Alta Peak",
+                  "geometryType": "Point",
+                  "distanceMeters": 0.0,
+                  "sceneDisposition": "not-explicitly-omitted"
+                }
+              ]
+            }
+          },
+          "missingExpectedKindsInCatalogNeighborhood": [],
+          "status": "source-existence-confirmed; final-paint-pending",
+          "groundScaleReviews": [
+            {
+              "targetMetersPerPixel": 32,
+              "status": "pending",
+              "artifactSha256": null,
+              "paintedSourceIds": null,
+              "detailOmissions": null,
+              "collisionOmissions": null
+            },
+            {
+              "targetMetersPerPixel": 12,
+              "status": "pending",
+              "artifactSha256": null,
+              "paintedSourceIds": null,
+              "detailOmissions": null,
+              "collisionOmissions": null
+            },
+            {
+              "targetMetersPerPixel": 3,
+              "status": "pending",
+              "artifactSha256": null,
+              "paintedSourceIds": null,
+              "detailOmissions": null,
+              "collisionOmissions": null
+            }
+          ],
+          "semanticPoiNeighborhood": {
+            "countWithin500m": 1,
+            "physicalPoiCount": 1,
+            "buildingFacilityRoleCount": 0,
+            "explicitRoleOmissions": 0
+          }
+        }
+      ]
+    }
+  }
+}

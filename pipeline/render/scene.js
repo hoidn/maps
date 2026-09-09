@@ -67,7 +67,7 @@ function commandBounds(commands){
  }
  return {x,y,right,bottom,pad};
 }
-const layerName=e=>[...e.classList].find(c=>['terrain','contours','contour-labels','hydro','roads','trails','regions','hydro-labels','peaks','symbols','trail-labels','labels','fixed-ui','neatline'].includes(c))||'other';
+const layerName=e=>[...e.classList].find(c=>['terrain','landcover','boundaries','buildings','coordinate-grid','contours','contour-labels','hydro','roads','trails','regions','hydro-labels','boundary-labels','peaks','symbols','trail-labels','labels','fixed-ui','neatline'].includes(c))||'other';
 export class MapScene{
  constructor(svg,map){this.svg=svg;this.map=map;this.items=[];this.hits=[];}
  async prepare(){
@@ -77,16 +77,16 @@ export class MapScene{
    if(top.matches('.hits')){for(const e of top.querySelectorAll('path'))this.hits.push({element:e,path:pathFor(e),bounds:bounds(e)});continue;}
    if(top.tagName.toLowerCase()==='image'){
     const image=new Image();image.src=top.getAttribute('href');await image.decode();
-    this.items.push({kind:'image',element:top,image,layer,x:Number(top.getAttribute('x')||0),y:Number(top.getAttribute('y')||0),width:Number(top.getAttribute('width')),height:Number(top.getAttribute('height'))});continue;
+    this.items.push({kind:'image',element:top,image,layer,opacity:Number(getComputedStyle(top).opacity),x:Number(top.getAttribute('x')||0),y:Number(top.getAttribute('y')||0),width:Number(top.getAttribute('width')),height:Number(top.getAttribute('height'))});continue;
    }
    const nodes=top.matches(SHAPES+',text')?[top]:[...top.querySelectorAll(SHAPES+',text')];
    for(const e of nodes){
     if(e.closest('[data-layout-id]')||e.closest('defs'))continue;
     const transient=['lit','dim'].filter(c=>e.classList.contains(c));e.classList.remove(...transient);
     let commands;try{commands=captureCommands(e,this.svg,{world:true});}finally{e.classList.add(...transient);}
-    const z=this.map.width/this.svg.viewBox.baseVal.width,constantStroke=!!e.closest('.roads,.hydro,.trails');
+    const z=this.map.width/this.svg.viewBox.baseVal.width,constantStroke=!!e.closest('.roads,.hydro,.trails,.boundaries,.buildings');
     if(constantStroke)for(const c of commands){c.style.width*=z;c.style.dash=c.style.dash.map(n=>n*z);c.style.dashOffset*=z;}
-    this.items.push({kind:'commands',element:e,layer,commands,bounds:commandBounds(commands),constantStroke,name:e.dataset.name});
+    this.items.push({kind:'commands',element:e,layer,commands,maxMpp:Number(e.dataset.maxMpp)||null,bounds:commandBounds(commands),constantStroke,name:e.dataset.name});
     if(performance.now()>=deadline){await new Promise(r=>setTimeout(r,0));deadline=performance.now()+8;}
    }
   }
@@ -94,8 +94,12 @@ export class MapScene{
  }
  visible(item,layers,z,view){
   const b=item.bounds;if(b&&view){const pad=b.pad/(item.constantStroke?z:1);if(b.right+pad<view.x||b.x-pad>view.x+view.w||b.bottom+pad<view.y||b.y-pad>view.y+view.h)return false;}
+  if(item.maxMpp&&this.metersPerPixel>item.maxMpp)return false;
+  if(item.layer==='landcover')return layers.landcover!==false;
+  if(['boundaries','boundary-labels'].includes(item.layer)&&layers.boundaries===false)return false;
+  if(item.layer==='coordinate-grid'&&!layers.grid)return false;
   if(item.layer==='terrain')return layers.relief&&getComputedStyle(item.element).display!=='none';
-  if(item.layer==='hydro'&&!layers.water)return false;
+  if(['hydro','hydro-labels'].includes(item.layer)&&!layers.water)return false;
   if(item.layer==='fixed-ui'&&z>1.02)return false;
   return true;
  }

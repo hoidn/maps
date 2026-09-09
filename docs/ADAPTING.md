@@ -96,3 +96,24 @@ Check `pipeline/fetch_dem_1m.py` (edit its frame first) for 1 m lidar coverage. 
 - A zoomed screenshot (`#v=x,y,6`) for the interactive page.
 - Both themes: toggle `data-theme="dark"` on `<html>` in devtools.
 - Attribution for OSM (ODbL) and USGS present in the footer.
+
+## Portable configured builds
+
+The portable path uses `pipeline/maps/REGION.json` rather than editing geographic
+conditions in classifiers. `MapSpec` selects the frame, title, contour intervals,
+source set and expected editorial names/routes. From `pipeline/`:
+
+```sh
+../.venv/bin/python fetch_region.py --map sequoia --source all
+../.venv/bin/python build_region.py --map sequoia --renderer webgl
+```
+
+Fetching is explicit; repeat builds use `cache/sequoia/` without network requests.
+The same scene/style code augments the authored Grand Canyon sheets. Its historical
+profile, stops and explanatory page composition remain a separate editorial
+adapter. Do not substitute label offsets for geographic feature positions.
+
+Use the portable coverage scenes and seeded visual fuzzer in addition to source
+inventory checks. Review equivalent metres per pixel across parks; equal raw zoom
+factors need not represent equal ground resolution. The Grand Canyon release pair
+continues to require its existing full release and promotion commands.

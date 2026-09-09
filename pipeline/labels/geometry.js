@@ -53,3 +53,29 @@ export function anchorDistance(rect,anchor) {
   if(!rect||!anchor)return Infinity;
   return Math.hypot(Math.max(rect.x-anchor[0],0,anchor[0]-rect.x-rect.width),Math.max(rect.y-anchor[1],0,anchor[1]-rect.y-rect.height));
 }
+
+/** Project immutable world-space polygon rings into the solver's CSS frame. */
+export function projectAreaPolygons(polygons,m) {
+  return polygons?.map(rings=>rings.map(ring=>ring.map(([x,y])=>[m.a*x+m.c*y+m.e,m.b*x+m.d*y+m.f])));
+}
+function pointInRing([x,y],ring) {
+  let inside=false;
+  for(let i=0,j=ring.length-1;i<ring.length;j=i++) {
+    const [xi,yi]=ring[i],[xj,yj]=ring[j];
+    if((yi>y)!==(yj>y)&&x<(xj-xi)*(y-yi)/(yj-yi)+xi)inside=!inside;
+  }
+  return inside;
+}
+/** Every measured rectangle must fit one polygon, excluding every hole. Testing
+ * corners alone misses concave boundary incursions and holes enclosed by text. */
+export function shapeInsidePolygons(shape,polygons) {
+  return shape.parts.every(r=>polygons.some(rings=>{
+    if(!rings.length)return false;
+    const corners=[[r.x,r.y],[r.x+r.width,r.y],[r.x+r.width,r.y+r.height],[r.x,r.y+r.height]];
+    if(!corners.every(p=>pointInRing(p,rings[0])&&!rings.slice(1).some(h=>pointInRing(p,h))))return false;
+    return !rings.some(ring=>ring.some(([x,y],i)=>{
+      const [bx,by]=ring[(i+1)%ring.length];
+      return lineHitsRect({a:{x,y},b:{x:bx,y:by},width:0},r);
+    }));
+  }));
+}

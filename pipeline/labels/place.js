@@ -1,11 +1,13 @@
-import {contains,expand,shapeIntersects,lineHitsRect,lineOutsideCircle,validRect,anchorDistance} from './geometry.js';
+import {contains,expand,shapeIntersects,lineHitsRect,lineOutsideCircle,validRect,anchorDistance,shapeInsidePolygons} from './geometry.js';
 import {SpatialIndex} from './spatial-index.js';
 const stable=(a,b)=>a<b?-1:a>b?1:0;
 const validShape=s=>{try{return Array.isArray(s?.parts)&&s.parts.length>0&&s.parts.every(r=>contains(validRect(s.bounds),validRect(r)));}catch{return false;}};
+const repeatKey=a=>a.repeatGroup??a.featureId;
 const center=s=>[s.bounds.x+s.bounds.width/2,s.bounds.y+s.bounds.height/2];
 
 /** Pure CSS-pixel solver. Higher priority sorts first; required labels precede optional ones.
  * Every accepted candidate is checked, including during bounded transactional repair.
+ * repairBudget bounds neighbor probes across all repair proposals per annotation.
  * Optional queryObstacles(expandedBounds) is a deterministic provider of additional
  * CSS-space obstacles. Hard checks are cached within one solve; inputs and provider
  * results must remain immutable/deterministic for that solve. The provider must conservatively return every nearby painted segment.
@@ -22,19 +24,28 @@ function* layoutSteps({annotations,obstacles=[],viewport,previous,policy={},quer
   const placementDiagnostics=policy.exhaustiveDiagnostics===false&&policy.repairMaxNeighbors===0,attemptFailures=new Map();
   const clearance=policy.clearance??2,padding=policy.edgePadding??4;
   const frame={x:viewport.x??0,y:viewport.y??0,width:viewport.width,height:viewport.height};validRect(frame);
-  const ordered=annotations.map(a=>({...a,candidates:[...(a.candidates??[])]})).sort((a,b)=>Number(!!b.pinned)-Number(!!a.pinned)||Number(!!b.required)-Number(!!a.required)||(b.priority??0)-(a.priority??0)||stable(a.id,b.id));
+  const reserve=(a,c)=>{
+    const margin=policy.measurementReserves?.[a.id]??0;if(!margin||!validShape(c.shape))return c;
+    const edges=typeof margin==='number'?{left:margin,top:margin,right:margin,bottom:margin}:margin;
+    const {left=0,top=0,right=0,bottom=0}=edges;
+    if(![left,top,right,bottom].every(n=>Number.isFinite(n)&&n>=0))throw new Error('Invalid measurement reserve for '+a.id);
+    const expanded=r=>({x:r.x-left,y:r.y-top,width:r.width+left+right,height:r.height+top+bottom});
+    return {...c,shape:{bounds:expanded(c.shape.bounds),parts:c.shape.parts.map(expanded)}};
+  };
+  const ordered=annotations.map(a=>({...a,candidates:(a.candidates??[]).map(c=>reserve(a,c))})).sort((a,b)=>Number(!!b.pinned)-Number(!!a.pinned)||Number(!!b.required)-Number(!!a.required)||(b.priority??0)-(a.priority??0)||stable(a.id,b.id));
   const byId=new Map(ordered.map(a=>[a.id,a]));if(byId.size!==ordered.length)throw new Error('Duplicate annotation ID');
   const featureGroups=new Map(),repeatDistances=new Map();
   const reservedFeatures=new Map();
-  for(const p of repeatReservations){let group=reservedFeatures.get(p.featureId);if(!group){group=[];reservedFeatures.set(p.featureId,group);}group.push(p);}
-  for(const a of ordered){const distance=a.repeatDistance??0;repeatDistances.set(a.id,distance);if(!a.featureId)continue;let group=featureGroups.get(a.featureId);if(!group){group={ids:[],maximum:0};featureGroups.set(a.featureId,group);}group.ids.push(a.id);group.maximum=Math.max(group.maximum,distance);}
+  for(const p of repeatReservations){let group=reservedFeatures.get(repeatKey(p));if(!group){group=[];reservedFeatures.set(repeatKey(p),group);}group.push(p);}
+  for(const a of ordered){const distance=a.repeatDistance??0;repeatDistances.set(a.id,distance);if(!a.featureId)continue;let group=featureGroups.get(repeatKey(a));if(!group){group={ids:[],maximum:0};featureGroups.set(repeatKey(a),group);}group.ids.push(a.id);group.maximum=Math.max(group.maximum,distance);}
   const old=new Map((Array.isArray(previous)?previous:previous?.placements??[]).map(p=>[p.id,p.candidateId]));
   const obstacleIndex=new SpatialIndex(),obstacleMap=new Map();
   obstacles.forEach((o,i)=>{const key=String(i);obstacleMap.set(key,o);const b=o.shape?.bounds??{x:Math.min(o.line.a.x,o.line.b.x)-(o.line.width||0)/2,y:Math.min(o.line.a.y,o.line.b.y)-(o.line.width||0)/2,width:Math.abs(o.line.a.x-o.line.b.x)+(o.line.width||0),height:Math.abs(o.line.a.y-o.line.b.y)+(o.line.width||0)};obstacleIndex.insert(key,b);});
   const accepted=new Map(),hardCache=new Map(),localQueries=new Map();let placedIndex=new SpatialIndex();
   const indexPlacement=(id,c)=>placedIndex.insert(id,c.shape.bounds);
   const proximity=(a,c)=>a.kind==='point-label'&&a.anchor?Math.floor((anchorDistance(c.shape?.bounds,a.anchor)+1e-6)/(policy.pointDistanceBand??4)):0;
-  const candidates=a=>{const cs=[...(a.candidates??[])];const ix=cs.findIndex(c=>c.id===old.get(a.id));if(ix>0)cs.unshift(...cs.splice(ix,1));return cs.sort((c,d)=>proximity(a,c)-proximity(a,d));};
+  const candidateOrder=new Map(),repairBudgets=new Map();
+  const candidates=a=>{const cached=candidateOrder.get(a.id);if(cached?.length===a.candidates.length)return cached;const cs=[...(a.candidates??[])];const ix=cs.findIndex(c=>c.id===old.get(a.id));if(ix>0)cs.unshift(...cs.splice(ix,1));cs.sort((c,d)=>proximity(a,c)-proximity(a,d));candidateOrder.set(a.id,cs);return cs;};
   function nearbyTrails(a,rect){
     if(!queryObstacles)return [];
     if(!queryObstacles.forRegion||a.kind!=='point-label')return queryObstacles(rect);
@@ -54,6 +65,7 @@ function* layoutSteps({annotations,obstacles=[],viewport,previous,policy={},quer
     if(!hard){hard=[];
     if(!validShape(c.shape)) return {hard:['invalid-geometry'],labels,repeat};
     if(!contains(frame,c.shape.bounds,padding))hard.push('frame');
+    if(a.areaPolygons&&!shapeInsidePolygons(c.shape,a.areaPolygons))hard.push('area-boundary');
     if(placementDiagnostics&&hard.length){cache.set(c,hard);return {hard,labels,repeat};}
     const allowed=new Set(a.allowedObstacleIds??[]);
     const query=expand(c.shape.bounds,clearance);
@@ -68,39 +80,42 @@ function* layoutSteps({annotations,obstacles=[],viewport,previous,policy={},quer
       if(lines?lines.some(line=>c.shape.parts.some(r=>lineHitsRect(line,r,clearance))):shapeIntersects(c.shape,o.shape,clearance))hard.push(o.id);
       if(placementDiagnostics&&hard.length)break;
     }
-    cache.set(c,hard);
+    hard=[...new Set(hard)].sort(stable);cache.set(c,hard);
     }
     if(placementDiagnostics&&hard.length)return {hard,labels,repeat};
     for(const id of placedIndex.query(expand(c.shape.bounds,clearance))){if(id===a.id)continue;const other=accepted.get(id);if(other&&shapeIntersects(c.shape,other.shape,clearance))labels.push(id);if(placementDiagnostics&&labels.length)break;}
     if(placementDiagnostics&&labels.length)return {hard,labels,repeat};
     // Repeat distance is a feature-level constraint, not a rectangle approximation.
-    const group=featureGroups.get(a.featureId);
+    const group=featureGroups.get(repeatKey(a));
     if(group?.maximum>0)for(const id of group.ids){if(id===a.id)continue;const other=accepted.get(id);if(!other)continue;const distance=Math.max(repeatDistances.get(a.id),repeatDistances.get(id));if(distance<=0)continue;const p=center(c.shape),q=center(other.shape);if(Math.hypot(p[0]-q[0],p[1]-q[1])<distance)repeat.push(id);}
-    for(const other of reservedFeatures.get(a.featureId)||[]){
+    for(const other of reservedFeatures.get(repeatKey(a))||[]){
       if(other.id===a.id)continue;
       const distance=Math.max(repeatDistances.get(a.id),other.distance??0),p=center(c.shape),q=center(other.shape);
       if(distance>0&&Math.hypot(p[0]-q[0],p[1]-q[1])<distance)repeat.push(other.id);
     }
-    return {hard:[...new Set(hard)].sort(stable),labels:[...new Set(labels)].sort(stable),repeat:[...new Set(repeat)].sort(stable)};
+    return {hard,labels:[...new Set(labels)].sort(stable),repeat:[...new Set(repeat)].sort(stable)};
   }
   function accept(a,c){accepted.set(a.id,c);indexPlacement(a.id,c);}
   function rebuild(){placedIndex=new SpatialIndex();for(const [id,c] of accepted)indexPlacement(id,c);}
-  function repair(a,c,blocking){
+  function repair(a,c,blocking,budget){
     if(blocking.hard.length||blocking.repeat.length||blocking.labels.length>(policy.repairMaxNeighbors??2))return false;
     const snapshot=new Map(accepted),neighbors=blocking.labels.map(id=>byId.get(id));
     for(const n of neighbors)accepted.delete(n.id);
-    accept(a,c);let attempts=0;const budget=policy.repairBudget??64;
-    function visit(i){if(i===neighbors.length)return true;const n=neighbors[i];for(const alt of candidates(n)){if(++attempts>budget)return false;const b=blockers(n,alt);if(b.hard.length||b.labels.length||b.repeat.length)continue;accept(n,alt);if(visit(i+1))return true;accepted.delete(n.id);}return false;}
+    accept(a,c);
+    function visit(i){if(i===neighbors.length)return true;const n=neighbors[i];for(const alt of candidates(n)){if(budget.remaining--<=0)return false;const b=blockers(n,alt);if(b.hard.length||b.labels.length||b.repeat.length)continue;accept(n,alt);if(visit(i+1))return true;accepted.delete(n.id);}return false;}
     if(visit(0)){rebuild();return true;}
     accepted.clear();for(const [id,v] of snapshot)accepted.set(id,v);rebuild();return false;
   }
   function* place(a){if(a.eligibleReason||accepted.has(a.id))return;const recorded=[];if(placementDiagnostics)attemptFailures.set(a.id,recorded);for(const c of candidates(a)){yield;const b=blockers(a,c);if(placementDiagnostics)recorded.push(b);if(!b.hard.length&&!b.labels.length&&!b.repeat.length){accept(a,c);break;}}
     if(a.fallbackCandidates&&(!accepted.has(a.id)||a.kind==='point-label'&&a.anchor&&anchorDistance(accepted.get(a.id).shape.bounds,a.anchor)>(policy.pointPreferredDistance??12))){
       const extra=a.fallbackCandidates();a.fallbackCandidates=null;
-      for(const c of extra){yield;a.candidates.push(c);const current=accepted.get(a.id);if(current&&proximity(a,c)>=proximity(a,current))continue;
+      for(const raw of extra){yield;const c=reserve(a,raw);a.candidates.push(c);const current=accepted.get(a.id);if(current&&proximity(a,c)>=proximity(a,current))continue;
         const b=blockers(a,c);if(placementDiagnostics)recorded.push(b);if(!b.hard.length&&!b.labels.length&&!b.repeat.length){accept(a,c);if(a.kind!=='point-label'||anchorDistance(c.shape.bounds,a.anchor)<=(policy.pointPreferredDistance??12))break;}}
     }
-    if(!accepted.has(a.id)&&(policy.repairMaxNeighbors??2)>0)for(const c of candidates(a)){const b=blockers(a,c);if(b.labels.length&&repair(a,c,b))break;}
+    if(!accepted.has(a.id)&&(policy.repairMaxNeighbors??2)>0){
+      let budget=repairBudgets.get(a.id);if(!budget){budget={remaining:policy.repairBudget??64};repairBudgets.set(a.id,budget);}
+      for(const c of candidates(a)){yield;if(budget.remaining<=0)break;const b=blockers(a,c);if(b.labels.length&&repair(a,c,b,budget))break;}
+    }
   }
   // Reserve just one successfully placed representative of each required group.
   for(const a of ordered.filter(a=>a.required))yield* place(a);

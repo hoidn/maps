@@ -9,3 +9,9 @@ test('readability preference remeasures primary and secondary text',async({page}
  await mountFixture(page);expect(await page.evaluate(()=>typeof mapLayout.setTextScale)).toBe('function');
  const r=await page.evaluate(async()=>{const l=mapLayout;await l.whenSettled();l.setTextScale(1.25);await l.whenSettled();const t=l.elements.get('label-0').querySelector('text'),m=t.getScreenCTM();return parseFloat(getComputedStyle(t).fontSize)*Math.hypot(m.a,m.b)});expect(r).toBeGreaterThanOrEqual(17.4);
 });
+test('initial snapshot rejects a changed text preference',async({page})=>{
+ await mountFixture(page);const r=await page.evaluate(async()=>{await mapLayout.whenSettled();const before=mapLayout.startupSnapshot();mapLayout.setTextScale(1.25);return [before,mapLayout.startupSnapshot()]});expect(r[0]).not.toBe(r[1]);
+});
+test('controller commit preserves the measured curved-label start offset',async({page})=>{
+ await mountFixture(page);const r=await page.evaluate(async()=>{const l=mapLayout;await l.whenSettled();const p=l.result.placements.find(p=>p.id==='curve');return{expected:p?.application?.startOffset,actual:l.elements.get('curve').querySelector('textPath')?.getAttribute('startOffset')}});expect(r.expected).toBeDefined();expect(r.actual).toBe(String(r.expected));
+});

@@ -13,3 +13,8 @@ test('a curved candidate restores textPath after a prior straight fallback',asyn
  await page.setContent('<svg width="600" height="400"><defs><path id="river" d="M20,180 L500,180"/></defs><g id="label"><text font-size="15"><textPath href="#river" text-anchor="middle" startOffset="50%">Example Creek</textPath></text></g></svg>');await page.addScriptTag({content:bundle});
  const r=await page.evaluate(()=>{const e=document.getElementById('label'),cs=hydro.buildLineCandidates({annotation:{geometryId:'river',style:'l-hydro'},element:e});e.querySelector('text').textContent='Example Creek';try{hydro.applyLineCandidate(e,cs[0]);return{path:!!e.querySelector('textPath'),text:e.textContent}}catch(error){return{error:error.message}}});expect(r).toEqual({path:true,text:'Example Creek'});
 });
+
+for(const style of ['l-trail','l-road','l-road-ref'])test(`${style} westward label has a readable alternative`,async({page})=>{
+ await page.setContent('<svg width="600" height="400"><defs><path id="route" d="M480,180 L20,180"/></defs><g id="label"><text font-size="15"><textPath href="#route" startOffset="50%">Arbitrary Route</textPath></text></g></svg>');await page.addScriptTag({content:bundle});
+ const count=await page.evaluate(style=>hydro.buildLineCandidates({annotation:{geometryId:'route',style},element:document.getElementById('label')}).length,style);expect(count).toBeGreaterThan(0);
+});

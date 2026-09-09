@@ -1,6 +1,8 @@
 # Reference-map comparison and portable cartography recommendations
 
-Investigation, 2026-09-09. Recommendations are proposals, not implemented behavior.
+Historical baseline investigation, 2026-09-09. The findings below describe the inspected
+baseline; installed changes and current verification status are recorded in
+[implementation and verification](CARTOGRAPHY_IMPLEMENTATION.md).
 The implementation sequence is in the [portable cartography plan](plans/2026-09-09-portable-cartography.md).
 The separately implemented [Canvas/WebGL migration](RENDERING_BACKENDS.md) is integrated
 at `8336d94`; no delivered files in `output/` were promoted.

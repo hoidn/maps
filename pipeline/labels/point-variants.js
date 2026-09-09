@@ -2,7 +2,7 @@ import {measureElement} from './measure.js';
 const ns='http://www.w3.org/2000/svg';
 /** Only manifest-declared word-preserving line breaks are allowed. Secondary
  * information remains attached; no abbreviation or truncation is invented here. */
-export function measurePointVariants(element,annotation) {
+export function measurePointVariants(element,annotation,measurement={}) {
  const text=element.querySelector('text');if(!text)return [];
  const original=text.innerHTML,result=[];
  try {
@@ -15,7 +15,7 @@ export function measurePointVariants(element,annotation) {
     const span=document.createElementNS(ns,'tspan');span.dataset.layoutPrimary='';span.setAttribute('x',x);span.setAttribute('dy',j?'1.12em':'0');span.textContent=line;text.append(span);
    }
    for(const sub of secondary)text.append(sub);
-   result.push({id:'wrap-'+i,textHTML:text.innerHTML,shape:measureElement(element,.35)});
+   result.push({id:'wrap-'+i,textHTML:text.innerHTML,shape:{...measureElement(element,.35,measurement),paintInset:.35}});
   }
  }finally{text.innerHTML=original;}
  return result;

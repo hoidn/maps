@@ -29,10 +29,20 @@ npm run promote:maps           # revalidate and replace both local output files
 ```
 
 See [layout validation](docs/LAYOUT_VALIDATION.md) for checks, reports, required coverage and
-supported layout limits. Interactive candidates now default to Canvas; the
-[backend guide](docs/RENDERING_BACKENDS.md) describes the optional WebGL contour prototype
-and direct SVG comparison. Builds write candidates into `pipeline/`; promotion preserves the
-existing outputs if a check fails. Intermediates and browser caches are Git-ignored.
+supported layout limits. The cached build selects WebGL contours with Canvas relief and
+foreground cartography, emits a Canvas companion, and builds a standalone Sequoia candidate
+when its source and DEM caches exist. The [backend guide](docs/RENDERING_BACKENDS.md)
+describes renderer selection, fallback and fidelity limits. Builds write candidates into
+`pipeline/`; promotion preserves the existing outputs if a check fails. Intermediates and
+browser caches are Git-ignored.
+
+Portable source providers, region-specific `MapSpec` data and shared cartography are installed
+for Grand Canyon and Sequoia: geographic names, hydrography, protected areas, land cover,
+transport and facilities feed the same rendering and label preparation. Candidate validation
+and promotion remain pending; the delivered files and previews above represent the earlier
+edition. The [portable cartography plan](docs/plans/2026-09-09-portable-cartography.md)
+tracks implementation and validation, while the [startup investigation](docs/STARTUP_INVESTIGATION.md)
+tracks the still-unproven 3× initial-responsiveness target.
 
 ## Read next
 

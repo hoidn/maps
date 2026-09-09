@@ -51,3 +51,10 @@ test('local caches remain conservative after a rotated and scaled camera transfo
   const crossing=local(rect).find(o=>o.id==='crossing');assert(crossing);assert.equal(crossing.line.width,4);assert.equal(crossing,query(rect).find(o=>o.id==='crossing'));
  }
 });
+test('detail-hidden paths do not block labels until their ground scale is visible',()=>{
+ const ss=segments.map((s,i)=>({...s,maxMpp:i===0?8:64})),index=new SpatialIndex(32);ss.forEach((s,i)=>index.insert(i,s.bounds));
+ const args={segments:ss,index,matrix:{a:1,b:0,c:0,d:1,e:0,f:0},inverse:{a:1,b:0,c:0,d:1,e:0,f:0},strokeScale:1,scale:1,maxWidth:4};
+ const box={x:0,y:0,width:40,height:40};
+ assert.deepEqual(createTrailQuery({...args,metersPerPixel:30})(box).map(o=>o.id),['edge']);
+ assert.deepEqual(createTrailQuery({...args,metersPerPixel:3})(box).map(o=>o.id),['crossing','edge']);
+});

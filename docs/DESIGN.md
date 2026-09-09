@@ -109,3 +109,27 @@ rather than over the map because the bottom corners of the frame are busy with t
 - Cursor readout gives lat/lon and elevation from an embedded 390×260 grid.
 - Layers panel toggles relief, contours, water, places, peaks, names.
 - View is written to the URL hash so a zoomed link reopens in place.
+
+## Portable cartographic hierarchy
+
+The shared scene renderer interprets physical tags independently: importance
+sets road width/casing, surface affects pattern, access/lifecycle receives its own
+status treatment, and physical trail difficulty/visibility remain distinct from
+route membership. Hover/selection exposes recorded attributes; missing values are
+explicit. Route names/refs and highlight selection are data driven. The generated
+legend describes the active classes rather than assigning canyon-specific trail
+management categories to every map.
+
+Neutral multidirectional relief is separate from categorical land-cover tint.
+Water areas retain islands and take precedence over centerline paint. Named line
+windows are geographic and repeat under a screen-space spacing rule; difficult
+curves can use a measured straight alternative associated with the same line.
+Facility symbols are original embedded geometric marks. Building/service detail
+appears at finer ground resolution, and a generated inset chooses a developed
+area by facility density. It does not require a named regional exception.
+
+The screen typography profile starts larger and grows modestly with zoom. A
+persisted readability multiplier offers three sizes. Pure pans preserve accepted
+text layout; source geometry never moves with a label. Progressive idle preparation
+can take longer than a camera frame. The separate startup investigation measures
+that distinction rather than treating an early readiness flag as responsiveness.

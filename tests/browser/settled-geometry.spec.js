@@ -10,7 +10,7 @@ test('viewport resizing refreshes inverse font scaling without changing viewBox'
 test('settled curved text paints at the screen size measured after zoom',async({page})=>{
  await mountFixture(page);await page.evaluate(()=>mapLayout.whenSettled());
  const result=await page.evaluate(async()=>{const l=mapLayout,t=l.elements.get('curve').querySelector('text'),size=()=>parseFloat(getComputedStyle(t).fontSize)*Math.hypot(t.getScreenCTM().a,t.getScreenCTM().b);const before=size();l.requestView({x:0,y:0,w:250,h:200});await l.whenSettled();return {before,after:size(),placed:l.visibleIds.has('curve')};});
- expect(result.placed).toBe(true);expect(result.after).toBeCloseTo(result.before,4);
+ expect(result.placed).toBe(true);expect(result.after).toBeGreaterThan(result.before);expect(result.after).toBeLessThanOrEqual(result.before*1.18+1e-4);
 });
 
 test('an unwrapped placement replaces previously wrapped painted text',async({page})=>{

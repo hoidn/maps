@@ -1,0 +1,2265 @@
+{
+  "version": 1,
+  "status": "reviewed-membership-and-floors; preliminary-one-overview-evidence; full-release-gate-required",
+  "region": "grand_canyon",
+  "frame": {
+    "version": 1,
+    "bbox": [
+      -112.262,
+      35.99,
+      -111.898,
+      36.232
+    ],
+    "width": 1300,
+    "height": 1070,
+    "projection": "geographic-affine",
+    "coordinateOrder": "latitude-longitude",
+    "workingCRS": "+proj=aeqd +lat_0=36.111000000000004 +lon_0=-112.08 +datum=WGS84 +units=m +no_defs +type=crs"
+  },
+  "minimumFraction": 0.8,
+  "requiredCoreMinimumFraction": 1,
+  "membershipMethod": {
+    "required": "All9 configured core destinations remain separately required; these expectations do not weaken their existing required-name gate.",
+    "editorial": "Every pre-existing authored trailhead/camp destination remains represented, including edge cases. Historical authored selection supplies relevance independently of current solver visibility.",
+    "additionalSample": "Four remaining source trailhead/camp destinations chosen by maximum distance from the already selected destinations, repeatedly with annotationID tie-break; no visibility input.",
+    "equivalence": "Normalized type-suffix aliases must share destination purpose and lie within250m or an area (including a closed mapped campground outline) must contain the authored anchor. Two explicitly reviewed authored trailhead-name aliases require75m. This is review-fixture matching, not a production merge, geographic correction, or proof of exact ground position.",
+    "nonEquivalence": "Nearby different-purpose/different-name places remain distinct: Cape Final campsite/trailhead; North Kaibab/Ken Patrick; Havasupai Gardens/Plateau Point Trailhead; Phantom Ranch/ranger station/lodge building.",
+    "denominatorRationale": "Raw annotation denominators double-count editorial/node/area representations of one destination and can penalize correct repeat suppression. This reviewed representative destination baseline counts any verified equivalent label once; it does not assert that every catalog primary destination is visible. Preserve the separate raw-primary diagnostic."
+  },
+  "selectionCounts": {
+    "requiredCore": 9,
+    "authoredAdditional": 17,
+    "sourceOnlyGeographicSample": 4,
+    "destinations": 30,
+    "alternativeAnnotations": 56
+  },
+  "destinations": [
+    {
+      "destinationId": "feature-153bbdb894e42fc8",
+      "name": "Bright Angel TH",
+      "role": "trailhead",
+      "requiredCore": true,
+      "selectionBasis": "existing configured required destination",
+      "canonical": {
+        "annotationId": "label-b854c8abbaab9e47",
+        "featureId": "feature-153bbdb894e42fc8",
+        "sourceId": null,
+        "text": "Bright Angel TH",
+        "role": "trailhead",
+        "anchorMapUnits": [
+          422.9,
+          772.4
+        ],
+        "coordinatesLonLat": [
+          -112.143588,
+          36.057307663551406
+        ]
+      },
+      "alternatives": [
+        {
+          "annotationId": "label-b854c8abbaab9e47",
+          "featureId": "feature-153bbdb894e42fc8",
+          "sourceId": null,
+          "text": "Bright Angel TH",
+          "role": "trailhead",
+          "anchorMapUnits": [
+            422.9,
+            772.4
+          ],
+          "coordinatesLonLat": [
+            -112.143588,
+            36.057307663551406
+          ],
+          "equivalenceEvidence": "canonical",
+          "distanceFromCanonicalMeters": 0.0
+        },
+        {
+          "annotationId": "label-4dbad2c446953ce5",
+          "featureId": "feature-40b21239c8e77705",
+          "sourceId": "osm:node:3241200192",
+          "text": "Bright Angel Trailhead",
+          "role": "trailhead",
+          "anchorMapUnits": [
+            422.7,
+            772.5
+          ],
+          "coordinatesLonLat": [
+            -112.143644,
+            36.05728504672897
+          ],
+          "equivalenceEvidence": "same normalized destination name/purpose within250m",
+          "distanceFromCanonicalMeters": 5.64
+        }
+      ],
+      "currentPaintStatus": "at-least-one-equivalent-label-visible-in-preliminary-overview",
+      "visibleAlternativeAnnotationIds": null,
+      "verifiedSourceCounterpartStatus": "verified-purpose/name-and-geographic-evidence"
+    },
+    {
+      "destinationId": "feature-43c1f484be6936c8",
+      "name": "South Kaibab TH",
+      "role": "trailhead",
+      "requiredCore": true,
+      "selectionBasis": "existing configured required destination",
+      "canonical": {
+        "annotationId": "label-c64452c86cb09455",
+        "featureId": "feature-43c1f484be6936c8",
+        "sourceId": null,
+        "text": "South Kaibab TH",
+        "role": "trailhead",
+        "anchorMapUnits": [
+          636.8,
+          791.9
+        ],
+        "coordinatesLonLat": [
+          -112.083696,
+          36.05289738317757
+        ]
+      },
+      "alternatives": [
+        {
+          "annotationId": "label-c64452c86cb09455",
+          "featureId": "feature-43c1f484be6936c8",
+          "sourceId": null,
+          "text": "South Kaibab TH",
+          "role": "trailhead",
+          "anchorMapUnits": [
+            636.8,
+            791.9
+          ],
+          "coordinatesLonLat": [
+            -112.083696,
+            36.05289738317757
+          ],
+          "equivalenceEvidence": "canonical",
+          "distanceFromCanonicalMeters": 0.0
+        },
+        {
+          "annotationId": "label-ce4d5b3fe02683a7",
+          "featureId": "feature-7226bd57e9230045",
+          "sourceId": "osm:node:3882802737",
+          "text": "South Kaibab Trailhead",
+          "role": "trailhead",
+          "anchorMapUnits": [
+            636.7,
+            791.7
+          ],
+          "coordinatesLonLat": [
+            -112.083724,
+            36.052942616822435
+          ],
+          "equivalenceEvidence": "same normalized destination name/purpose within250m",
+          "distanceFromCanonicalMeters": 5.62
+        }
+      ],
+      "currentPaintStatus": "at-least-one-equivalent-label-visible-in-preliminary-overview",
+      "visibleAlternativeAnnotationIds": null,
+      "verifiedSourceCounterpartStatus": "verified-purpose/name-and-geographic-evidence"
+    },
+    {
+      "destinationId": "feature-7ceb5874781761f2",
+      "name": "North Kaibab TH",
+      "role": "trailhead",
+      "requiredCore": true,
+      "selectionBasis": "existing configured required destination",
+      "canonical": {
+        "annotationId": "label-b4e0de1778f54d15",
+        "featureId": "feature-7ceb5874781761f2",
+        "sourceId": null,
+        "text": "North Kaibab TH",
+        "role": "trailhead",
+        "anchorMapUnits": [
+          736.1,
+          62.8
+        ],
+        "coordinatesLonLat": [
+          -112.055892,
+          36.21779663551402
+        ]
+      },
+      "alternatives": [
+        {
+          "annotationId": "label-b4e0de1778f54d15",
+          "featureId": "feature-7ceb5874781761f2",
+          "sourceId": null,
+          "text": "North Kaibab TH",
+          "role": "trailhead",
+          "anchorMapUnits": [
+            736.1,
+            62.8
+          ],
+          "coordinatesLonLat": [
+            -112.055892,
+            36.21779663551402
+          ],
+          "equivalenceEvidence": "canonical",
+          "distanceFromCanonicalMeters": 0.0
+        },
+        {
+          "annotationId": "label-b710769b5635763e",
+          "featureId": "feature-5e1061267733fd4b",
+          "sourceId": "osm:node:5444897940",
+          "text": "North Kaibab Trailhead",
+          "role": "trailhead",
+          "anchorMapUnits": [
+            733.4,
+            66.1
+          ],
+          "coordinatesLonLat": [
+            -112.056648,
+            36.21705028037383
+          ],
+          "equivalenceEvidence": "same normalized destination name/purpose within250m",
+          "distanceFromCanonicalMeters": 107.14
+        }
+      ],
+      "currentPaintStatus": "at-least-one-equivalent-label-visible-in-preliminary-overview",
+      "visibleAlternativeAnnotationIds": null,
+      "verifiedSourceCounterpartStatus": "verified-purpose/name-and-geographic-evidence"
+    },
+    {
+      "destinationId": "feature-231b3771e0f18cc6",
+      "name": "1½ Mile Resthouse",
+      "role": "required-place",
+      "requiredCore": true,
+      "selectionBasis": "existing configured required destination",
+      "canonical": {
+        "annotationId": "label-57fe2194a9fa64cd",
+        "featureId": "feature-231b3771e0f18cc6",
+        "sourceId": null,
+        "text": "1½ Mile Resthouse",
+        "role": "required-place",
+        "anchorMapUnits": [
+          434.2,
+          758.0
+        ],
+        "coordinatesLonLat": [
+          -112.140424,
+          36.06056448598131
+        ]
+      },
+      "alternatives": [
+        {
+          "annotationId": "label-57fe2194a9fa64cd",
+          "featureId": "feature-231b3771e0f18cc6",
+          "sourceId": null,
+          "text": "1½ Mile Resthouse",
+          "role": "required-place",
+          "anchorMapUnits": [
+            434.2,
+            758.0
+          ],
+          "coordinatesLonLat": [
+            -112.140424,
+            36.06056448598131
+          ],
+          "equivalenceEvidence": "canonical",
+          "distanceFromCanonicalMeters": 0.0
+        },
+        {
+          "annotationId": "label-dc1c1e6c6385aae5",
+          "featureId": "feature-da1da89eb007f34a",
+          "sourceId": "osm:way:564591100",
+          "text": "1.5 Mile Resthouse",
+          "role": "required-place",
+          "anchorMapUnits": [
+            438.3,
+            758.6
+          ],
+          "coordinatesLonLat": [
+            -112.139276,
+            36.06042878504673
+          ],
+          "equivalenceEvidence": "same normalized destination name/purpose within250m",
+          "distanceFromCanonicalMeters": 104.52
+        }
+      ],
+      "currentPaintStatus": "at-least-one-equivalent-label-visible-in-preliminary-overview",
+      "visibleAlternativeAnnotationIds": null,
+      "verifiedSourceCounterpartStatus": "verified-purpose/name-and-geographic-evidence"
+    },
+    {
+      "destinationId": "feature-df76723e77ee5cbf",
+      "name": "3 Mile Resthouse",
+      "role": "required-place",
+      "requiredCore": true,
+      "selectionBasis": "existing configured required destination",
+      "canonical": {
+        "annotationId": "label-71ffccc0f53195fc",
+        "featureId": "feature-df76723e77ee5cbf",
+        "sourceId": null,
+        "text": "3 Mile Resthouse",
+        "role": "required-place",
+        "anchorMapUnits": [
+          448.1,
+          738.9
+        ],
+        "coordinatesLonLat": [
+          -112.136532,
+          36.06488429906542
+        ]
+      },
+      "alternatives": [
+        {
+          "annotationId": "label-71ffccc0f53195fc",
+          "featureId": "feature-df76723e77ee5cbf",
+          "sourceId": null,
+          "text": "3 Mile Resthouse",
+          "role": "required-place",
+          "anchorMapUnits": [
+            448.1,
+            738.9
+          ],
+          "coordinatesLonLat": [
+            -112.136532,
+            36.06488429906542
+          ],
+          "equivalenceEvidence": "canonical",
+          "distanceFromCanonicalMeters": 0.0
+        },
+        {
+          "annotationId": "label-0c6e28346b0d5a2c",
+          "featureId": "feature-1097d7e9f30a4474",
+          "sourceId": "osm:way:158608703",
+          "text": "3 Mile Resthouse",
+          "role": "required-place",
+          "anchorMapUnits": [
+            449.4,
+            735.4
+          ],
+          "coordinatesLonLat": [
+            -112.136168,
+            36.06567588785047
+          ],
+          "equivalenceEvidence": "same normalized destination name/purpose within250m",
+          "distanceFromCanonicalMeters": 93.76
+        }
+      ],
+      "currentPaintStatus": "at-least-one-equivalent-label-visible-in-preliminary-overview",
+      "visibleAlternativeAnnotationIds": null,
+      "verifiedSourceCounterpartStatus": "verified-purpose/name-and-geographic-evidence"
+    },
+    {
+      "destinationId": "feature-11d08bb043f69772",
+      "name": "Havasupai Gardens",
+      "role": "campground",
+      "requiredCore": true,
+      "selectionBasis": "existing configured required destination",
+      "canonical": {
+        "annotationId": "label-fc8a44dc7fbcb943",
+        "featureId": "feature-11d08bb043f69772",
+        "sourceId": null,
+        "text": "Havasupai Gardens",
+        "role": "campground",
+        "anchorMapUnits": [
+          476.8,
+          681.4
+        ],
+        "coordinatesLonLat": [
+          -112.128496,
+          36.077888971962615
+        ]
+      },
+      "alternatives": [
+        {
+          "annotationId": "label-fc8a44dc7fbcb943",
+          "featureId": "feature-11d08bb043f69772",
+          "sourceId": null,
+          "text": "Havasupai Gardens",
+          "role": "campground",
+          "anchorMapUnits": [
+            476.8,
+            681.4
+          ],
+          "coordinatesLonLat": [
+            -112.128496,
+            36.077888971962615
+          ],
+          "equivalenceEvidence": "canonical",
+          "distanceFromCanonicalMeters": 0.0
+        },
+        {
+          "annotationId": "label-f73f06ee23a4f329",
+          "featureId": "feature-6f1b49e2f3f96dca",
+          "sourceId": "osm:relation:15976432",
+          "text": "Havasupai Gardens Campground",
+          "role": "campground",
+          "anchorMapUnits": [
+            473.9,
+            685.6
+          ],
+          "coordinatesLonLat": [
+            -112.129308,
+            36.07693906542056
+          ],
+          "equivalenceEvidence": "same normalized destination name/purpose within250m",
+          "distanceFromCanonicalMeters": 128.29
+        }
+      ],
+      "currentPaintStatus": "at-least-one-equivalent-label-visible-in-preliminary-overview",
+      "visibleAlternativeAnnotationIds": null,
+      "verifiedSourceCounterpartStatus": "verified-purpose/name-and-geographic-evidence"
+    },
+    {
+      "destinationId": "feature-d37f27ee28e081a1",
+      "name": "Bright Angel CG",
+      "role": "campground",
+      "requiredCore": true,
+      "selectionBasis": "existing configured required destination",
+      "canonical": {
+        "annotationId": "label-1b3f25de8e2f46ce",
+        "featureId": "feature-d37f27ee28e081a1",
+        "sourceId": null,
+        "text": "Bright Angel CG",
+        "role": "campground",
+        "anchorMapUnits": [
+          592.9,
+          578.3
+        ],
+        "coordinatesLonLat": [
+          -112.095988,
+          36.10120691588785
+        ]
+      },
+      "alternatives": [
+        {
+          "annotationId": "label-1b3f25de8e2f46ce",
+          "featureId": "feature-d37f27ee28e081a1",
+          "sourceId": null,
+          "text": "Bright Angel CG",
+          "role": "campground",
+          "anchorMapUnits": [
+            592.9,
+            578.3
+          ],
+          "coordinatesLonLat": [
+            -112.095988,
+            36.10120691588785
+          ],
+          "equivalenceEvidence": "canonical",
+          "distanceFromCanonicalMeters": 0.0
+        },
+        {
+          "annotationId": "label-8571b315734341ff",
+          "featureId": "feature-59c586c609370128",
+          "sourceId": "osm:relation:15973307",
+          "text": "Bright Angel Campground",
+          "role": "campground",
+          "anchorMapUnits": [
+            593.4,
+            578.6
+          ],
+          "coordinatesLonLat": [
+            -112.095848,
+            36.10113906542056
+          ],
+          "equivalenceEvidence": "same normalized destination name/purpose within250m",
+          "distanceFromCanonicalMeters": 14.68
+        }
+      ],
+      "currentPaintStatus": "at-least-one-equivalent-label-visible-in-preliminary-overview",
+      "visibleAlternativeAnnotationIds": null,
+      "verifiedSourceCounterpartStatus": "verified-purpose/name-and-geographic-evidence"
+    },
+    {
+      "destinationId": "feature-c8eab70fa6dfb8af",
+      "name": "Phantom Ranch",
+      "role": "required-place",
+      "requiredCore": true,
+      "selectionBasis": "existing configured required destination",
+      "canonical": {
+        "annotationId": "label-2bda34b9e33d8e10",
+        "featureId": "feature-c8eab70fa6dfb8af",
+        "sourceId": null,
+        "text": "Phantom Ranch",
+        "role": "required-place",
+        "anchorMapUnits": [
+          598.2,
+          559.3
+        ],
+        "coordinatesLonLat": [
+          -112.094504,
+          36.10550411214953
+        ]
+      },
+      "alternatives": [
+        {
+          "annotationId": "label-2bda34b9e33d8e10",
+          "featureId": "feature-c8eab70fa6dfb8af",
+          "sourceId": null,
+          "text": "Phantom Ranch",
+          "role": "required-place",
+          "anchorMapUnits": [
+            598.2,
+            559.3
+          ],
+          "coordinatesLonLat": [
+            -112.094504,
+            36.10550411214953
+          ],
+          "equivalenceEvidence": "canonical",
+          "distanceFromCanonicalMeters": 0.0
+        },
+        {
+          "annotationId": "label-3b94d224cc553b2a",
+          "featureId": "feature-1bc741cd850fd05e",
+          "sourceId": "osm:way:1014985806",
+          "text": "Phantom Ranch",
+          "role": "required-place",
+          "anchorMapUnits": [
+            597.1,
+            563.6
+          ],
+          "coordinatesLonLat": [
+            -112.094812,
+            36.10453158878505
+          ],
+          "equivalenceEvidence": "same normalized destination name/purpose within250m",
+          "distanceFromCanonicalMeters": 111.42
+        }
+      ],
+      "currentPaintStatus": "at-least-one-equivalent-label-visible-in-preliminary-overview",
+      "visibleAlternativeAnnotationIds": null,
+      "verifiedSourceCounterpartStatus": "verified-purpose/name-and-geographic-evidence"
+    },
+    {
+      "destinationId": "feature-2c531ff2890981d0",
+      "name": "Cottonwood CG",
+      "role": "campground",
+      "requiredCore": true,
+      "selectionBasis": "existing configured required destination",
+      "canonical": {
+        "annotationId": "label-94c343079e49d3de",
+        "featureId": "feature-2c531ff2890981d0",
+        "sourceId": null,
+        "text": "Cottonwood CG",
+        "role": "campground",
+        "anchorMapUnits": [
+          789.3,
+          274.1
+        ],
+        "coordinatesLonLat": [
+          -112.04099599999999,
+          36.17000728971963
+        ]
+      },
+      "alternatives": [
+        {
+          "annotationId": "label-94c343079e49d3de",
+          "featureId": "feature-2c531ff2890981d0",
+          "sourceId": null,
+          "text": "Cottonwood CG",
+          "role": "campground",
+          "anchorMapUnits": [
+            789.3,
+            274.1
+          ],
+          "coordinatesLonLat": [
+            -112.04099599999999,
+            36.17000728971963
+          ],
+          "equivalenceEvidence": "canonical",
+          "distanceFromCanonicalMeters": 0.0
+        },
+        {
+          "annotationId": "label-115ec0db112322e4",
+          "featureId": "feature-84ba535f9fb1c2eb",
+          "sourceId": "osm:node:13378627667",
+          "text": "Cottonwood Campground",
+          "role": "campground",
+          "anchorMapUnits": [
+            789.4,
+            274.2
+          ],
+          "coordinatesLonLat": [
+            -112.04096799999999,
+            36.16998467289719
+          ],
+          "equivalenceEvidence": "same normalized destination name/purpose within250m",
+          "distanceFromCanonicalMeters": 3.56
+        },
+        {
+          "annotationId": "label-d084354201643748",
+          "featureId": "feature-323058413e05e4c6",
+          "sourceId": "osm:way:1014985804",
+          "text": "Cottonwood Campground",
+          "role": "campground",
+          "anchorMapUnits": [
+            789.9,
+            271.2
+          ],
+          "coordinatesLonLat": [
+            -112.040828,
+            36.17066317757009
+          ],
+          "equivalenceEvidence": "same normalized destination name/purpose within250m",
+          "distanceFromCanonicalMeters": 74.33
+        }
+      ],
+      "currentPaintStatus": "at-least-one-equivalent-label-visible-in-preliminary-overview",
+      "visibleAlternativeAnnotationIds": null,
+      "verifiedSourceCounterpartStatus": "verified-purpose/name-and-geographic-evidence"
+    },
+    {
+      "destinationId": "feature-f32ddc21c038cc1f",
+      "name": "Hermits Rest",
+      "role": "trailhead",
+      "requiredCore": false,
+      "selectionBasis": "pre-existing authored navigation destination; selection predates this implementation",
+      "canonical": {
+        "annotationId": "label-7be3cbb444211ebd",
+        "featureId": "feature-f32ddc21c038cc1f",
+        "sourceId": null,
+        "text": "Hermits Rest",
+        "role": "trailhead",
+        "anchorMapUnits": [
+          176.8,
+          758.3
+        ],
+        "coordinatesLonLat": [
+          -112.212496,
+          36.06049663551402
+        ]
+      },
+      "alternatives": [
+        {
+          "annotationId": "label-7be3cbb444211ebd",
+          "featureId": "feature-f32ddc21c038cc1f",
+          "sourceId": null,
+          "text": "Hermits Rest",
+          "role": "trailhead",
+          "anchorMapUnits": [
+            176.8,
+            758.3
+          ],
+          "coordinatesLonLat": [
+            -112.212496,
+            36.06049663551402
+          ],
+          "equivalenceEvidence": "canonical",
+          "distanceFromCanonicalMeters": 0.0
+        },
+        {
+          "annotationId": "label-8324f392f75cae7d",
+          "featureId": "feature-7c1e8eb101f2b6a9",
+          "sourceId": "osm:node:1915968428",
+          "text": "Hermit Trailhead",
+          "role": "trailhead",
+          "anchorMapUnits": [
+            176.8,
+            758.5
+          ],
+          "coordinatesLonLat": [
+            -112.212496,
+            36.06045140186916
+          ],
+          "equivalenceEvidence": "authored trailhead-role alias within75m",
+          "distanceFromCanonicalMeters": 5.02
+        }
+      ],
+      "currentPaintStatus": "at-least-one-equivalent-label-visible-in-preliminary-overview",
+      "visibleAlternativeAnnotationIds": null,
+      "verifiedSourceCounterpartStatus": "verified-purpose/name-and-geographic-evidence"
+    },
+    {
+      "destinationId": "feature-e4a2c31f6ac73d54",
+      "name": "Grandview Point",
+      "role": "trailhead",
+      "requiredCore": false,
+      "selectionBasis": "pre-existing authored navigation destination; selection predates this implementation",
+      "canonical": {
+        "annotationId": "label-131ff83ac65e879e",
+        "featureId": "feature-e4a2c31f6ac73d54",
+        "sourceId": null,
+        "text": "Grandview Point",
+        "role": "trailhead",
+        "anchorMapUnits": [
+          979.3,
+          1032.4
+        ],
+        "coordinatesLonLat": [
+          -111.987796,
+          35.99850392523365
+        ]
+      },
+      "alternatives": [
+        {
+          "annotationId": "label-131ff83ac65e879e",
+          "featureId": "feature-e4a2c31f6ac73d54",
+          "sourceId": null,
+          "text": "Grandview Point",
+          "role": "trailhead",
+          "anchorMapUnits": [
+            979.3,
+            1032.4
+          ],
+          "coordinatesLonLat": [
+            -111.987796,
+            35.99850392523365
+          ],
+          "equivalenceEvidence": "canonical",
+          "distanceFromCanonicalMeters": 0.0
+        },
+        {
+          "annotationId": "label-34eafd55b0d41891",
+          "featureId": "feature-b7b18c7acccbeb0d",
+          "sourceId": "osm:node:6430213996",
+          "text": "Grandview Trailhead",
+          "role": "trailhead",
+          "anchorMapUnits": [
+            979.4,
+            1033.7
+          ],
+          "coordinatesLonLat": [
+            -111.987768,
+            35.99820990654206
+          ],
+          "equivalenceEvidence": "authored trailhead-role alias within75m",
+          "distanceFromCanonicalMeters": 32.72
+        }
+      ],
+      "currentPaintStatus": "at-least-one-equivalent-label-visible-in-preliminary-overview",
+      "visibleAlternativeAnnotationIds": null,
+      "verifiedSourceCounterpartStatus": "verified-purpose/name-and-geographic-evidence"
+    },
+    {
+      "destinationId": "feature-37d5e91260d17056",
+      "name": "New Hance TH",
+      "role": "trailhead",
+      "requiredCore": false,
+      "selectionBasis": "pre-existing authored navigation destination; selection predates this implementation",
+      "canonical": {
+        "annotationId": "label-174ea13f363898dd",
+        "featureId": "feature-37d5e91260d17056",
+        "sourceId": null,
+        "text": "New Hance TH",
+        "role": "trailhead",
+        "anchorMapUnits": [
+          1165.4,
+          1066.9
+        ],
+        "coordinatesLonLat": [
+          -111.935688,
+          35.99070112149533
+        ]
+      },
+      "alternatives": [
+        {
+          "annotationId": "label-174ea13f363898dd",
+          "featureId": "feature-37d5e91260d17056",
+          "sourceId": null,
+          "text": "New Hance TH",
+          "role": "trailhead",
+          "anchorMapUnits": [
+            1165.4,
+            1066.9
+          ],
+          "coordinatesLonLat": [
+            -111.935688,
+            35.99070112149533
+          ],
+          "equivalenceEvidence": "canonical",
+          "distanceFromCanonicalMeters": 0.0
+        },
+        {
+          "annotationId": "label-d7a3314ea7b70173",
+          "featureId": "feature-67fb03a708bb639a",
+          "sourceId": "osm:node:2095726580",
+          "text": "New Hance Trailhead",
+          "role": "trailhead",
+          "anchorMapUnits": [
+            1165.3,
+            1066.9
+          ],
+          "coordinatesLonLat": [
+            -111.935716,
+            35.99070112149533
+          ],
+          "equivalenceEvidence": "same normalized destination name/purpose within250m",
+          "distanceFromCanonicalMeters": 2.52
+        }
+      ],
+      "currentPaintStatus": "at-least-one-equivalent-label-visible-in-preliminary-overview",
+      "visibleAlternativeAnnotationIds": null,
+      "verifiedSourceCounterpartStatus": "verified-purpose/name-and-geographic-evidence"
+    },
+    {
+      "destinationId": "feature-aea54ad93ebacc74",
+      "name": "Mather CG",
+      "role": "campground",
+      "requiredCore": false,
+      "selectionBasis": "pre-existing authored navigation destination; selection predates this implementation",
+      "canonical": {
+        "annotationId": "label-c35198e2af3da350",
+        "featureId": "feature-aea54ad93ebacc74",
+        "sourceId": null,
+        "text": "Mather CG",
+        "role": "campground",
+        "anchorMapUnits": [
+          508.6,
+          806.5
+        ],
+        "coordinatesLonLat": [
+          -112.119592,
+          36.04959532710281
+        ]
+      },
+      "alternatives": [
+        {
+          "annotationId": "label-c35198e2af3da350",
+          "featureId": "feature-aea54ad93ebacc74",
+          "sourceId": null,
+          "text": "Mather CG",
+          "role": "campground",
+          "anchorMapUnits": [
+            508.6,
+            806.5
+          ],
+          "coordinatesLonLat": [
+            -112.119592,
+            36.04959532710281
+          ],
+          "equivalenceEvidence": "canonical",
+          "distanceFromCanonicalMeters": 0.0
+        },
+        {
+          "annotationId": "label-19d884e37f5e65b3",
+          "featureId": "feature-95bc696b93c9cfd9",
+          "sourceId": "osm:way:171124802",
+          "text": "Mather Campground",
+          "role": "campground",
+          "anchorMapUnits": [
+            519.5,
+            815.7
+          ],
+          "coordinatesLonLat": [
+            -112.11654,
+            36.04751457943925
+          ],
+          "equivalenceEvidence": "same normalized destination name/purpose; authored anchor inside mapped footprint",
+          "distanceFromCanonicalMeters": 359.08
+        }
+      ],
+      "currentPaintStatus": "at-least-one-equivalent-label-visible-in-preliminary-overview",
+      "visibleAlternativeAnnotationIds": null,
+      "verifiedSourceCounterpartStatus": "verified-purpose/name-and-geographic-evidence"
+    },
+    {
+      "destinationId": "feature-11de02852d666841",
+      "name": "North Rim CG",
+      "role": "campground",
+      "requiredCore": false,
+      "selectionBasis": "pre-existing authored navigation destination; selection predates this implementation",
+      "canonical": {
+        "annotationId": "label-18948f216945a92c",
+        "featureId": "feature-11de02852d666841",
+        "sourceId": null,
+        "text": "North Rim CG",
+        "role": "campground",
+        "anchorMapUnits": [
+          720.0,
+          95.9
+        ],
+        "coordinatesLonLat": [
+          -112.0604,
+          36.210310467289716
+        ]
+      },
+      "alternatives": [
+        {
+          "annotationId": "label-18948f216945a92c",
+          "featureId": "feature-11de02852d666841",
+          "sourceId": null,
+          "text": "North Rim CG",
+          "role": "campground",
+          "anchorMapUnits": [
+            720.0,
+            95.9
+          ],
+          "coordinatesLonLat": [
+            -112.0604,
+            36.210310467289716
+          ],
+          "equivalenceEvidence": "canonical",
+          "distanceFromCanonicalMeters": 0.0
+        },
+        {
+          "annotationId": "label-a15683d03c7d1df8",
+          "featureId": "feature-d69037540e8747b5",
+          "sourceId": "osm:way:175607053",
+          "text": "North Rim Campground",
+          "role": "campground",
+          "anchorMapUnits": [
+            722.8,
+            91.5
+          ],
+          "coordinatesLonLat": [
+            -112.05961599999999,
+            36.21130560747663
+          ],
+          "equivalenceEvidence": "same normalized destination name/purpose within250m",
+          "distanceFromCanonicalMeters": 131.01
+        }
+      ],
+      "currentPaintStatus": "absent-in-preliminary-overview",
+      "visibleAlternativeAnnotationIds": null,
+      "verifiedSourceCounterpartStatus": "verified-purpose/name-and-geographic-evidence"
+    },
+    {
+      "destinationId": "feature-4f6e12a23308f73b",
+      "name": "Widforss TH",
+      "role": "trailhead",
+      "requiredCore": false,
+      "selectionBasis": "pre-existing authored navigation destination; selection predates this implementation",
+      "canonical": {
+        "annotationId": "label-251be9c7b49d8de9",
+        "featureId": "feature-4f6e12a23308f73b",
+        "sourceId": null,
+        "text": "Widforss TH",
+        "role": "trailhead",
+        "anchorMapUnits": [
+          703.6,
+          36.7
+        ],
+        "coordinatesLonLat": [
+          -112.064992,
+          36.22369962616823
+        ]
+      },
+      "alternatives": [
+        {
+          "annotationId": "label-251be9c7b49d8de9",
+          "featureId": "feature-4f6e12a23308f73b",
+          "sourceId": null,
+          "text": "Widforss TH",
+          "role": "trailhead",
+          "anchorMapUnits": [
+            703.6,
+            36.7
+          ],
+          "coordinatesLonLat": [
+            -112.064992,
+            36.22369962616823
+          ],
+          "equivalenceEvidence": "canonical",
+          "distanceFromCanonicalMeters": 0.0
+        },
+        {
+          "annotationId": "label-1da91dae07a636af",
+          "featureId": "feature-e36fd69775c924eb",
+          "sourceId": "osm:node:2130330678",
+          "text": "Widforss Trailhead",
+          "role": "trailhead",
+          "anchorMapUnits": [
+            703.4,
+            36.8
+          ],
+          "coordinatesLonLat": [
+            -112.065048,
+            36.22367700934579
+          ],
+          "equivalenceEvidence": "same normalized destination name/purpose within250m",
+          "distanceFromCanonicalMeters": 5.63
+        }
+      ],
+      "currentPaintStatus": "at-least-one-equivalent-label-visible-in-preliminary-overview",
+      "visibleAlternativeAnnotationIds": null,
+      "verifiedSourceCounterpartStatus": "verified-purpose/name-and-geographic-evidence"
+    },
+    {
+      "destinationId": "feature-6a849a4ece1b9e51",
+      "name": "Cape Final",
+      "role": "campground",
+      "requiredCore": false,
+      "selectionBasis": "pre-existing authored navigation destination; selection predates this implementation",
+      "canonical": {
+        "annotationId": "label-784c94a3ec3547f1",
+        "featureId": "feature-6a849a4ece1b9e51",
+        "sourceId": null,
+        "text": "Cape Final",
+        "role": "campground",
+        "anchorMapUnits": [
+          1263.9,
+          396.6
+        ],
+        "coordinatesLonLat": [
+          -111.908108,
+          36.142301682242994
+        ]
+      },
+      "alternatives": [
+        {
+          "annotationId": "label-784c94a3ec3547f1",
+          "featureId": "feature-6a849a4ece1b9e51",
+          "sourceId": null,
+          "text": "Cape Final",
+          "role": "campground",
+          "anchorMapUnits": [
+            1263.9,
+            396.6
+          ],
+          "coordinatesLonLat": [
+            -111.908108,
+            36.142301682242994
+          ],
+          "equivalenceEvidence": "canonical",
+          "distanceFromCanonicalMeters": 0.0
+        },
+        {
+          "annotationId": "label-ae0fae13ceaf927a",
+          "featureId": "feature-5c93c931d6095b0a",
+          "sourceId": "osm:node:4347510589",
+          "text": "Cape Final",
+          "role": "campground",
+          "anchorMapUnits": [
+            1263.5,
+            396.6
+          ],
+          "coordinatesLonLat": [
+            -111.90822,
+            36.142301682242994
+          ],
+          "equivalenceEvidence": "same normalized destination name/purpose within250m",
+          "distanceFromCanonicalMeters": 10.08
+        }
+      ],
+      "currentPaintStatus": "absent-in-preliminary-overview",
+      "visibleAlternativeAnnotationIds": null,
+      "verifiedSourceCounterpartStatus": "verified-purpose/name-and-geographic-evidence"
+    },
+    {
+      "destinationId": "feature-c698fc97bdea3b27",
+      "name": "Clear Creek CG",
+      "role": "campground",
+      "requiredCore": false,
+      "selectionBasis": "pre-existing authored navigation destination; selection predates this implementation",
+      "canonical": {
+        "annotationId": "label-c5041d27ef4e305b",
+        "featureId": "feature-c698fc97bdea3b27",
+        "sourceId": null,
+        "text": "Clear Creek CG",
+        "role": "campground",
+        "anchorMapUnits": [
+          896.4,
+          520.9
+        ],
+        "coordinatesLonLat": [
+          -112.011008,
+          36.11418897196262
+        ]
+      },
+      "alternatives": [
+        {
+          "annotationId": "label-c5041d27ef4e305b",
+          "featureId": "feature-c698fc97bdea3b27",
+          "sourceId": null,
+          "text": "Clear Creek CG",
+          "role": "campground",
+          "anchorMapUnits": [
+            896.4,
+            520.9
+          ],
+          "coordinatesLonLat": [
+            -112.011008,
+            36.11418897196262
+          ],
+          "equivalenceEvidence": "canonical",
+          "distanceFromCanonicalMeters": 0.0
+        },
+        {
+          "annotationId": "label-ffe14f09d86e3515",
+          "featureId": "feature-56a0320af833f105",
+          "sourceId": "osm:node:1467634846",
+          "text": "Clear Creek Camp",
+          "role": "campground",
+          "anchorMapUnits": [
+            896.4,
+            520.9
+          ],
+          "coordinatesLonLat": [
+            -112.011008,
+            36.11418897196262
+          ],
+          "equivalenceEvidence": "same normalized destination name/purpose within250m",
+          "distanceFromCanonicalMeters": 0.0
+        }
+      ],
+      "currentPaintStatus": "at-least-one-equivalent-label-visible-in-preliminary-overview",
+      "visibleAlternativeAnnotationIds": null,
+      "verifiedSourceCounterpartStatus": "verified-purpose/name-and-geographic-evidence"
+    },
+    {
+      "destinationId": "feature-358604d0f8ccdcb6",
+      "name": "Hermit Creek CG",
+      "role": "campground",
+      "requiredCore": false,
+      "selectionBasis": "pre-existing authored navigation destination; selection predates this implementation",
+      "canonical": {
+        "annotationId": "label-0e9fdc1257d07eb9",
+        "featureId": "feature-358604d0f8ccdcb6",
+        "sourceId": null,
+        "text": "Hermit Creek CG",
+        "role": "campground",
+        "anchorMapUnits": [
+          176.1,
+          662.3
+        ],
+        "coordinatesLonLat": [
+          -112.212692,
+          36.08220878504673
+        ]
+      },
+      "alternatives": [
+        {
+          "annotationId": "label-0e9fdc1257d07eb9",
+          "featureId": "feature-358604d0f8ccdcb6",
+          "sourceId": null,
+          "text": "Hermit Creek CG",
+          "role": "campground",
+          "anchorMapUnits": [
+            176.1,
+            662.3
+          ],
+          "coordinatesLonLat": [
+            -112.212692,
+            36.08220878504673
+          ],
+          "equivalenceEvidence": "canonical",
+          "distanceFromCanonicalMeters": 0.0
+        },
+        {
+          "annotationId": "label-52eaf8b3e5dea747",
+          "featureId": "feature-026919ec0bd5a659",
+          "sourceId": "osm:node:4037112505",
+          "text": "Hermit Creek",
+          "role": "campground",
+          "anchorMapUnits": [
+            176.2,
+            662.3
+          ],
+          "coordinatesLonLat": [
+            -112.212664,
+            36.08220878504673
+          ],
+          "equivalenceEvidence": "same normalized destination name/purpose within250m",
+          "distanceFromCanonicalMeters": 2.52
+        }
+      ],
+      "currentPaintStatus": "at-least-one-equivalent-label-visible-in-preliminary-overview",
+      "visibleAlternativeAnnotationIds": null,
+      "verifiedSourceCounterpartStatus": "verified-purpose/name-and-geographic-evidence"
+    },
+    {
+      "destinationId": "feature-98bc45880d650681",
+      "name": "Hermit Rapids",
+      "role": "campground",
+      "requiredCore": false,
+      "selectionBasis": "pre-existing authored navigation destination; selection predates this implementation",
+      "canonical": {
+        "annotationId": "label-ec34875b5e5bcbd8",
+        "featureId": "feature-98bc45880d650681",
+        "sourceId": null,
+        "text": "Hermit Rapids",
+        "role": "campground",
+        "anchorMapUnits": [
+          188.2,
+          585.8
+        ],
+        "coordinatesLonLat": [
+          -112.209304,
+          36.09951065420561
+        ]
+      },
+      "alternatives": [
+        {
+          "annotationId": "label-ec34875b5e5bcbd8",
+          "featureId": "feature-98bc45880d650681",
+          "sourceId": null,
+          "text": "Hermit Rapids",
+          "role": "campground",
+          "anchorMapUnits": [
+            188.2,
+            585.8
+          ],
+          "coordinatesLonLat": [
+            -112.209304,
+            36.09951065420561
+          ],
+          "equivalenceEvidence": "canonical",
+          "distanceFromCanonicalMeters": 0.0
+        },
+        {
+          "annotationId": "label-f6f6f7f9e70ee4f2",
+          "featureId": "feature-1a6c364ede14bba3",
+          "sourceId": "osm:node:6967591535",
+          "text": "Hermit Rapids",
+          "role": "campground",
+          "anchorMapUnits": [
+            188.1,
+            585.7
+          ],
+          "coordinatesLonLat": [
+            -112.209332,
+            36.09953327102804
+          ],
+          "equivalenceEvidence": "same normalized destination name/purpose within250m",
+          "distanceFromCanonicalMeters": 3.56
+        }
+      ],
+      "currentPaintStatus": "at-least-one-equivalent-label-visible-in-preliminary-overview",
+      "visibleAlternativeAnnotationIds": null,
+      "verifiedSourceCounterpartStatus": "verified-purpose/name-and-geographic-evidence"
+    },
+    {
+      "destinationId": "feature-0581c4c237706a49",
+      "name": "Monument Creek",
+      "role": "campground",
+      "requiredCore": false,
+      "selectionBasis": "pre-existing authored navigation destination; selection predates this implementation",
+      "canonical": {
+        "annotationId": "label-5376dd862028db36",
+        "featureId": "feature-0581c4c237706a49",
+        "sourceId": null,
+        "text": "Monument Creek",
+        "role": "campground",
+        "anchorMapUnits": [
+          269.6,
+          659.7
+        ],
+        "coordinatesLonLat": [
+          -112.186512,
+          36.082796822429906
+        ]
+      },
+      "alternatives": [
+        {
+          "annotationId": "label-5376dd862028db36",
+          "featureId": "feature-0581c4c237706a49",
+          "sourceId": null,
+          "text": "Monument Creek",
+          "role": "campground",
+          "anchorMapUnits": [
+            269.6,
+            659.7
+          ],
+          "coordinatesLonLat": [
+            -112.186512,
+            36.082796822429906
+          ],
+          "equivalenceEvidence": "canonical",
+          "distanceFromCanonicalMeters": 0.0
+        },
+        {
+          "annotationId": "label-d8f9db9c5fd7e833",
+          "featureId": "feature-9f99b3d7ceea7fca",
+          "sourceId": "osm:node:5477026769",
+          "text": "Monument Creek",
+          "role": "campground",
+          "anchorMapUnits": [
+            269.6,
+            659.9
+          ],
+          "coordinatesLonLat": [
+            -112.186512,
+            36.08275158878505
+          ],
+          "equivalenceEvidence": "same normalized destination name/purpose within250m",
+          "distanceFromCanonicalMeters": 5.02
+        }
+      ],
+      "currentPaintStatus": "at-least-one-equivalent-label-visible-in-preliminary-overview",
+      "visibleAlternativeAnnotationIds": null,
+      "verifiedSourceCounterpartStatus": "verified-purpose/name-and-geographic-evidence"
+    },
+    {
+      "destinationId": "feature-69d48b7c81a7cc5e",
+      "name": "Granite Rapids",
+      "role": "campground",
+      "requiredCore": false,
+      "selectionBasis": "pre-existing authored navigation destination; selection predates this implementation",
+      "canonical": {
+        "annotationId": "label-583ef51a41e7d0d8",
+        "featureId": "feature-69d48b7c81a7cc5e",
+        "sourceId": null,
+        "text": "Granite Rapids",
+        "role": "campground",
+        "anchorMapUnits": [
+          285.7,
+          594.7
+        ],
+        "coordinatesLonLat": [
+          -112.182004,
+          36.09749775700935
+        ]
+      },
+      "alternatives": [
+        {
+          "annotationId": "label-583ef51a41e7d0d8",
+          "featureId": "feature-69d48b7c81a7cc5e",
+          "sourceId": null,
+          "text": "Granite Rapids",
+          "role": "campground",
+          "anchorMapUnits": [
+            285.7,
+            594.7
+          ],
+          "coordinatesLonLat": [
+            -112.182004,
+            36.09749775700935
+          ],
+          "equivalenceEvidence": "canonical",
+          "distanceFromCanonicalMeters": 0.0
+        },
+        {
+          "annotationId": "label-a37b178a642d6698",
+          "featureId": "feature-af26a554cbe1bfd9",
+          "sourceId": "osm:node:5592173304",
+          "text": "Granite Rapids",
+          "role": "campground",
+          "anchorMapUnits": [
+            285.7,
+            594.8
+          ],
+          "coordinatesLonLat": [
+            -112.182004,
+            36.097475140186916
+          ],
+          "equivalenceEvidence": "same normalized destination name/purpose within250m",
+          "distanceFromCanonicalMeters": 2.51
+        }
+      ],
+      "currentPaintStatus": "at-least-one-equivalent-label-visible-in-preliminary-overview",
+      "visibleAlternativeAnnotationIds": null,
+      "verifiedSourceCounterpartStatus": "verified-purpose/name-and-geographic-evidence"
+    },
+    {
+      "destinationId": "feature-77f91bfd318e13f2",
+      "name": "Salt Creek",
+      "role": "campground",
+      "requiredCore": false,
+      "selectionBasis": "pre-existing authored navigation destination; selection predates this implementation",
+      "canonical": {
+        "annotationId": "label-b283a1685cb6fbd5",
+        "featureId": "feature-77f91bfd318e13f2",
+        "sourceId": null,
+        "text": "Salt Creek",
+        "role": "campground",
+        "anchorMapUnits": [
+          357.1,
+          653.5
+        ],
+        "coordinatesLonLat": [
+          -112.162012,
+          36.08419906542056
+        ]
+      },
+      "alternatives": [
+        {
+          "annotationId": "label-b283a1685cb6fbd5",
+          "featureId": "feature-77f91bfd318e13f2",
+          "sourceId": null,
+          "text": "Salt Creek",
+          "role": "campground",
+          "anchorMapUnits": [
+            357.1,
+            653.5
+          ],
+          "coordinatesLonLat": [
+            -112.162012,
+            36.08419906542056
+          ],
+          "equivalenceEvidence": "canonical",
+          "distanceFromCanonicalMeters": 0.0
+        },
+        {
+          "annotationId": "label-cabfa5eacdcbbfba",
+          "featureId": "feature-037ccf878a129725",
+          "sourceId": "osm:node:4396774989",
+          "text": "Salt Creek Campsite",
+          "role": "campground",
+          "anchorMapUnits": [
+            357.0,
+            653.6
+          ],
+          "coordinatesLonLat": [
+            -112.16204,
+            36.08417644859813
+          ],
+          "equivalenceEvidence": "same normalized destination name/purpose within250m",
+          "distanceFromCanonicalMeters": 3.56
+        }
+      ],
+      "currentPaintStatus": "at-least-one-equivalent-label-visible-in-preliminary-overview",
+      "visibleAlternativeAnnotationIds": null,
+      "verifiedSourceCounterpartStatus": "verified-purpose/name-and-geographic-evidence"
+    },
+    {
+      "destinationId": "feature-4d4916546199da32",
+      "name": "Cedar Spring",
+      "role": "campground",
+      "requiredCore": false,
+      "selectionBasis": "pre-existing authored navigation destination; selection predates this implementation",
+      "canonical": {
+        "annotationId": "label-8b6a3b0f79b73a61",
+        "featureId": "feature-4d4916546199da32",
+        "sourceId": null,
+        "text": "Cedar Spring",
+        "role": "campground",
+        "anchorMapUnits": [
+          298.2,
+          630.9
+        ],
+        "coordinatesLonLat": [
+          -112.178504,
+          36.08931046728972
+        ]
+      },
+      "alternatives": [
+        {
+          "annotationId": "label-8b6a3b0f79b73a61",
+          "featureId": "feature-4d4916546199da32",
+          "sourceId": null,
+          "text": "Cedar Spring",
+          "role": "campground",
+          "anchorMapUnits": [
+            298.2,
+            630.9
+          ],
+          "coordinatesLonLat": [
+            -112.178504,
+            36.08931046728972
+          ],
+          "equivalenceEvidence": "canonical",
+          "distanceFromCanonicalMeters": 0.0
+        },
+        {
+          "annotationId": "label-7e606d973e9681e9",
+          "featureId": "feature-e5280d95913492a9",
+          "sourceId": "osm:node:5477026770",
+          "text": "Cedar Spring",
+          "role": "campground",
+          "anchorMapUnits": [
+            298.4,
+            631.0
+          ],
+          "coordinatesLonLat": [
+            -112.178448,
+            36.089287850467294
+          ],
+          "equivalenceEvidence": "same normalized destination name/purpose within250m",
+          "distanceFromCanonicalMeters": 5.63
+        }
+      ],
+      "currentPaintStatus": "at-least-one-equivalent-label-visible-in-preliminary-overview",
+      "visibleAlternativeAnnotationIds": null,
+      "verifiedSourceCounterpartStatus": "verified-purpose/name-and-geographic-evidence"
+    },
+    {
+      "destinationId": "feature-2714979068e67e83",
+      "name": "Horn Creek",
+      "role": "campground",
+      "requiredCore": false,
+      "selectionBasis": "pre-existing authored navigation destination; selection predates this implementation",
+      "canonical": {
+        "annotationId": "label-5bd747a3f027bc18",
+        "featureId": "feature-2714979068e67e83",
+        "sourceId": null,
+        "text": "Horn Creek",
+        "role": "campground",
+        "anchorMapUnits": [
+          422.1,
+          650.4
+        ],
+        "coordinatesLonLat": [
+          -112.143812,
+          36.08490018691589
+        ]
+      },
+      "alternatives": [
+        {
+          "annotationId": "label-5bd747a3f027bc18",
+          "featureId": "feature-2714979068e67e83",
+          "sourceId": null,
+          "text": "Horn Creek",
+          "role": "campground",
+          "anchorMapUnits": [
+            422.1,
+            650.4
+          ],
+          "coordinatesLonLat": [
+            -112.143812,
+            36.08490018691589
+          ],
+          "equivalenceEvidence": "canonical",
+          "distanceFromCanonicalMeters": 0.0
+        },
+        {
+          "annotationId": "label-7a05a71de7e26e27",
+          "featureId": "feature-4168ee53d4c29280",
+          "sourceId": "osm:node:4207740194",
+          "text": "Horn Creek Campsite",
+          "role": "campground",
+          "anchorMapUnits": [
+            422.0,
+            650.6
+          ],
+          "coordinatesLonLat": [
+            -112.14384,
+            36.08485495327103
+          ],
+          "equivalenceEvidence": "same normalized destination name/purpose within250m",
+          "distanceFromCanonicalMeters": 5.62
+        }
+      ],
+      "currentPaintStatus": "absent-in-preliminary-overview",
+      "visibleAlternativeAnnotationIds": null,
+      "verifiedSourceCounterpartStatus": "verified-purpose/name-and-geographic-evidence"
+    },
+    {
+      "destinationId": "feature-1325a8ccc1105bb2",
+      "name": "Boucher Creek",
+      "role": "campground",
+      "requiredCore": false,
+      "selectionBasis": "pre-existing authored navigation destination; selection predates this implementation",
+      "canonical": {
+        "annotationId": "label-5565b5c1454c6ee1",
+        "featureId": "feature-1325a8ccc1105bb2",
+        "sourceId": null,
+        "text": "Boucher Creek",
+        "role": "campground",
+        "anchorMapUnits": [
+          89.6,
+          562.9
+        ],
+        "coordinatesLonLat": [
+          -112.236912,
+          36.104689906542056
+        ]
+      },
+      "alternatives": [
+        {
+          "annotationId": "label-5565b5c1454c6ee1",
+          "featureId": "feature-1325a8ccc1105bb2",
+          "sourceId": null,
+          "text": "Boucher Creek",
+          "role": "campground",
+          "anchorMapUnits": [
+            89.6,
+            562.9
+          ],
+          "coordinatesLonLat": [
+            -112.236912,
+            36.104689906542056
+          ],
+          "equivalenceEvidence": "canonical",
+          "distanceFromCanonicalMeters": 0.0
+        }
+      ],
+      "currentPaintStatus": "at-least-one-equivalent-label-visible-in-preliminary-overview",
+      "visibleAlternativeAnnotationIds": null,
+      "verifiedSourceCounterpartStatus": "authored-only; no verified catalog counterpart in this review"
+    },
+    {
+      "destinationId": "feature-737204e3bbbd29a5",
+      "name": "Horseshoe Mesa CG",
+      "role": "campground",
+      "requiredCore": false,
+      "selectionBasis": "pre-existing authored navigation destination; selection predates this implementation",
+      "canonical": {
+        "annotationId": "label-ce3267bfdb4c0872",
+        "featureId": "feature-737204e3bbbd29a5",
+        "sourceId": null,
+        "text": "Horseshoe Mesa CG",
+        "role": "campground",
+        "anchorMapUnits": [
+          1026.4,
+          938.2
+        ],
+        "coordinatesLonLat": [
+          -111.974608,
+          36.01980897196262
+        ]
+      },
+      "alternatives": [
+        {
+          "annotationId": "label-ce3267bfdb4c0872",
+          "featureId": "feature-737204e3bbbd29a5",
+          "sourceId": null,
+          "text": "Horseshoe Mesa CG",
+          "role": "campground",
+          "anchorMapUnits": [
+            1026.4,
+            938.2
+          ],
+          "coordinatesLonLat": [
+            -111.974608,
+            36.01980897196262
+          ],
+          "equivalenceEvidence": "canonical",
+          "distanceFromCanonicalMeters": 0.0
+        },
+        {
+          "annotationId": "label-1c54683a247cf069",
+          "featureId": "feature-36a15d5ff7f7391b",
+          "sourceId": "osm:node:5476147596",
+          "text": "Horseshoe Mesa Camp",
+          "role": "campground",
+          "anchorMapUnits": [
+            1026.5,
+            938.1
+          ],
+          "coordinatesLonLat": [
+            -111.97458,
+            36.019831588785046
+          ],
+          "equivalenceEvidence": "same normalized destination name/purpose within250m",
+          "distanceFromCanonicalMeters": 3.56
+        }
+      ],
+      "currentPaintStatus": "at-least-one-equivalent-label-visible-in-preliminary-overview",
+      "visibleAlternativeAnnotationIds": null,
+      "verifiedSourceCounterpartStatus": "verified-purpose/name-and-geographic-evidence"
+    },
+    {
+      "destinationId": "feature-1156bab05e6c355b",
+      "name": "Point Sublime",
+      "role": "campground",
+      "requiredCore": false,
+      "selectionBasis": "source-only geographic spread; greedy farthest-point sample seeded by fixed required/editorial destinations",
+      "canonical": {
+        "annotationId": "label-a53dd1879e50c381",
+        "featureId": "feature-1156bab05e6c355b",
+        "sourceId": "osm:node:3736055850",
+        "text": "Point Sublime",
+        "role": "campground",
+        "anchorMapUnits": [
+          48.0,
+          132.2
+        ],
+        "coordinatesLonLat": [
+          -112.24856,
+          36.20210056074767
+        ]
+      },
+      "alternatives": [
+        {
+          "annotationId": "label-a53dd1879e50c381",
+          "featureId": "feature-1156bab05e6c355b",
+          "sourceId": "osm:node:3736055850",
+          "text": "Point Sublime",
+          "role": "campground",
+          "anchorMapUnits": [
+            48.0,
+            132.2
+          ],
+          "coordinatesLonLat": [
+            -112.24856,
+            36.20210056074767
+          ],
+          "equivalenceEvidence": "canonical",
+          "distanceFromCanonicalMeters": 0.0
+        }
+      ],
+      "currentPaintStatus": "at-least-one-equivalent-label-visible-in-preliminary-overview",
+      "visibleAlternativeAnnotationIds": null,
+      "verifiedSourceCounterpartStatus": "verified-purpose/name-and-geographic-evidence"
+    },
+    {
+      "destinationId": "feature-f7f4744a885101f3",
+      "name": "Roosevelt Trailhead",
+      "role": "trailhead",
+      "requiredCore": false,
+      "selectionBasis": "source-only geographic spread; greedy farthest-point sample seeded by fixed required/editorial destinations",
+      "canonical": {
+        "annotationId": "label-4155a016bd5c158b",
+        "featureId": "feature-f7f4744a885101f3",
+        "sourceId": "osm:node:1183479517",
+        "text": "Roosevelt Trailhead",
+        "role": "trailhead",
+        "anchorMapUnits": [
+          1105.6,
+          61.1
+        ],
+        "coordinatesLonLat": [
+          -111.952432,
+          36.21818112149533
+        ]
+      },
+      "alternatives": [
+        {
+          "annotationId": "label-4155a016bd5c158b",
+          "featureId": "feature-f7f4744a885101f3",
+          "sourceId": "osm:node:1183479517",
+          "text": "Roosevelt Trailhead",
+          "role": "trailhead",
+          "anchorMapUnits": [
+            1105.6,
+            61.1
+          ],
+          "coordinatesLonLat": [
+            -111.952432,
+            36.21818112149533
+          ],
+          "equivalenceEvidence": "canonical",
+          "distanceFromCanonicalMeters": 0.0
+        }
+      ],
+      "currentPaintStatus": "at-least-one-equivalent-label-visible-in-preliminary-overview",
+      "visibleAlternativeAnnotationIds": null,
+      "verifiedSourceCounterpartStatus": "verified-purpose/name-and-geographic-evidence"
+    },
+    {
+      "destinationId": "feature-4fd582f9796dd716",
+      "name": "Cliff Spring Trailhead",
+      "role": "trailhead",
+      "requiredCore": false,
+      "selectionBasis": "source-only geographic spread; greedy farthest-point sample seeded by fixed required/editorial destinations",
+      "canonical": {
+        "annotationId": "label-1a0ef40dc4c427f4",
+        "featureId": "feature-4fd582f9796dd716",
+        "sourceId": "osm:node:428984268",
+        "text": "Cliff Spring Trailhead",
+        "role": "trailhead",
+        "anchorMapUnits": [
+          1121.8,
+          474.5
+        ],
+        "coordinatesLonLat": [
+          -111.947896,
+          36.12468317757009
+        ]
+      },
+      "alternatives": [
+        {
+          "annotationId": "label-1a0ef40dc4c427f4",
+          "featureId": "feature-4fd582f9796dd716",
+          "sourceId": "osm:node:428984268",
+          "text": "Cliff Spring Trailhead",
+          "role": "trailhead",
+          "anchorMapUnits": [
+            1121.8,
+            474.5
+          ],
+          "coordinatesLonLat": [
+            -111.947896,
+            36.12468317757009
+          ],
+          "equivalenceEvidence": "canonical",
+          "distanceFromCanonicalMeters": 0.0
+        }
+      ],
+      "currentPaintStatus": "at-least-one-equivalent-label-visible-in-preliminary-overview",
+      "visibleAlternativeAnnotationIds": null,
+      "verifiedSourceCounterpartStatus": "verified-purpose/name-and-geographic-evidence"
+    },
+    {
+      "destinationId": "feature-035c4248249912b0",
+      "name": "Cape Final",
+      "role": "trailhead",
+      "requiredCore": false,
+      "selectionBasis": "source-only geographic spread; greedy farthest-point sample seeded by fixed required/editorial destinations",
+      "canonical": {
+        "annotationId": "label-d64313fe1ece25ab",
+        "featureId": "feature-035c4248249912b0",
+        "sourceId": "osm:node:2131696896",
+        "text": "Cape Final",
+        "role": "trailhead",
+        "anchorMapUnits": [
+          1165.9,
+          381.3
+        ],
+        "coordinatesLonLat": [
+          -111.935548,
+          36.145762056074766
+        ]
+      },
+      "alternatives": [
+        {
+          "annotationId": "label-d64313fe1ece25ab",
+          "featureId": "feature-035c4248249912b0",
+          "sourceId": "osm:node:2131696896",
+          "text": "Cape Final",
+          "role": "trailhead",
+          "anchorMapUnits": [
+            1165.9,
+            381.3
+          ],
+          "coordinatesLonLat": [
+            -111.935548,
+            36.145762056074766
+          ],
+          "equivalenceEvidence": "canonical",
+          "distanceFromCanonicalMeters": 0.0
+        }
+      ],
+      "currentPaintStatus": "absent-in-preliminary-overview",
+      "visibleAlternativeAnnotationIds": null,
+      "verifiedSourceCounterpartStatus": "verified-purpose/name-and-geographic-evidence"
+    }
+  ],
+  "rawPrimaryAnnotationDiagnostic": {
+    "visible": 42,
+    "total": 73,
+    "eligible": 67,
+    "visibleEligible": 42
+  },
+  "missingExpectedDestinations": [
+    {
+      "destinationId": "feature-11de02852d666841",
+      "name": "North Rim CG",
+      "role": "campground",
+      "requiredCore": false,
+      "annotationIds": [
+        "label-18948f216945a92c",
+        "label-a15683d03c7d1df8"
+      ],
+      "sourceIds": [
+        "osm:way:175607053"
+      ]
+    },
+    {
+      "destinationId": "feature-6a849a4ece1b9e51",
+      "name": "Cape Final",
+      "role": "campground",
+      "requiredCore": false,
+      "annotationIds": [
+        "label-784c94a3ec3547f1",
+        "label-ae0fae13ceaf927a"
+      ],
+      "sourceIds": [
+        "osm:node:4347510589"
+      ]
+    },
+    {
+      "destinationId": "feature-2714979068e67e83",
+      "name": "Horn Creek",
+      "role": "campground",
+      "requiredCore": false,
+      "annotationIds": [
+        "label-5bd747a3f027bc18",
+        "label-7a05a71de7e26e27"
+      ],
+      "sourceIds": [
+        "osm:node:4207740194"
+      ]
+    },
+    {
+      "destinationId": "feature-035c4248249912b0",
+      "name": "Cape Final",
+      "role": "trailhead",
+      "requiredCore": false,
+      "annotationIds": [
+        "label-d64313fe1ece25ab"
+      ],
+      "sourceIds": [
+        "osm:node:2131696896"
+      ]
+    }
+  ],
+  "missingStatus": "Four representative destinations absent in the preliminary Chromium overview; all nine core destinations represented. Membership and floors were not changed after this observation.",
+  "primaryAnnotationsOutsideRepresentativeBaseline": [
+    {
+      "annotationId": "label-5d9d4880a33264e1",
+      "featureId": "feature-9cdab97f7df94abb",
+      "sourceId": null,
+      "text": "Ribbon Falls",
+      "role": "required-place",
+      "anchorMapUnits": [
+        737.5,
+        321.4
+      ],
+      "coordinatesLonLat": [
+        -112.0555,
+        36.15930953271028
+      ]
+    },
+    {
+      "annotationId": "label-3e48f96d7b9ae9bc",
+      "featureId": "feature-22f10032e6c38488",
+      "sourceId": "osm:node:10975463862",
+      "text": "Plateau Point Trailhead",
+      "role": "trailhead",
+      "anchorMapUnits": [
+        481.1,
+        679.4
+      ],
+      "coordinatesLonLat": [
+        -112.127292,
+        36.07834130841122
+      ]
+    },
+    {
+      "annotationId": "label-860b26a40b6e65d9",
+      "featureId": "feature-8e27f845a71246b1",
+      "sourceId": "osm:node:150952317",
+      "text": "Grand Canyon Village",
+      "role": "required-place",
+      "anchorMapUnits": [
+        433.5,
+        784.7
+      ],
+      "coordinatesLonLat": [
+        -112.14062,
+        36.054525794392525
+      ]
+    },
+    {
+      "annotationId": "label-5fc753a3d826df73",
+      "featureId": "feature-b814ace8d7944748",
+      "sourceId": "osm:node:1579720669",
+      "text": "Rim Trailhead",
+      "role": "trailhead",
+      "anchorMapUnits": [
+        637.0,
+        792.9
+      ],
+      "coordinatesLonLat": [
+        -112.08364,
+        36.05267121495327
+      ]
+    },
+    {
+      "annotationId": "label-f7b38fb2be3cff19",
+      "featureId": "feature-7345043f8dfb8b38",
+      "sourceId": "osm:node:173910243",
+      "text": "Waldron Trailhead",
+      "role": "trailhead",
+      "anchorMapUnits": [
+        195.8,
+        849.2
+      ],
+      "coordinatesLonLat": [
+        -112.207176,
+        36.03993794392524
+      ]
+    },
+    {
+      "annotationId": "label-daba77e1178459af",
+      "featureId": "feature-5ede9b25a743ebb5",
+      "sourceId": "osm:node:174103801",
+      "text": "Ken Patrick Trailhead",
+      "role": "trailhead",
+      "anchorMapUnits": [
+        736.1,
+        62.8
+      ],
+      "coordinatesLonLat": [
+        -112.055892,
+        36.21779663551402
+      ]
+    },
+    {
+      "annotationId": "label-549a85bc04ca8e08",
+      "featureId": "feature-e9bed212dfd35ce3",
+      "sourceId": "osm:node:1856335431",
+      "text": "Rim Trailhead",
+      "role": "trailhead",
+      "anchorMapUnits": [
+        184.1,
+        749.9
+      ],
+      "coordinatesLonLat": [
+        -112.210452,
+        36.06239644859813
+      ]
+    },
+    {
+      "annotationId": "label-18686acb47015dd0",
+      "featureId": "feature-900cb9f26872950c",
+      "sourceId": "osm:node:1861753775",
+      "text": "Bright Angel Point Trailhead",
+      "role": "trailhead",
+      "anchorMapUnits": [
+        744.4,
+        155.1
+      ],
+      "coordinatesLonLat": [
+        -112.053568,
+        36.19692130841121
+      ]
+    },
+    {
+      "annotationId": "label-08e712d56b95d3f7",
+      "featureId": "feature-f07c0e4290b53651",
+      "sourceId": "osm:node:2095710491",
+      "text": "Grandview Trailhead (Northernmost)",
+      "role": "trailhead",
+      "anchorMapUnits": [
+        1014.9,
+        863.1
+      ],
+      "coordinatesLonLat": [
+        -111.977828,
+        36.03679420560748
+      ]
+    },
+    {
+      "annotationId": "label-e76669ed869e7a41",
+      "featureId": "feature-ea3b7a58d4a0175c",
+      "sourceId": "osm:node:2140629122",
+      "text": "Headquarters Rim Spur Trailhead",
+      "role": "trailhead",
+      "anchorMapUnits": [
+        498.4,
+        785.0
+      ],
+      "coordinatesLonLat": [
+        -112.122448,
+        36.054457943925236
+      ]
+    },
+    {
+      "annotationId": "label-d25ef0bba7b2bb6b",
+      "featureId": "feature-7d3c6678127a2434",
+      "sourceId": "osm:node:3277167651",
+      "text": "Walhalla Glades Trailhead",
+      "role": "trailhead",
+      "anchorMapUnits": [
+        1077.3,
+        78.2
+      ],
+      "coordinatesLonLat": [
+        -111.96035599999999,
+        36.214313644859814
+      ]
+    },
+    {
+      "annotationId": "label-8c6b5f9caa29209d",
+      "featureId": "feature-881ad63bb82189b2",
+      "sourceId": "osm:node:5888917375",
+      "text": "Shoshone Point Traihead",
+      "role": "trailhead",
+      "anchorMapUnits": [
+        644.8,
+        799.0
+      ],
+      "coordinatesLonLat": [
+        -112.081456,
+        36.05129158878505
+      ]
+    },
+    {
+      "annotationId": "label-6a4064526f222614",
+      "featureId": "feature-3073ee064ca7becf",
+      "sourceId": "osm:node:5930703245",
+      "text": "North Rim",
+      "role": "required-place",
+      "anchorMapUnits": [
+        747.5,
+        142.1
+      ],
+      "coordinatesLonLat": [
+        -112.0527,
+        36.199861495327106
+      ]
+    },
+    {
+      "annotationId": "label-42f6561f9c50048f",
+      "featureId": "feature-a79c5e612ebccf5b",
+      "sourceId": "osm:way:144432989",
+      "text": "Grand Canyon Visitor Center (South Rim)",
+      "role": "required-place",
+      "anchorMapUnits": [
+        545.2,
+        764.4
+      ],
+      "coordinatesLonLat": [
+        -112.109344,
+        36.0591170093458
+      ]
+    },
+    {
+      "annotationId": "label-f21c4ee8aa3ba8cc",
+      "featureId": "feature-f33e239c13701b27",
+      "sourceId": "osm:way:1526824459",
+      "text": "North Rim Ranger Station",
+      "role": "required-place",
+      "anchorMapUnits": [
+        712.7,
+        75.4
+      ],
+      "coordinatesLonLat": [
+        -112.062444,
+        36.21494691588785
+      ]
+    },
+    {
+      "annotationId": "label-5629c41a5156f4f8",
+      "featureId": "feature-1705cd0e5e50389f",
+      "sourceId": "osm:way:171147659",
+      "text": "Ranger Office",
+      "role": "required-place",
+      "anchorMapUnits": [
+        442.7,
+        781.7
+      ],
+      "coordinatesLonLat": [
+        -112.138044,
+        36.05520429906542
+      ]
+    },
+    {
+      "annotationId": "label-c5b29b605a99b19c",
+      "featureId": "feature-cea6e0087f73c6cf",
+      "sourceId": "osm:way:175763638",
+      "text": "Manzanita Ranger Station",
+      "role": "required-place",
+      "anchorMapUnits": [
+        821.4,
+        202.8
+      ],
+      "coordinatesLonLat": [
+        -112.032008,
+        36.18613308411215
+      ]
+    },
+    {
+      "annotationId": "label-ee9033f5b5e7f63b",
+      "featureId": "feature-40e89d5ae6422ed9",
+      "sourceId": "osm:way:175763645",
+      "text": "Phantom Ranger Station",
+      "role": "required-place",
+      "anchorMapUnits": [
+        594.6,
+        565.9
+      ],
+      "coordinatesLonLat": [
+        -112.095512,
+        36.10401140186916
+      ]
+    },
+    {
+      "annotationId": "label-89e8ccd02c05485a",
+      "featureId": "feature-a5d79f21539cb62e",
+      "sourceId": "osm:way:292444957",
+      "text": "Havasupai Gardens Ranger Station",
+      "role": "required-place",
+      "anchorMapUnits": [
+        473.4,
+        690.7
+      ],
+      "coordinatesLonLat": [
+        -112.129448,
+        36.07578560747664
+      ]
+    }
+  ],
+  "reviewNotes": [
+    "Membership and floors are frozen independently of subsequent pass/fail outcomes.",
+    "A view or landmark within a campground is not automatically its campsite equivalent.",
+    "Source identity absent on authored records is retained as null, never manufactured.",
+    "The 80% floor counts the fixed 30 destinations; all 9 required core destinations must be represented.",
+    "Raw primary annotation coverage remains diagnostic; the preliminary result is 42/67 (62.7%).",
+    "The final all-engine release gate, immutable artifact hashes, interaction checks and promotion checks remain required."
+  ],
+  "authoredDestinationsWithoutVerifiedSourceCounterpart": [
+    "Boucher Creek"
+  ],
+  "reviewScope": "The destination identities, equivalents and floors are reviewed and frozen. This is not approval of the final candidate, all browser engines, all scales or all catalog destinations.",
+  "selectionCandidateSha256": "6ac84053ea92c203ed3920b950d4552a1caa2d953ed10b9c9de6e319bb940fcd",
+  "preliminaryPaintAssessment": {
+    "status": "bounded-one-browser-overview-assessment; not-full-release-approval",
+    "artifactSha256": "298de3449c066ba1e2ddc61e261cfbf59c97ad88bcefbd04548d097c841ac550",
+    "proposalSha256": "45557450d3ffb530e87b7746bf8579ac7636b55a3824191b2610ed87ebf7e0cd",
+    "profile": {
+      "browser": "chromium",
+      "viewport": [
+        1440,
+        1000
+      ],
+      "deviceScaleFactor": 1,
+      "theme": "light",
+      "zoom": 1
+    },
+    "destinations": {
+      "numerator": 26,
+      "denominator": 30,
+      "fraction": 0.8666666666666667,
+      "missing": [
+        "feature-11de02852d666841",
+        "feature-6a849a4ece1b9e51",
+        "feature-2714979068e67e83",
+        "feature-035c4248249912b0"
+      ]
+    },
+    "requiredCore": {
+      "numerator": 9,
+      "denominator": 9,
+      "fraction": 1,
+      "missing": []
+    },
+    "rawPrimaryAnnotations": {
+      "visible": 42,
+      "total": 73,
+      "eligible": 67,
+      "visibleEligible": 42
+    },
+    "missing": [
+      {
+        "destinationId": "feature-11de02852d666841",
+        "name": "North Rim CG",
+        "role": "campground",
+        "requiredCore": false,
+        "annotationIds": [
+          "label-18948f216945a92c",
+          "label-a15683d03c7d1df8"
+        ],
+        "sourceIds": [
+          "osm:way:175607053"
+        ]
+      },
+      {
+        "destinationId": "feature-6a849a4ece1b9e51",
+        "name": "Cape Final",
+        "role": "campground",
+        "requiredCore": false,
+        "annotationIds": [
+          "label-784c94a3ec3547f1",
+          "label-ae0fae13ceaf927a"
+        ],
+        "sourceIds": [
+          "osm:node:4347510589"
+        ]
+      },
+      {
+        "destinationId": "feature-2714979068e67e83",
+        "name": "Horn Creek",
+        "role": "campground",
+        "requiredCore": false,
+        "annotationIds": [
+          "label-5bd747a3f027bc18",
+          "label-7a05a71de7e26e27"
+        ],
+        "sourceIds": [
+          "osm:node:4207740194"
+        ]
+      },
+      {
+        "destinationId": "feature-035c4248249912b0",
+        "name": "Cape Final",
+        "role": "trailhead",
+        "requiredCore": false,
+        "annotationIds": [
+          "label-d64313fe1ece25ab"
+        ],
+        "sourceIds": [
+          "osm:node:2131696896"
+        ]
+      }
+    ],
+    "findings": {
+      "overlaps": 0,
+      "clipped": 0,
+      "unknown": 0,
+      "missingRequired": 0,
+      "typography": 0
+    },
+    "screenshot": "artifacts/cartography/proposed-destinations-review/chromium-1440-dpr1-light-overview.png",
+    "visualAssessment": [
+      "Northern and central destination names are readable and the main trails remain distinct from contours.",
+      "Equivalent destination names still repeat visibly: Cottonwood CG/Campground, Clear Creek CG/Camp and Hermit Creek/CG. Grouping the coverage metric does not fix this rendering redundancy.",
+      "The screenshot captures the1440×1000 browser viewport, which ends partway down the map; southern labels below the fold were not visually reviewed in this pass.",
+      "The independent30-destination80%floor and9-core100%floor pass. Raw primary42/67=62.7%still fails its unchanged80%floor. Neither result establishes all-primary coverage or a complete release."
+    ]
+  }
+}

@@ -52,6 +52,9 @@ export class ContourPreview {
   }
   render(view,viewport,maxBytes,{hidden=this.svg.classList.contains('no-contours')}={}){
     if(!this.context||!this.layers.length)return;
+    // Resize observers may see a temporarily collapsed surface. Preserve the
+    // last finite raster until a measurable viewport returns; never divide by0.
+    if(viewport.width===0||viewport.height===0)return;
     const fit=Math.min(viewport.width/view.w,viewport.height/view.h),visibleW=viewport.width/fit,visibleH=viewport.height/fit,
       visibleX=view.x-(visibleW-view.w)/2,visibleY=view.y-(visibleH-view.h)/2,z=this.map.width/view.w,
       dpr=devicePixelRatio||1,cached=this.cached;

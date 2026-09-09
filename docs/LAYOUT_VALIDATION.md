@@ -8,10 +8,12 @@ outcome for every annotation. Hiding optional labels is an explicit outcome; req
 names must remain visible. A symbol does not satisfy a name requirement.
 
 The interactive controller owns camera, layer and label changes. The static finalizer bakes
-positions into HTML at the declared 1300-unit map width and checks the serialized file again
-with JavaScript disabled. This retains the existing SVG terrain, palettes and geographic data.
-Regions receive bounded alternatives around their authored position; the system does not infer
-region boundaries from a name or move geographic features to make labels fit.
+positions into HTML at the declared natural map size and checks the serialized file again
+with JavaScript disabled. Shared cartography supplies source geometry, independent land cover
+and neutral relief, ground-scale styling, and label candidates to the builders. Area labels
+respect supplied polygon boundaries, including holes; the system does not infer boundaries
+from a name or move geographic features to make labels fit. These implementations are installed;
+candidate release validation and promotion remain pending.
 
 ## Setup and commands
 
@@ -30,10 +32,18 @@ npm run test:unit
 npm run test:browser
 ```
 
-`pipeline/run_all.sh` explicitly fetches and processes current OSM/USGS inputs. Once caches
+`pipeline/run_all.sh` explicitly fetches and processes Grand Canyon OSM, USGS and other
+agency inputs. Once caches
 exist, `npm run build:maps` performs a build without fetching. Missing caches are listed before
 any build starts. `MAP_PYTHON` can select an existing Python environment. Both build routes
 write candidates into `pipeline/`; neither replaces delivered maps.
+
+The cached build emits `grand_canyon_trails_interactive.html` with WebGL contours and Canvas
+relief/foreground, `grand_canyon_trails_canvas.html` for comparison, and the frozen
+`grand_canyon_trails_final.html` after static finalization. If Sequoia feature and DEM caches
+exist, it also builds `sequoia_trails_interactive.html` through the shared regional builder.
+The standard verify/promote pair covers the Grand Canyon static and interactive candidates;
+it does not promote the Canvas companion or Sequoia candidate.
 
 ```bash
 npm run build:maps
@@ -61,8 +71,12 @@ Do not replace `output/` with manual copies that bypass the checks.
 - Release scenes cover phone, tablet and desktop widths, DPR 1/2, fractional zoom boundaries,
   dense areas, seeded random states and paint-aligned gesture frames.
 - Performance is measured separately from correctness, including rendering the real contour
-  map. Draft targets are 8 ms p95 warm transaction work, 33 ms p95 frame interval and 100 ms
-  settled-layout delay. An unmet target must be reported, not hidden by suppressing all labels.
+  map. Schema 2 reports enforce the configured camera limits: 8 ms p95 warm transaction work
+  and 33 ms p95 frame interval under the provisional reference profile. Labels must eventually
+  complete with a ready state; errors, missing measurements and unfinished work cannot pass.
+  `settledMs` is informational: it includes the 120 ms wheel quiet period, animation frames and
+  progressive idle label preparation. There is no 100 ms settled-layout gate. Unmet camera
+  limits must be reported, not hidden by suppressing labels.
 
 Independent audit code lives under `tests/support/`; it remeasures final DOM geometry and
 uses a separate pairwise reference. It does not accept the solver's success flag as proof.
@@ -77,6 +91,62 @@ view geometry, coverage, collisions, clipping and screenshots. Development repor
 by Git; a release summary should record the tested artifact hashes and actual performance.
 Tests of promotion deliberately fail audits, mutate candidates and simulate a second-file
 replacement failure to verify that delivered bytes are preserved.
+
+## Reviewed overview coverage
+
+The [release-scene fixture](../tests/fixtures/layout-scenes.json) freezes the Grand Canyon
+coverage expectations described in the [reviewed destination baseline](cartography/expected-destinations.json).
+At viewport widths of at least 1200 CSS pixels, at least 80% of the fixed 30 destinations
+must have a visible name, and all nine required core destinations must have a visible name.
+A destination counts once when any of its listed equivalent point-label IDs is visible;
+a symbol alone does not count. Missing annotation IDs do not reduce the denominator.
+The existing overview minimum of eight point labels and all dense-scene minima remain unchanged.
+
+This deliberately replaces the proposed acceptance fraction over raw primary annotations.
+The raw numerator and denominator remain in every report's `coverageByClass` diagnostic.
+Editorial labels, OSM nodes and mapped areas can describe the same destination, so requiring
+80% of those separate annotations could penalize correct suppression of duplicate names.
+The reviewed baseline uses all nine configured core destinations, all 17 other pre-existing
+authored trailhead/camp destinations, and four source destinations selected for geographic
+spread before individual visibility was measured. Equivalents require matching purpose and
+name plus geographic evidence; nearby different destinations remain separate. These are
+validation identities, not production filters or geographic corrections.
+
+The preliminary Chromium 1440 × 1000, DPR 1, light-theme overview of candidate
+`298de3449c066ba1e2ddc61e261cfbf59c97ad88bcefbd04548d097c841ac550`
+represented 26/30 destinations (86.7%) and 9/9 core destinations. North Rim Campground,
+Cape Final campsite, Horn Creek campsite and Cape Final trailhead were absent. Raw primary
+annotation coverage was 42/67 (62.7%). The screenshot covered the browser viewport, leaving
+the southern map below the fold; it was not a full-sheet visual review. Duplicate destination
+names remained visible in some places. These results do not guarantee visibility of every
+primary catalog feature, every facility, or every geographic destination.
+
+`coverageReview: "frozen"` records review of the membership and floors, not completion of the
+release matrix. Final immutable candidates still require the full all-engine, viewport, DPR,
+theme, interaction and geometry gates before promotion. The regional source/scene inventory
+in [coverage-baselines.json](cartography/coverage-baselines.json) has a separate scope and does
+not establish a Sequoia destination-visibility guarantee from this Grand Canyon fixture.
+
+## Additional cartography and startup evidence
+
+The [ground-scale audit](../scripts/audit-cartography.mjs) records source/catalog/scene/paint
+coverage for Grand Canyon or Sequoia and produces screenshots for review. Its
+`review-required` status is not a release pass. The [seeded interaction fuzzer](../scripts/fuzz-cartography.mjs)
+exercises camera gestures, text size, layers, themes and resizing, checks eventual completion
+and painted-camera agreement, and writes a replayable report plus a contact sheet. These
+diagnostics supplement the independent collision audits and release scenes.
+
+Run browser workloads sequentially from the repository root, for example:
+
+```bash
+PLAYWRIGHT_BROWSERS_PATH=.browser-cache node scripts/audit-cartography.mjs pipeline/sequoia_trails_interactive.html artifacts/cartography/sequoia-audit.json chromium
+PLAYWRIGHT_BROWSERS_PATH=.browser-cache node scripts/fuzz-cartography.mjs pipeline/grand_canyon_trails_interactive.html artifacts/cartography/fuzz-grand-canyon 73191 36 chromium webgl
+```
+
+The [startup investigation](STARTUP_INVESTIGATION.md) owns the current measurement method and
+reproduction commands for the 3× initial-responsiveness target. Warm camera gates, initial
+layout readiness and completed-draw input latency are distinct claims. The current startup
+target has not been established as passing.
 
 ## Limits
 

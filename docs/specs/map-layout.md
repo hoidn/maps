@@ -41,8 +41,16 @@ Embedded fonts come from the checked-in [font assets](../../pipeline/labels/font
 Layout waits for font readiness; incomplete font loading is a failure. The
 [measurement module](../../pipeline/labels/measure.js) measures actual rendered
 SVG in CSS pixels after transforms, including stroke/halo and multiline text.
+Interactive Canvas/WebGL text uses Canvas glyph ink at the SVG-provided glyph
+positions and angles, grouped into the same line/glyph parts. These footprints
+exclude unpainted SVG advance/em space, so point displacement measures actual
+paint rather than a larger collision-only proxy. Both modes retain stroke halos
+and any shared measurement padding; `paintInset` identifies that padding for
+point-distance checks. Spaces without ink add no empty parts, while combining
+marks retain their painted extents. Static and explicit SVG measurement is unchanged.
 Rotated straight text and text on a path use glyph footprints. Curved text must
-fit its usable path; a clipped textPath is not an acceptable shorter label.
+fit its usable path in either backend; a clipped textPath is not an acceptable
+shorter label.
 
 [policy.json](../../pipeline/labels/policy.json) owns numerical clearance, edge
 padding, displacement, repetition, minimum text sizes, required routes, font
@@ -259,3 +267,75 @@ Interactive typography uses semantic minimum sizes, modest bounded growth with
 zoom/ground scale, and a persisted 1–1.5 readability multiplier. Static typography
 retains its print profile. Zoom/font settings trigger measurement; pan retains
 accepted size, wrapping and placement.
+
+### Portable cartography and idle completion
+
+Annotations may carry source identities and a maximum ground resolution
+(`maxMetersPerPixel`). Screen text uses the readability profile and a persisted
+multiplier; static labels retain their print-oriented stylesheet sizes. Geographic
+geometry is shared across backends. Layer selection must govern both plain paint
+and its associated annotations.
+
+Startup placements are provisional until full idle preparation completes. A real
+pan locks the accepted placements; a zoom or text-size change may choose new
+ones. Initial asynchronous acceptance includes typography/revision in its state
+snapshot, preventing old footprints from committing under a new text preference.
+
+Performance report schema v2 keeps transaction and frame limits as hard gates.
+`settledMs` is total time from the final wheel frame until idle label completion,
+including the intentional wheel quiet period, animation-frame waits and yielded
+work. It is informational, following the user's acceptance of idle label latency;
+error, nonfinite or incomplete results still fail. This does not establish the
+separate 3× startup target. See [startup investigation](../STARTUP_INVESTIGATION.md).
+
+Area annotations may provide `areaPolygons`: an array of polygons, each containing
+an exterior ring followed by hole rings, with closed `[x,y]` pairs in world SVG
+coordinates. The runtime projects eligible area geometry into CSS coordinates for
+both settled and fast preparation. Every measured rectangle must remain within
+its owning polygon without touching/crossing exterior or hole boundaries; a hole
+entirely enclosed by a text rectangle also rejects it. The diagnostic blocker is
+`area-boundary`. This constraint does not replace label/trail/control clearance.
+
+### Portable label spacing and static font envelopes
+
+`repeatGroup` optionally groups equal displayed names for screen-space repetition;
+`featureId` and `sourceId` keep physical identity. This never merges source records
+or moves features. `repeatDistance` applies during settled placement and retained
+pan reservations. Point-area labels may try a centered interior candidate; every
+candidate must still satisfy the full ring/hole containment rule.
+
+Static finalization may supply `measurementReserves[id]` as a nonnegative pixel
+margin or `{left, top, right, bottom}` margins. The solver expands that annotation's
+candidate footprints before collision/frame checks, including lazy alternatives.
+Untransformed font probes only justify directional margins for unit-scale,
+unrotated point labels; other text retains a conservative scalar margin.
+The finalizer keeps measured probe evidence and reaudits exact serialized bytes in
+all three browser engines and both themes. Font padding is not an audit exemption.
+
+`repairBudget` bounds neighbor probes across all proposals and required/group/final
+passes for each annotation in a solve. Immutable hard-obstacle diagnostics and
+candidate ordering may be cached only within that solve. Protected path queries
+use the same declared `data-max-mpp` detail as painting, including zoom changes.
+
+Interactive point candidate preparation reserves 0.125 CSS px inside the declared
+maximum displacement for cross-backend subpixel glyph rounding. The independent
+paint audit retains the full 32 px limit; static required-point grids retain their
+existing radius. `pointPaintReserve` applies to candidate filtering, including
+serialized lazy fallbacks, and does not relax geometry or typography checks.
+
+A measured shape may carry `paintInset` (CSS px) when its collision envelope
+includes extra measurement padding. Point displacement is checked against the
+painted bounds obtained by removing that inset, including wrapped/lazy variants.
+The padded footprint remains authoritative for collisions and containment.
+
+Portable POI priority derives from source categories or an authored symbol sharing
+the same feature ID, not font class alone. Explicit configured required point
+destinations receive priority 1000 in both modes; static requiredness remains
+profile-specific. One canonical annotation represents each configured required
+name, so duplicate source representations do not each become required.
+
+Static freezing may set `fixedControlReserves`, ordered by the SVG
+`.cartouche,.scale` query, to directional CSS-pixel reserves measured across the
+release browser engines. Controller control obstacles include those reserves;
+independent audits still check actual serialized control/text paint. The default
+interactive controller uses no reserves.

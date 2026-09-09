@@ -47,7 +47,7 @@ export function applyLineCandidate(element,candidate) {
  * is added: the solver must reject any candidate covering a protected trail stroke.
  * Straight labels follow geometryIds with upright rotations. Curved labels retain the
  * real textPath and omit reverse-reading windows, avoiding mutation of shared paths. */
-export function buildLineCandidates({annotation,element,policy={},diagnostics={}}) {
+export function buildLineCandidates({annotation,element,policy={},diagnostics={},measurement={}}) {
   Object.assign(diagnostics,{paths:0,windows:0,reverseWindows:0,uprightRejected:0,overflowRejected:0,measuredCandidates:0});
   const text=element.querySelector('text');if(!text)return [];
   const originalTextHTML=text.innerHTML;
@@ -68,7 +68,7 @@ export function buildLineCandidates({annotation,element,policy={},diagnostics={}
   }
   const textAngle=Math.atan2(tm.b,tm.a)*180/Math.PI;
   const ids=tp?[annotation.geometryId??(tp.getAttribute('href')||'').slice(1)]:(annotation.geometryIds??[]);
-  const output=[];const straightMetric=tp?null:measureElement(element);
+  const output=[];const straightMetric=tp?null:measureElement(element,0,measurement);
   // Conjugation maps a screen-space movement to the wrapper's parent coordinates.
   const transformFor=screen=>matrixString(parentMatrix.inverse().multiply(screen).multiply(parentMatrix).multiply(base));
   const windows=[];
@@ -139,30 +139,31 @@ export function buildLineCandidates({annotation,element,policy={},diagnostics={}
             }
             if(!upright){diagnostics.uprightRejected++;continue;}
           }
-          try{output.push({id:`${id}:${window.id}:side-${side}`,shape:measureElement(element),dx:0,dy:0,...application,application,...(tp?{textHTML:originalTextHTML}:{}),geometryId:id,angle:window.angle,side,windowStart:window.start,windowEnd:window.end});}
+          try{output.push({id:`${id}:${window.id}:side-${side}`,shape:measureElement(element,0,measurement),dx:0,dy:0,...application,application,...(tp?{textHTML:originalTextHTML}:{}),geometryId:id,angle:window.angle,side,windowStart:window.start,windowEnd:window.end});}
           catch(error){if(!error.message.includes('overflow'))throw error;diagnostics.overflowRejected++;}
         }
     }
   }finally{restore(element,'transform',originalTransform);if(tp)restore(tp,'startOffset',originalOffset);}
-  // A straight, measured name beside the same geometry is preferable to losing
-  // the name when a textPath winds too tightly or runs in the reverse direction.
-  // Source geography and shared path direction stay untouched.
-  if(tp&&!output.length&&['l-hydro','l-river'].includes(annotation.style)){
+  // Required route groups also need their declared straight/wrapped alternatives
+  // when curved candidates exist but cannot clear other required annotations.
+  // Optional names retain the cheap no-curved-candidate fallback. Source geometry
+  // and shared path direction stay untouched, and no word breaks are invented.
+  if(tp&&(!output.length||annotation.requiredGroup&&annotation.variants?.length)&&['l-hydro','l-river','l-trail','l-road','l-road-ref'].includes(annotation.style)){
     const originalHTML=text.innerHTML,plainText=tp.textContent;
     try{
       text.textContent=plainText;
       const textHTML=text.innerHTML,fallback={};
-      const alternatives=buildLineCandidates({annotation:{...annotation,geometryId:undefined,geometryIds:ids,variants:[]},element,policy,diagnostics:fallback});
-      output.push(...alternatives.map(c=>({...c,id:'straight:'+c.id,textHTML})));
+      const alternatives=buildLineCandidates({annotation:{...annotation,geometryId:undefined,geometryIds:ids},element,policy,diagnostics:fallback,measurement});
+      output.push(...alternatives.map(c=>({...c,id:'straight:'+c.id,textHTML:c.textHTML??textHTML})));
       diagnostics.straightFallback=fallback;
     }finally{text.innerHTML=originalHTML;}
   }
   if(!tp&&annotation.variants?.length){
     const originalHTML=text.innerHTML;
     try{
-      for(const variant of measurePointVariants(element,annotation)){
+      for(const variant of measurePointVariants(element,annotation,measurement)){
         text.innerHTML=variant.textHTML;
-        const alternatives=buildLineCandidates({annotation:{...annotation,variants:[]},element,policy});
+        const alternatives=buildLineCandidates({annotation:{...annotation,variants:[]},element,policy,measurement});
         output.push(...alternatives.map(c=>({...c,id:variant.id+':'+c.id,textHTML:variant.textHTML})));
       }
     }finally{text.innerHTML=originalHTML;}

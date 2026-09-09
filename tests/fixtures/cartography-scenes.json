@@ -1,0 +1,17 @@
+{
+  "status":"pending-real-artifact-review",
+  "groundScalesMetersPerPixel":[32,12,3],
+  "regions":{
+    "grand_canyon":[
+      {"name":"Phantom Ranch","expectedKinds":["trail","waterway","poi"]},
+      {"name":"Grand Canyon Village","expectedKinds":["road","building","poi"]},
+      {"name":"Bright Angel Creek","expectedKinds":["waterway","trail"]}
+    ],
+    "sequoia":[
+      {"name":"Giant Forest Museum","expectedKinds":["road","building","poi"]},
+      {"name":"General Sherman Tree","expectedKinds":["trail","poi"]},
+      {"name":"Pear Lake","expectedKinds":["waterbody","trail"]},
+      {"name":"Alta Peak","expectedKinds":["trail","poi"]}
+    ]
+  }
+}

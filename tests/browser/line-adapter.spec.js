@@ -48,3 +48,13 @@ test('declared multiline trail alternatives preserve the complete name and measu
   if(!wrapped)return {wrapped:false};const restored=e.innerHTML===before;e.querySelector('text').innerHTML=wrapped.textHTML;lineAdapter.applyLineCandidate(e,wrapped);return {wrapped:true,restored,text:e.textContent,actual:lineAdapter.measureElement(e).bounds,expected:wrapped.shape.bounds};
  });expect(result.wrapped).toBe(true);expect(result.restored).toBe(true);expect(result.text).toBe('North KaibabTrail');expect(result.actual.x).toBeCloseTo(result.expected.x,3);expect(result.actual.y).toBeCloseTo(result.expected.y,3);
 });
+test('required route paths offer declared straight wraps alongside usable curved candidates',async({page})=>{
+ await fixture(page);const result=await page.evaluate(()=>{
+  const e=document.querySelector('#curved'),before=e.outerHTML;
+  const cs=lineAdapter.buildLineCandidates({annotation:{geometryId:'curve',style:'l-trail',requiredGroup:'main',text:'Colorado River',variants:[{lines:['Colorado','River']}]},element:e,policy:{maxLineCandidates:2}});
+  const curved=cs.some(c=>c.startOffset!==undefined),wrapped=cs.find(c=>c.id.startsWith('straight:wrap-'));
+  if(!wrapped)return {curved,wrapped:false};
+  const restored=e.outerHTML===before;lineAdapter.applyLineCandidate(e,wrapped);
+  return {curved,wrapped:true,restored,lines:[...e.querySelectorAll('[data-layout-primary]')].map(t=>t.textContent),actual:lineAdapter.measureElement(e).bounds,expected:wrapped.shape.bounds};
+ });expect(result.curved).toBe(true);expect(result.wrapped).toBe(true);expect(result.restored).toBe(true);expect(result.lines).toEqual(['Colorado','River']);expect(result.actual.x).toBeCloseTo(result.expected.x,3);expect(result.actual.y).toBeCloseTo(result.expected.y,3);
+});

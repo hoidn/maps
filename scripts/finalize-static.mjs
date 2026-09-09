@@ -23,42 +23,87 @@ async function measureFontProbes(page, probes) {
     }finally{svg.remove();}
   },probes);
 }
+async function measureControlProbes(page, probes) {
+  return page.evaluate(async probes=>{
+    const holder=document.createElement('div');holder.style.cssText='position:absolute;left:-100000px;top:0;visibility:hidden;pointer-events:none';
+    holder.innerHTML=probes.join('');document.body.append(holder);
+    try{
+      // Inserting the actual control text also activates faces unused by labels.
+      holder.getBoundingClientRect();await document.fonts.ready;
+      return [...holder.children].map(svg=>{const origin=svg.getBoundingClientRect(),r=svg.querySelector('[data-control-probe]').getBoundingClientRect();return {x:r.x-origin.x,y:r.y-origin.y,width:r.width,height:r.height};});
+    }finally{holder.remove();}
+  },probes);
+}
 async function staticMeasurementEnvelope(page, viewport) {
-  const {probes,css}=await page.evaluate(async()=>{
+  const {probes,css,directionalOwners,controlProbes}=await page.evaluate(async()=>{
     const controller=window.mapLayout,svg=document.getElementById('mapsvg');
     if(!controller||!svg)throw new Error('Static layout runtime missing');
     try{await controller.ready;await controller.whenSettled();}catch(error){throw new Error('Static layout/font initialization failed: '+error.message);}
     const {width,height}=controller.manifest.map;
     svg.style.width=width+'px';svg.style.height=height+'px';svg.style.maxWidth='none';svg.style.minWidth=width+'px';
     controller.requestView({x:0,y:0,w:width,h:height});await controller.whenSettled();
-    const probes=new Map();
+    const probes=new Map(),annotations=new Map(controller.manifest.annotations.map(a=>[a.id,a])),directional=new Map();
     for(const text of svg.querySelectorAll('[data-layout-id] text,[data-layout-id] tspan')){
       const computed=getComputedStyle(text),style={};
       for(const key of ['font-family','font-size','font-weight','font-style','font-stretch','font-variant','letter-spacing','word-spacing','text-anchor','dominant-baseline'])style[key]=computed.getPropertyValue(key);
-      const probe={text:text.textContent,style};probes.set(JSON.stringify(probe),probe);
+      const owner=text.closest('[data-layout-id]')?.dataset.layoutId,a=annotations.get(owner);
+      // Probe boxes are untransformed CSS units. Preserve directional differences
+      // only when every text component has that same orientation and scale.
+      // Rotated/scaled/curved labels retain the previous uniform envelope.
+      const m=text.getScreenCTM(),aligned=a?.kind==='point-label'&&m&&Math.abs(m.a-1)<1e-7&&Math.abs(m.d-1)<1e-7&&Math.abs(m.b)<1e-7&&Math.abs(m.c)<1e-7;
+      if(owner)directional.set(owner,(directional.get(owner)??true)&&!!aligned);
+      const values=new Set([text.textContent,...(text.tagName.toLowerCase()==='text'?(a?.variants||[]).flatMap(v=>v.lines):[])]);
+      for(const value of values){const key=JSON.stringify({text:value,style});let probe=probes.get(key);if(!probe){probe={text:value,style,owners:[]};probes.set(key,probe);}if(owner&&!probe.owners.includes(owner))probe.owners.push(owner);}
     }
-    return {probes:[...probes.values()],css:[...document.querySelectorAll('style')].map(s=>s.textContent).join('\n')};
+    const controlProbes=[...svg.querySelectorAll('.cartouche,.scale')].map(control=>{
+      // Preserve ancestry and resolved paint/text styles, including inherited
+      // variables, so isolated engines measure the same authored SVG control.
+      const styled=(source,deep)=>{const clone=source.cloneNode(deep),originals=[source,...(deep?source.querySelectorAll('*'):[])],copies=[clone,...(deep?clone.querySelectorAll('*'):[])];
+        originals.forEach((e,i)=>{const computed=getComputedStyle(e);for(const key of computed)copies[i].style.setProperty(key,computed.getPropertyValue(key));});return clone;};
+      let content=styled(control,true);content.setAttribute('data-control-probe','');
+      for(let parent=control.parentElement;parent&&parent!==svg;parent=parent.parentElement){const wrapper=styled(parent,false);wrapper.append(content);content=wrapper;}
+      const root=styled(svg,false);root.style.cssText+=';position:relative;width:'+width+'px;height:'+height+'px;min-width:0;max-width:none;margin:0;border:0;padding:0;';
+      for(const defs of svg.querySelectorAll(':scope > defs'))root.append(defs.cloneNode(true));
+      root.append(content);return root.outerHTML;
+    });
+    return {probes:[...probes.values()],css:[...document.querySelectorAll('style')].map(s=>s.textContent).join('\n'),directionalOwners:[...directional].filter(([,aligned])=>aligned).map(([id])=>id),controlProbes};
   });
   if(!probes.length)throw new Error('Static typography probes missing');
   const reference=await measureFontProbes(page,probes),profiles=[{browser:'chromium',probeCount:probes.length,maxOutwardPx:0}];
-  let reservePx=0;
+  const controlReference=await measureControlProbes(page,controlProbes),fixedControlReserves=controlReference.map(()=>({left:0,top:0,right:0,bottom:0}));
+  let reservePx=0;const byAnnotation={};
   for(const [name,engine] of [['firefox',firefox],['webkit',webkit]]){
     const browser=await engine.launch();
     try{
       const probePage=await browser.newPage({viewport});await probePage.route('**/*',route=>route.abort('blockedbyclient'));
       await probePage.setContent('<!doctype html><style>'+css+'</style><body></body>');
       const measured=await measureFontProbes(probePage,probes);let maxOutwardPx=0;
+      const controls=await measureControlProbes(probePage,controlProbes);
+      for(let i=0;i<controlReference.length;i++){
+        const a=controlReference[i],b=controls[i];if(!Object.values(b).every(Number.isFinite))throw new Error('Non-finite static control measurement');
+        const edges={left:Math.max(0,a.x-b.x),top:Math.max(0,a.y-b.y),right:Math.max(0,b.x+b.width-a.x-a.width),bottom:Math.max(0,b.y+b.height-a.y-a.height)};
+        for(const key of Object.keys(edges))fixedControlReserves[i][key]=Math.max(fixedControlReserves[i][key],edges[key]);
+      }
       for(let i=0;i<reference.length;i++){
         const a=reference[i],b=measured[i];
         if(!Object.values(b).every(Number.isFinite))throw new Error('Non-finite static font measurement');
-        maxOutwardPx=Math.max(maxOutwardPx,a.x-b.x,a.y-b.y,b.x+b.width-a.x-a.width,b.y+b.height-a.y-a.height);
+        const edges={left:Math.max(0,a.x-b.x),top:Math.max(0,a.y-b.y),right:Math.max(0,b.x+b.width-a.x-a.width),bottom:Math.max(0,b.y+b.height-a.y-a.height)};
+        const outward=Math.max(...Object.values(edges));
+        maxOutwardPx=Math.max(maxOutwardPx,outward);
+        for(const id of probes[i].owners){const reserve=byAnnotation[id]??={left:0,top:0,right:0,bottom:0};for(const key of Object.keys(edges))reserve[key]=Math.max(reserve[key],edges[key]);}
       }
       profiles.push({browser:name,probeCount:probes.length,maxOutwardPx});reservePx=Math.max(reservePx,maxOutwardPx);
     }finally{await browser.close();}
   }
   // Round outward at subpixel resolution, never inward.
   reservePx=Math.ceil(reservePx*64)/64;
-  return {method:'maximum outward SVG text-bound difference from Chromium across embedded-font probes',reservePx,profiles};
+  const directional=new Set(directionalOwners);
+  for(const edges of fixedControlReserves)for(const key of Object.keys(edges))edges[key]=Math.ceil(edges[key]*64)/64;
+  for(const [id,edges] of Object.entries(byAnnotation)){
+    for(const key of Object.keys(edges))edges[key]=Math.ceil(edges[key]*64)/64;
+    if(!directional.has(id))byAnnotation[id]=Math.max(...Object.values(edges));
+  }
+  return {method:'per-edge outward SVG text-bound differences for unrotated unit-scale point labels; uniform maxima for other annotations, across embedded-font and declared-wrap probes; per-edge bounds for fixed SVG controls',reservePx,byAnnotation,fixedControlReserves,profiles};
 }
 /** Finalize only after reopening the exact serialized bytes in every audit engine. */
 export async function finalizeStatic({
@@ -109,10 +154,10 @@ export async function finalizeStatic({
     server.once("error", fail);
     server.listen(0, "127.0.0.1", ok);
   });
-  let browser;
+  let browser, page;
   try {
     browser = await chromium.launch();
-    const page = await browser.newPage({ viewport, colorScheme: "light" });
+    page = await browser.newPage({ viewport, colorScheme: "light" });
     const url = `http://127.0.0.1:${server.address().port}/`;
     await page.route("**/*", (r) =>
       r.request().isNavigationRequest() && r.request().url() === url
@@ -121,6 +166,7 @@ export async function finalizeStatic({
     );
     await page.goto(url, { waitUntil: "load" });
     const measurementEnvelope = await staticMeasurementEnvelope(page, viewport);
+    await writeFile(join(reportDir,"measurement-envelope.json"),JSON.stringify(measurementEnvelope,null,2));
     const frozen = await page.evaluate(
       async ({ sourceSha256, measurementEnvelope, auditPolicy }) => {
         const svg = document.getElementById("mapsvg"),
@@ -140,8 +186,9 @@ export async function finalizeStatic({
           ),
           { width, height } = manifest.map;
         // Keep the release clearance unchanged. The solver receives an additional
-        // measured envelope on both labels, plus one envelope at map edges.
-        controller.policy={...controller.policy,clearance:Math.max(controller.policy.clearance??2,auditPolicy.clearance??2)+2*measurementEnvelope.reservePx,edgePadding:Math.max(controller.policy.edgePadding??4,auditPolicy.edgePadding??4)+measurementEnvelope.reservePx};
+        // per-annotation measured envelope around candidate footprints. Other
+        // labels do not inherit the font variance of a long region heading.
+        controller.policy={...controller.policy,clearance:Math.max(controller.policy.clearance??2,auditPolicy.clearance??2),edgePadding:Math.max(controller.policy.edgePadding??4,auditPolicy.edgePadding??4),measurementReserves:measurementEnvelope.byAnnotation,fixedControlReserves:measurementEnvelope.fixedControlReserves};
         controller.invalidateLayout();controller.previous=null;controller.cache.invalidate();controller.lineCache.clear();
         // All placement distances are resolved at the declared natural map size.
         svg.style.width = width + "px";
@@ -294,6 +341,13 @@ export async function finalizeStatic({
     );
     await rename(candidate, destination);
     return result;
+  } catch(error) {
+    if(page&&!page.isClosed()){
+      const evidence=await page.evaluate(()=>({report:window.mapLayout?.getReport(),prepared:window.mapLayout?.prepared.map(a=>({id:a.id,text:a.text,candidateCount:a.candidates.length,eligibleReason:a.eligibleReason,required:a.required}))})).catch(()=>null);
+      await writeFile(join(reportDir,"failure.json"),JSON.stringify({message:error.message,evidence},null,2));
+      await page.screenshot({path:join(reportDir,"failure.png"),fullPage:true}).catch(()=>{});
+    }
+    throw error;
   } finally {
     await browser?.close();
     await new Promise((ok) => server.close(ok));

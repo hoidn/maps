@@ -1,3 +1,4 @@
+import {projectAreaPolygons} from './geometry.js';
 import {InitialPlacementClient} from './initial-placement-client.js';
 import {pointFallback} from './point-fallback.js';
 import {MotionPreview} from './motion-preview.js';
@@ -22,7 +23,7 @@ export class LayoutController {
     this.svg=svg;this.manifest=validateManifest(manifest);this.policy=policy;
     this.textScale=1;try{const value=Number(localStorage.getItem('map-text-scale'));if(value>=1&&value<=1.5)this.textScale=value;}catch{}
     this.mode=manifest.map.mode;this.gestures=new Set();this.revision=0;this.view={x:0,y:0,w:manifest.map.width,h:manifest.map.height};
-    this.layers={places:true,peaks:true,names:true,contours:true,water:true,relief:true};
+    this.layers={places:true,peaks:true,names:true,contours:true,water:true,relief:true,landcover:true,boundaries:true,grid:false};
     this.elements=new Map();this.cache=new MetricCache();this.previous=null;this.waiters=[];this.timings=[];this.status='loading';
     this.byId=new Map(manifest.annotations.map(a=>[a.id,a]));this.visibleIds=new Set();this.lineCache=new Map();this.samples=[];
     for(const a of manifest.annotations){const e=document.getElementById(a.elementId);if(!e)throw new Error('Missing annotation '+a.id);this.elements.set(a.id,e);e.style.visibility='hidden';e.style.display='none';
@@ -30,7 +31,7 @@ export class LayoutController {
     }
     const topScope=e=>{while(e.parentElement&&e.parentElement!==svg)e=e.parentElement;return e;};
     this.fontScopes=[...new Set([...this.elements.values()].map(topScope))];
-    this.strokeScopes=[...new Set([...svg.querySelectorAll('.trails,.hits,.contours,.hydro,.roads,[data-layout-obstacle="trail"]')].map(topScope))];
+    this.strokeScopes=[...new Set([...svg.querySelectorAll('.trails,.hits,.contours,.hydro,.roads,.boundaries,.buildings,[data-layout-obstacle="trail"]')].map(topScope))];
     const details=document.createElement('div');details.dataset.layoutDetails='';details.setAttribute('role','status');details.style.cssText='padding:8px 12px;min-height:20px;font:13px var(--sans,sans-serif)';
     svg.parentElement.after(details);this.details=details;
     this.pointers=new Set();
@@ -78,11 +79,13 @@ export class LayoutController {
         if(this.status!=='ready')return;
         const r=this.svg.getBoundingClientRect(),resized=!this.lastViewport||r.width!==this.lastViewport.width||r.height!==this.lastViewport.height;
         if(resized){this.invalidateLayout();this.cache.invalidate();this.lineCache.clear();this.previous=null;}
-        this.render(false);this.scheduleSettled();
+        // Rendering mutates observed controls; doing it in the notification
+        // delivery itself can create ResizeObserver loops in WebKit.
+        this.schedule();
       });
       this.observer.observe(this.svg);
       if(this.mode==='interactive')this.scheduleSettled(0);
-      for(const e of this.svg.parentElement.querySelectorAll('.ctl,.layers .box,.readout,.hint,.zlabel'))this.observer.observe(e);
+      for(const e of this.svg.parentElement.querySelectorAll('.ctl,.layers .box,.readout,.hint,.zlabel,.live-scale'))this.observer.observe(e);
       for(const e of this.svg.parentElement.querySelectorAll('details'))e.addEventListener('toggle',()=>{this.render(false);this.scheduleSettled();});
       document.fonts.addEventListener('loading',()=>this.fontsChanged());
       for(const event of ['loadingdone','loadingerror'])document.fonts.addEventListener(event,()=>{if(this.status==='ready')this.fontsChanged();});
@@ -118,12 +121,12 @@ export class LayoutController {
       this.status='error';this.error=error.message;this.details.textContent='Map labels unavailable: '+error.message;this.resolveWaiters();
     });
   }
-  requestView(view){this.revision++;this.cancelSettling();if(view.w!==this.view.w||view.h!==this.view.h)this.panLayout=null;this.view={...view};this.onCameraChange?.(this.view);this.schedule();}
+  requestView(view){if(this.panLayout&&view.w===this.view.w&&view.h===this.view.h&&(view.x!==this.view.x||view.y!==this.view.y))this.panLayout.provisional=false;this.revision++;this.cancelSettling();if(view.w!==this.view.w||view.h!==this.view.h)this.panLayout=null;this.view={...view};this.onCameraChange?.(this.view);this.schedule();}
   setLayer(layer,visible){if(!(layer in this.layers))throw new Error('Unknown layer');this.invalidateLayout();this.layers[layer]=visible;this.preview?.restore();this.preview?.release();this.previewDirty=true;this.schedule();}
   select(id){const f=this.manifest.features.find(f=>f.id===id);if(!f)throw new Error('Unknown feature');this.details.textContent=f.name;this.selected=id;
     if(this.mode==='interactive'){const w=this.manifest.map.width/4.5,h=this.manifest.map.height/4.5;this.requestView({x:Math.max(0,Math.min(this.manifest.map.width-w,f.anchor[0]-w/2)),y:Math.max(0,Math.min(this.manifest.map.height-h,f.anchor[1]-h/2)),w,h});}
   }
-  startupSnapshot(){const r=this.svg.getBoundingClientRect();return JSON.stringify([this.view,this.layers,r.x,r.y,r.width,r.height,this.controls()]);}
+  startupSnapshot(){const r=this.svg.getBoundingClientRect();return JSON.stringify([this.view,this.layers,this.textScale,this.revision,r.x,r.y,r.width,r.height,this.controls()]);}
   schedule(){
     if(this.status==='loading'&&this.starting){
       if(!this.frame)this.frame=requestAnimationFrame(()=>{this.frame=null;if(this.status==='loading'){this.preview?.show();this.camera(false);this.preview?.render(this.view,this.svg.getBoundingClientRect());}else this.render(false);});
@@ -189,10 +192,17 @@ export class LayoutController {
     for(const scope of this.strokeScopes)if(scope.style.getPropertyValue('--s')!==String(1/z))scope.style.setProperty('--s',String(1/z));
     this.svg.classList.toggle('zoomed',z>1.02);this.svg.classList.toggle('z2',z>=2);this.svg.classList.toggle('z5',z>=4.5);
     for(const [layer,on] of Object.entries(this.layers))this.svg.classList.toggle('no-'+layer,!on);
-    const badge=document.getElementById('zlabel');if(badge)badge.textContent=z.toFixed(1)+'× · contours '+(z>=4.5?'50':z>=2?'100':'250')+' ft';
+    this.updateDetail(s);
+    const badge=document.getElementById('zlabel');if(badge)badge.textContent=z.toFixed(1)+'× · contours '+((this.manifest.map.contourIntervalsFeet||[250,100,50])[z>=4.5?2:z>=2?1:0])+' ft';
     const current=this.svg.viewBox.baseVal;
     const m=translating?new DOMMatrix([before.a,before.b,before.c,before.d,before.e-before.a*(current.x-oldX)-before.c*(current.y-oldY),before.f-before.b*(current.x-oldX)-before.d*(current.y-oldY)]):readAfter?this.svg.getScreenCTM():null;
     this.cameraView={...v};return {m,s:m?Math.hypot(m.a,m.b):s,z};
+  }
+  updateDetail(scale){
+    const meters=this.manifest.map.metersPerMapUnit;if(!meters)return;
+    const mpp=meters/scale;
+    this.detailElements??=[...this.svg.querySelectorAll('[data-max-mpp]')].map(e=>({e,limit:Number(e.dataset.maxMpp)}));
+    for(const item of this.detailElements){const visible=mpp<=item.limit;if(item.visible!==visible){item.e.style.visibility=visible?'':'hidden';item.visible=visible;}}
   }
   setTextScale(value){
     if(!Number.isFinite(value)||value<1||value>1.5)throw new Error('Text scale must be between 1 and 1.5');
@@ -215,13 +225,18 @@ export class LayoutController {
   }
   controls(){
     const out=[];let i=0;
-    for(const e of this.svg.parentElement.querySelectorAll('.ctl,.layers .box,.hint,.readout,.zlabel')){
+    for(const e of this.svg.parentElement.querySelectorAll('.ctl,.layers .box,.hint,.readout,.zlabel,.live-scale')){
       const r=rectangle(e.getBoundingClientRect());if(r.width&&r.height&&getComputedStyle(e).display!=='none')out.push({id:'control-'+i++,kind:'control',shape:shape(r)});
     }
+    let fixedIndex=0;
     for(const e of this.svg.querySelectorAll('.cartouche,.scale')){
+      const reserve=this.policy.fixedControlReserves?.[fixedIndex++];
       if(this.renderer?.active&&this.manifest.map.width/this.view.w>1.02)continue;
       if(getComputedStyle(e.parentElement).display==='none')continue;
-      const r=rectangle(e.getBoundingClientRect());if(r.width&&r.height)out.push({id:'fixed-'+i++,kind:'control',shape:shape(r)});
+      const r=rectangle(e.getBoundingClientRect());if(r.width&&r.height){
+        if(reserve){r.x-=reserve.left;r.y-=reserve.top;r.width+=reserve.left+reserve.right;r.height+=reserve.top+reserve.bottom;}
+        out.push({id:'fixed-'+i++,kind:'control',shape:shape(r)});
+      }
     }
     return out;
   }
@@ -237,29 +252,32 @@ export class LayoutController {
         for(let i=2;i<numbers.length;i+=2){
           const a=[numbers[i-2],numbers[i-1]],b=[numbers[i],numbers[i+1]],id=e.id+':'+i/2;
           const bounds={x:Math.min(a[0],b[0]),y:Math.min(a[1],b[1]),width:Math.abs(a[0]-b[0]),height:Math.abs(a[1]-b[1])};
-          const segment={id,a,b,width,bounds};this.trailSegments.push(segment);
+          const segment={id,a,b,width,bounds,maxMpp:Number(e.dataset.maxMpp)||null};this.trailSegments.push(segment);
           this.trailIndex.insert(this.trailSegments.length-1,bounds);
         }
       }
     }
     return createTrailQuery({segments:this.trailSegments,index:this.trailIndex,matrix:m,inverse:m.inverse(),
-      strokeScale:this.mode==='interactive'?1/z:1,scale:s,maxWidth:this.maxTrailWidth});
+      strokeScale:this.mode==='interactive'?1/z:1,scale:s,maxWidth:this.maxTrailWidth,metersPerPixel:this.manifest.map.metersPerMapUnit/s});
   }
 
   eligible(a,anchor,viewport,z){
     if(!this.layers[a.layer])return 'layer-off';
+    if(a.geometryBounds){const b=a.geometryBounds,pad=64/(this.svg.clientWidth/this.view.w);if(b[2]+pad<this.view.x||b[0]-pad>this.view.x+this.view.w||b[3]+pad<this.view.y||b[1]-pad>this.view.y+this.view.h)return 'outside-view';}
+    if(a.maxMetersPerPixel&&this.manifest.map.metersPerMapUnit&&this.manifest.map.metersPerMapUnit/(this.svg.clientWidth/this.view.w)>a.maxMetersPerPixel)return 'below-detail';
     if(a.style?.split(' ').includes('l-contour-f')&&z<2||a.style?.split(' ').includes('l-contour-ff')&&z<4.5)return 'below-detail';
     if(['point-label','symbol','region-label','edge-pointer'].includes(a.kind)&&!intersects({x:anchor[0]-.5,y:anchor[1]-.5,width:1,height:1},viewport))return 'outside-view';
   }
   panKey(m,viewport){return JSON.stringify([this.view.w,this.view.h,viewport.width,viewport.height,m.a,m.b,m.c,m.d].map(v=>Math.round(v*1e8)/1e8));}
-  fixedPlacements(m,key){
-    if(this.mode!=='interactive'||this.panLayout?.key!==key)return null;
+  fixedPlacements(m,key,settled=false){
+    if(this.mode!=='interactive'||this.panLayout?.key!==key||settled&&this.panLayout?.provisional)return null;
     const {matrix,placements}=this.panLayout,dx=m.e-matrix.e,dy=m.f-matrix.f;
     return new Map([...placements].map(([id,p])=>[id,{...p,footprint:moveShape(p.footprint,dx,dy)}]));
   }
   rememberPlacements(result,m,key){
     if(this.mode!=='interactive')return;
-    if(this.panLayout?.key!==key)this.panLayout={key,matrix:{e:m.e,f:m.f},placements:new Map()};
+    if(this.panLayout?.key!==key||this.panLayout?.provisional&&!this.starting)this.panLayout={key,matrix:{e:m.e,f:m.f},placements:new Map()};
+    this.panLayout.provisional=!!this.starting;
     const {matrix,placements}=this.panLayout;
     for(const p of result.placements)if(!placements.has(p.id))placements.set(p.id,{...p,footprint:moveShape(p.footprint,matrix.e-m.e,matrix.f-m.f)});
   }
@@ -270,6 +288,7 @@ export class LayoutController {
       const anchor=project(m,a.anchor),item={...a,anchor,candidates:[],required:false};
       if(a.kind==='symbol'){item.anchorTrailRadius=6;item.anchorTrailFootprint=true;}
       item.eligibleReason=this.eligible(a,anchor,viewport,z);if(item.eligibleReason)return item;
+      item.areaPolygons=projectAreaPolygons(a.areaPolygons,m);
       if(fixed){const p=fixed.get(a.id);if(p)item.candidates=[{...p,id:p.candidateId,shape:p.footprint}];else item.eligibleReason='budget-deferred';if(a.kind==='line-label')item.repeatDistance=this.policy.repeatDistance;return item;}
       const old=previous.get(a.id),retained=this.retained?.get(a.id);
       if(!old||!retained){item.eligibleReason='budget-deferred';return item;}
@@ -279,7 +298,7 @@ export class LayoutController {
       }else{
         // Screen font hinting/rounding can vary between engines at fractional
         // transforms. Retain the candidate, never an unvalidated stale footprint.
-        try{const current=measureElement(this.elements.get(a.id));item.candidates=[{...old,id:old.candidateId,shape:moveShape(current,old.dx??0,old.dy??0)}];}
+        try{const current=measureElement(this.elements.get(a.id),0,{canvasInk:!!this.renderer});item.candidates=[{...old,id:old.candidateId,shape:moveShape(current,old.dx??0,old.dy??0)}];}
         catch{item.eligibleReason='invalid-metrics';}
       }
       if(a.kind==='line-label')item.repeatDistance=this.policy.repeatDistance;
@@ -298,9 +317,11 @@ export class LayoutController {
       if(normalizeText)this.normalize(a,e,s);
       const application=placement.application,transform=application?.transform??`translate(${placement.dx/s} ${placement.dy/s})`;
       if(application){
-        if(e.getAttribute('transform')!==transform||application.startOffset!==undefined&&text.querySelector('textPath')?.getAttribute('startOffset')!==String(application.startOffset))applyLineCandidate(e,placement);
+        const signature=JSON.stringify([application,placement.textHTML]);
+        if(e.appliedLineSignature!==signature||e.getAttribute('transform')!==transform||application.startOffset!==undefined&&text.querySelector('textPath')?.getAttribute('startOffset')!==String(application.startOffset)){applyLineCandidate(e,placement);e.appliedLineSignature=signature;}
       }else if(e.getAttribute('transform')!==transform)e.setAttribute('transform',transform);
-      if(placement.textHTML&&text.innerHTML!==placement.textHTML)text.innerHTML=placement.textHTML;
+      // applyLineCandidate owns the text HTML and chosen startOffset together.
+      // Restoring raw textHTML here would reset that measured offset to50%.
       if(e.style.visibility!=='visible')e.style.visibility='visible';
     }
     const parents=new Map();
@@ -331,7 +352,14 @@ export class LayoutController {
       // invalidate measurements belonging to a newer camera transaction.
       this.cache.invalidate();this.lineCache.clear();return false;
     };
-    const pause=async()=>{this.rendering=false;await new Promise(resolve=>setTimeout(resolve,0));if(!current())throw new DOMException('Placement cancelled','AbortError');this.rendering=true;};
+    const pause=async()=>{
+      this.rendering=false;await new Promise(resolve=>setTimeout(resolve,0));
+      // Scrolling can change DOM measurement coordinates without changing the
+      // map view. Reject the slice before inserting metrics with an old anchor
+      // and a new screen footprint, even if a later scroll restores the frame.
+      if(!validSnapshot())throw new DOMException('Placement cancelled','AbortError');
+      this.rendering=true;
+    };
     try {
       if(settled)this.preview?.restore();else if(!this.renderer?.active)this.preview?.show(this.panLayout?.placements);
       // With no retained labels, no painted annotation needs geometry validation.
@@ -339,7 +367,7 @@ export class LayoutController {
       const dormant=!settled&&this.previous?.placements.length===0&&!!this.lastViewport&&!this.panLayout?.placements.size;
       const {m,s,z}=this.camera(!dormant),viewport=dormant?this.lastViewport:rectangle(this.svg.getBoundingClientRect()),obstacles=dormant?[]:this.controls();
       if(job)job.snapshot=this.startupSnapshot();
-      const key=m?this.panKey(m,viewport):null,fixed=m?this.fixedPlacements(m,key):null;
+      const key=m?this.panKey(m,viewport):null,fixed=m?this.fixedPlacements(m,key,asyncSettled):null;
       // Pure translation preserves prior trail clearance. Only the viewport,
       // fixed controls and the retained-label visibility need checking again.
       const queryObstacles=dormant||!settled&&fixed?undefined:this.trailQuery(m,s,z);
@@ -397,10 +425,11 @@ export class LayoutController {
           if(a.kind==='line-label')item.repeatDistance=this.policy.repeatDistance;
           item.eligibleReason=this.eligible(a,anchor,viewport,z);
           if(item.eligibleReason){prepared.push(item);continue;}
+          item.areaPolygons=projectAreaPolygons(a.areaPolygons,m);
           if(fixed?.has(a.id)){
             const p=fixed.get(a.id);item.candidates=[{...p,id:p.candidateId,shape:p.footprint}];
             item.allowedObstacleIds=[...(item.allowedObstacleIds||[]),'pan-reserved:'+a.id];
-            item.repeatDistance=a.kind==='line-label'?this.policy.repeatDistance:0;
+            item.repeatDistance=a.kind==='line-label'?this.policy.repeatDistance:(a.repeatDistance??0);
             prepared.push(item);continue;
           }
           if(a.kind==='line-label'&&performance.now()>=candidateDeadline&&!this.cache.entries.has(a.id)&&!this.lineCache.has(a.id)){item.eligibleReason='budget-deferred';prepared.push(item);continue;}
@@ -408,26 +437,32 @@ export class LayoutController {
             const line=a.kind==='line-label'&&(a.geometryId||a.geometryIds?.length);
             if(line){
               const parentMatrix=e.parentElement.getScreenCTM(),cached=this.lineCache.get(a.id);
-              if(cached)try{item.candidates=cached.candidates.map(c=>reprojectLineCandidate(c,cached.parentMatrix,parentMatrix));}catch{this.lineCache.delete(a.id);}
+              if(cached)try{
+                // Empty results also belong to a particular scale: a path too
+                // short at overview may fit after zoom. An empty map() would
+                // otherwise skip reprojectLineCandidate's matrix validation.
+                if(['a','b','c','d'].some(k=>!Number.isFinite(cached.parentMatrix[k])||!Number.isFinite(parentMatrix[k])||Math.abs(cached.parentMatrix[k]-parentMatrix[k])>1e-9))throw new Error('Line scale changed');
+                item.candidates=cached.candidates.map(c=>reprojectLineCandidate(c,cached.parentMatrix,parentMatrix));
+              }catch{this.lineCache.delete(a.id);}
               if(!this.lineCache.has(a.id)&&performance.now()>=candidateDeadline){item.eligibleReason='budget-deferred';prepared.push(item);continue;}
               if(!this.lineCache.has(a.id)){
                 e=measurementElement(a);
                 const text=e.querySelector('text');e.style.display='inline';e.setAttribute('transform','');
                 if(text&&text.innerHTML!==a.originalTextHTML)text.innerHTML=a.originalTextHTML;
                 this.normalize(a,e,s);
-                try{item.candidateDiagnostics={};item.candidates=buildLineCandidates({annotation:a,element:e,diagnostics:item.candidateDiagnostics,policy:{...this.policy,maxLineCandidates:this.mode==='interactive'?Math.min(this.policy.maxLineCandidates??24,4):this.policy.maxLineCandidates}});}
+                try{item.candidateDiagnostics={};item.candidates=buildLineCandidates({annotation:a,element:e,measurement:{canvasInk:!!this.renderer},diagnostics:item.candidateDiagnostics,policy:{...this.policy,maxLineCandidates:this.mode==='interactive'?Math.min(this.policy.maxLineCandidates??24,4):this.policy.maxLineCandidates}});}
                 finally{e.style.display='none';}
               }
               this.lineCache.set(a.id,{candidates:item.candidates,parentMatrix});
               item.repeatDistance=this.policy.repeatDistance;
             }else{
               let cached=this.cache.entries.get(a.id);
-              if(!cached){e=measurementElement(a);cached={anchor,scale:s,metric:measureElement(e),pointVariants:a.variants?.length?measurePointVariants(e,a):[]};this.cache.entries.set(a.id,cached);}
+              if(!cached){e=measurementElement(a);cached={anchor,scale:s,metric:measureElement(e,0,{canvasInk:!!this.renderer}),pointVariants:a.variants?.length?measurePointVariants(e,a,{canvasInk:!!this.renderer}):[]};this.cache.entries.set(a.id,cached);}
               const dx=anchor[0]-cached.anchor[0],dy=anchor[1]-cached.anchor[1],metric=moveShape(cached.metric,dx,dy);
               if(a.kind==='region-label')item.candidates=regionCandidates(item,metric,this.policy);
               else {
                 if(a.kind==='symbol'&&facilityCounts.get(a.featureId)>1)item.facilityOffsets=[[16,0],[-16,0],[0,16],[0,-16],[12,12],[-12,12],[12,-12],[-12,-12]];
-                const policy={...this.policy,densePointCandidates:item.required};item.candidates=pointCandidates(item,metric,policy);
+                const policy={...this.policy,densePointCandidates:item.required,pointPaintReserve:this.mode==='interactive'?.125:0};item.candidates=pointCandidates(item,metric,policy);
                 for(const v of cached.pointVariants||[])item.candidates.push(...pointCandidates(item,moveShape(v.shape,dx,dy),policy).map(c=>({...c,id:v.id+'-'+c.id,textHTML:v.textHTML})));
                 if(a.kind==='point-label'&&!policy.densePointCandidates){
                   item.fallbackData={annotation:{kind:item.kind,anchor:item.anchor},metric,variants:(cached.pointVariants||[]).map(v=>({...v,shape:moveShape(v.shape,dx,dy)})),policy};
@@ -443,8 +478,8 @@ export class LayoutController {
       if(job&&!validSnapshot())return false;
       this.prepared=prepared;this.lastObstacles=obstacles;
       const preparedDone=performance.now();
-      const repeatReservations=settled&&fixed?[...fixed].map(([id,p])=>({id,featureId:this.byId.get(id).featureId,distance:this.byId.get(id).kind==='line-label'?this.policy.repeatDistance:0,shape:p.footprint})):[];
-      const args={annotations:prepared,obstacles,queryObstacles,repeatReservations,viewport,previous:this.previous,policy:{...this.policy,exhaustiveDiagnostics:this.mode!=='interactive',repairMaxNeighbors:this.mode==='interactive'?0:2,requiredGroups:this.mode==='static'?this.policy.requiredRoutes:[]}};
+      const repeatReservations=settled&&fixed?[...fixed].map(([id,p])=>({id,featureId:this.byId.get(id).featureId,repeatGroup:this.byId.get(id).repeatGroup,distance:this.byId.get(id).kind==='line-label'?this.policy.repeatDistance:(this.byId.get(id).repeatDistance??0),shape:p.footprint})):[];
+      const args={annotations:prepared,obstacles,queryObstacles,repeatReservations,viewport,previous:this.previous,policy:{...this.policy,exhaustiveDiagnostics:this.mode!=='interactive',repairMaxNeighbors:this.mode==='interactive'?0:2,requiredGroups:this.mode==='static'?(this.manifest.map.requiredRoutes??this.policy.requiredRoutes):[]}};
       const finish=result=>{
         if(settled)this.preview?.restore();
         this.transactionKind=settled?'settled':'fast';this.result=result;
@@ -460,7 +495,7 @@ export class LayoutController {
       if(asyncSettled){
         const matrix=m=>Object.fromEntries(['a','b','c','d','e','f'].map(k=>[k,m[k]]));
         const {queryObstacles:unused,...payload}=args;payload.annotations=prepared.map(({fallbackCandidates,...a})=>a);
-        payload.trail={segments:this.trailSegments,matrix:matrix(m),inverse:matrix(m.inverse()),strokeScale:1/z,scale:s,maxWidth:this.maxTrailWidth};
+        payload.trail={segments:this.trailSegments,matrix:matrix(m),inverse:matrix(m.inverse()),strokeScale:1/z,scale:s,maxWidth:this.maxTrailWidth,metersPerPixel:this.manifest.map.metersPerMapUnit/s};
         this.rendering=false;
         const result=await this.initialPlacer.solve(payload);
         if(!validSnapshot())return false;
@@ -471,7 +506,7 @@ export class LayoutController {
         const snapshot=this.startupSnapshot(),matrix=m=>Object.fromEntries(['a','b','c','d','e','f'].map(k=>[k,m[k]]));
         const {queryObstacles:unused,...payload}=args;
         payload.annotations=prepared.map(({fallbackCandidates,...a})=>a);
-        payload.trail={segments:this.trailSegments,matrix:matrix(m),inverse:matrix(m.inverse()),strokeScale:1/z,scale:s,maxWidth:this.maxTrailWidth};
+        payload.trail={segments:this.trailSegments,matrix:matrix(m),inverse:matrix(m.inverse()),strokeScale:1/z,scale:s,maxWidth:this.maxTrailWidth,metersPerPixel:this.manifest.map.metersPerMapUnit/s};
         this.status='loading';
         return this.initialPlacer.solve(payload).then(async result=>{
           // Read the current preparation promise: a layer/theme change can replace it.

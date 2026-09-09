@@ -14,23 +14,31 @@ export function pointCandidates(annotation,metric,policy={}) {
       return shifted(metric,`facility-${i}`,annotation.anchor[0]+dx-metric.bounds.width/2,annotation.anchor[1]+dy-metric.bounds.height/2);
     })];
   }
-  const [ax,ay]=annotation.anchor,{width:w,height:h}=metric.bounds;
+  const [ax,ay]=annotation.anchor,inset=metric.paintInset??0;
+  const w=metric.bounds.width-2*inset,h=metric.bounds.height-2*inset;
+  // Anchor gaps and grid coordinates describe painted text. Retain the full
+  // measured collision padding when translating its footprint to that position.
+  const atPaint=(id,x,y)=>shifted(metric,id,x-inset,y-inset);
   const gap=policy.anchorGap??6,extra=Math.max(0,Math.min(32/Math.SQRT2,policy.pointExtraOffset??16));
-  const result=[preferred];
+  const result=annotation.areaPolygons?[atPaint('area-center',ax-w/2,ay-h/2),preferred]:[preferred];
   for(const distance of [gap,gap+extra])for(const [name,sx,sy] of [['ne',1,-1],['e',1,0],['se',1,1],['s',0,1],['sw',-1,1],['w',-1,0],['nw',-1,-1],['n',0,-1]]) {
     const x=ax+(sx===1?distance:sx===-1?-distance-w:-w/2),y=ay+(sy===1?distance:sy===-1?-distance-h:-h/2);
-    result.push(shifted(metric,name+(distance===gap?'':'-far'),x,y));
+    result.push(atPaint(name+(distance===gap?'':'-far'),x,y));
   }
   if(policy.densePointCandidates){
     const radius=Math.min(32,policy.maxPointDisplacement??32);
-    const step=Math.max(1,policy.densePointStep??4);
+    // Required names need narrow feasible slots between protected geometry;
+    // the ordinary coarse grid can miss them even with complete wrap variants.
+    const step=Math.max(1,policy.densePointStep??(annotation.required?1:4));
     for(let dx=-radius;dx<=radius;dx+=step)for(let dy=-radius;dy<=radius;dy+=step){
       const d=Math.hypot(dx,dy);if(d>radius||d<gap)continue;
-      result.push(shifted(metric,`grid-${dx}-${dy}`,ax+dx-(dx<0?w:dx===0?w/2:0),ay+dy-(dy<0?h:dy===0?h/2:0)));
+      result.push(atPaint(`grid-${dx}-${dy}`,ax+dx-(dx<0?w:dx===0?w/2:0),ay+dy-(dy<0?h:dy===0?h/2:0)));
     }
   }
-  const maximum=policy.maxPointDisplacement??32;
-  return result.filter(c=>{const r=c.shape.bounds;return Math.hypot(Math.max(r.x-ax,0,ax-r.x-r.width),Math.max(r.y-ay,0,ay-r.y-r.height))<=maximum+1e-7;});
+  // Keep the declared paint limit strict even when a backend rounds glyph
+  // extents slightly differently from the SVG preparation measurement.
+  const maximum=Math.max(0,(policy.maxPointDisplacement??32)-(policy.pointPaintReserve??0));
+  return result.filter(c=>{const b=c.shape.bounds,inset=c.shape.paintInset??0,r={x:b.x+inset,y:b.y+inset,width:b.width-2*inset,height:b.height-2*inset};return Math.hypot(Math.max(r.x-ax,0,ax-r.x-r.width),Math.max(r.y-ay,0,ay-r.y-r.height))<=maximum+1e-7;});
 }
 
 /** Conservative translations of an already measured region name. No invented region

@@ -77,3 +77,77 @@ National Park Service trail descriptions for the corridor (Bright Angel 9.5 mi t
 Campground, South Kaibab 7 mi, North Kaibab 14 mi to Phantom Ranch) and the NPS backcountry
 zone classes (Corridor, Threshold, Primitive, Wild) that drive the line symbology. No NPS
 geometry was used.
+
+## Portable source acquisition
+
+The configured source path adds complete buffered-AOI OSM queries, official GNIS
+natural/populated names, USGS 3DHP hydrography, PAD-US protected areas and Annual
+NLCD land cover. `fetch_region.py` refreshes providers explicitly; cached builds
+verify retained raw hashes. See the [data contract](specs/map-data.md#portable-region-catalogs-2026-09-09)
+for identities, axis order, raster registration and provenance fields.
+
+National feature names are transferred by explicit GNIS ID. Geometry-based hydro
+coverage deduplication requires strong correspondence and compatible names;
+crossing or differently named streams are retained. Current flow, potable water,
+access conditions and trail maintenance cannot be established from a mapped line
+or undated facility point. PAD-US category, designation and manager remain
+separate fields; park, wilderness and ownership polygons may overlap.
+
+The September 2026 source snapshots include Annual NLCD 2025. GNIS service metadata
+reports a July 2026 refresh. These are dataset/snapshot dates, not claims that every
+feature was surveyed then. Source-side invalid geometry is reported or explicitly
+normalized with recorded area changes; it is not silently treated as valid.
+
+Management-unit codes from the reference map, detailed backcountry-use regulations,
+airspace rules and authoritative river-mile stationing remain separate acquisition
+problems. The publicly found Sequoia NPS atlas metadata and Grand Canyon use-area
+PDFs are dated; their existence is not evidence of current regulations. The shared
+ArcGIS adapter supports additional agency layers once source currency, category
+semantics and licensing have been checked. WMM declination and an airspace overlay
+are optional plan items and are not invented in the generated map.
+
+### Acquisition evidence and remaining coverage limits
+
+The 2026-09-09 portable caches contain 222 distinct GNIS identities for Grand
+Canyon and 270 for Sequoia, plus 8 and 16 PAD-US features respectively. GNIS
+county joins can repeat the same identity; normalization retains its source
+object IDs and all reported points. A river or broad landform can have several
+points, including points outside the requested frame. These are source positions,
+not independently surveyed label anchors. The [GNIS map service](https://carto.nationalmap.gov/arcgis/rest/services/geonames/MapServer)
+provides natural and populated names; it is not a complete contemporary directory
+of visitor facilities.
+
+The [Annual NLCD service](https://dmsdata.cr.usgs.gov/geoserver/mrlc_Land-Cover-Native_conus_year_data/wcs?service=WCS&version=1.0.0&request=GetCapabilities)
+provides the 2025 categorical land-cover layer at native 30 m spacing. Acquisition
+retains its grid description and native GeoTIFF, requests cell edges relative to
+the reported origin, then samples categories nearest-neighbor onto the map frame.
+A finer display grid adds no land-cover detail. Classification year does not
+establish current vegetation, snow, fire effects, wetness or water availability.
+
+The [3DHP service](https://3dhp.nationalmap.gov/arcgis/rest/services/usgs_3dhp_all/FeatureServer)
+is a composite hydrography source. Feature dates and source identities remain in
+the catalog; the retrieval date is not a uniform survey date. Missing permanence
+attributes remain unknown. [PAD-US](https://www.usgs.gov/programs/gap-analysis-project/science/pad-us-web-services)
+records ownership, management and designation separately. Proposed/recommended
+areas remain distinguished by source attributes and names; their presence does
+not establish an enacted designation, public access or current regulations.
+Geometry normalization logs describe representational repairs, not a boundary
+survey or a legal determination.
+
+The Sequoia DEM has registered 3DEP acquisition metadata and a verified array
+hash. The authored Grand Canyon adapter still uses the legacy DEM/profile caches;
+those files lack a retained retrieval timestamp and uniform survey date. Their
+known USGS origin does not justify assigning either date retrospectively. Catalog
+availability reports distinguish a missing registered region DEM cache from the
+legacy terrain supplied separately by that adapter.
+
+Requested but absent region caches and rejected source features are recorded in
+`catalog.json` as `sourceInventory` and `sourceIssues`. A cached provider means
+that its expected files are present and applicable checks passed; it does not
+mean all real-world features are mapped. Current NPS conditions, maintenance
+levels, seasonal facility operations, backcountry-use codes/regulations,
+authoritative river-mile stationing and current airspace rules remain unavailable
+from this acquisition path. OSM facilities and tags provide useful coverage but
+cannot substitute for those authoritative operational datasets. Dated NPS atlas
+and use-area references are not promoted to current data merely because they can
+be downloaded.

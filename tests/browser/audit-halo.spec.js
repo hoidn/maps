@@ -24,3 +24,12 @@ test('miter text keeps its conservative join extent', async ({ page }) => {
   const inventory=await page.evaluate(collectManagedInventory);
   expect(Math.max(...inventory.inventory[0].polygons.flat().map(p=>p.x))-right).toBeCloseTo(8,5);
 });
+
+test('wrapped label audit distinguishes empty line space from actual halo collisions',async({page})=>{
+ const annotations=['a','b'].map(id=>({id,elementId:id,featureId:id,kind:id==='a'?'point-label':'symbol',anchor:[150,150],requiredProfiles:[]}));
+ await page.setContent(`<svg id="mapsvg" width="500" height="500" viewBox="0 0 500 500"><g id="a" data-layout-id="a" data-feature-id="a"><text x="100" y="100" font-size="20" stroke="black" stroke-width="2" stroke-linejoin="round"><tspan data-layout-primary x="100" dy="0">Long campground name</tspan><tspan data-layout-primary x="100" dy="30">Camp</tspan></text></g><g id="b" data-layout-id="b" data-feature-id="b"><rect x="230" y="117" width="10" height="8" /></g></svg><script id="map-label-manifest" type="application/json">${JSON.stringify({version:1,map:{width:500,height:500,mode:'static'},features:annotations.map(a=>({id:a.id,anchor:a.anchor})),annotations})}</script>`);
+ const policy={clearance:2,edgePadding:4,requiredRoutes:[]};
+ expect(checkManagedInventory(await page.evaluate(collectManagedInventory),policy).overlaps).toEqual([]);
+ await page.locator('rect').evaluate(e=>e.setAttribute('x','110'));
+ expect(checkManagedInventory(await page.evaluate(collectManagedInventory),policy).overlaps).toEqual([{ids:['a','b']}]);
+});

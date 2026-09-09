@@ -1,0 +1,14 @@
+import {test,expect} from '@playwright/test';
+import {fixtureHTML} from '../support/browser-fixture.js';
+import fs from 'node:fs/promises';
+for(const backend of ['svg','canvas','webgl'])test(`${backend} selection and mileage use physical or explicit route identity`,async({page})=>{
+ const rows=[['a','way1','Shared Path',1,280,[]],['a2','way1','Shared Path',.5,295,[]],['b','way2','Shared Path',7,310,[]],['c','way3','path',2,325,[]],['d','way4','path',9,340,[]],['e','way5','Route start',3,355,['route1']],['f','way6','Route finish',4,370,['route1']]];
+ const path=(row,hit=false)=>{const [id,source,name,miles,y,routes]=row;return `<path id="${hit?'hit-':''}${id}" class="${hit?'hit':'tr'}" data-source-id="${source}" data-route-ids='${JSON.stringify(routes)}' data-name="${name}" data-mi="${miles}" data-cls="path" d="M150,${y} L350,${y}" fill="none" stroke="${hit?'transparent':'red'}" stroke-width="2"/>`;};
+ let html=(await fixtureHTML()).replace('class="map" data-w',`class="map" data-renderer="${backend}" data-w`).replace('</style>','.tr.dim{opacity:.25}.tr.lit{opacity:1}</style>').replace('<defs>','<g class="trails">'+rows.map(r=>path(r)).join('')+'</g><g class="hits">'+rows.map(r=>path(r,true)).join('')+'</g><defs>');
+ await page.setContent(html);await page.addScriptTag({content:await fs.readFile('pipeline/labels/dist/browser.js','utf8')});await page.evaluate(async()=>{await mapLayout.ready;await mapLayout.whenSettled();for(const id of ['zin','zout','zreset','goto','zlabel','readout','ttip']){const e=document.createElement('div');e.id=id;mapLayout.svg.parentElement.append(e);}});
+ let script=await fs.readFile('pipeline/cartography/interactive.js','utf8');for(const [key,value] of Object.entries({PROFILE_JSON:'{}',DEM_GW:'1',DEM_GH:'1',DEM_B64:'AAA=',DEM_LON0:'-1',DEM_LON1:'1',DEM_LAT0:'0',DEM_LAT1:'2'}))script=script.replaceAll(key,value);await page.addScriptTag({content:script});await page.evaluate(()=>mapLayout.whenSettled());
+ const click=async(id,y)=>page.evaluate(({id,y})=>{const l=mapLayout,r=l.svg.getBoundingClientRect();document.getElementById('hit-'+id).dispatchEvent(new MouseEvent('click',{bubbles:true,clientX:r.x+250,clientY:r.y+y}));return {details:l.details.textContent,selected:l.renderer?.active?[...(l.renderer.highlighted||[])].sort():[...new Set([...l.svg.querySelectorAll('.tr.lit')].map(p=>p.dataset.sourceId))].sort(),otherAlpha:l.renderer?.active?l.renderer.fg.getImageData(250,310,1,1).data[3]:Number(getComputedStyle(document.getElementById('b')).opacity)*255};},{id,y});
+ const named=await click('a',280);expect(named.details).toContain('1.5 mi');expect(named.selected).toEqual(['way1']);expect(named.otherAlpha).toBeLessThan(80);
+ const unnamed=await click('c',325);expect(unnamed.details).toContain('2.0 mi');expect(unnamed.selected).toEqual(['way3']);
+ const route=await click('e',355);expect(route.details).toContain('7.0 mi');expect(route.selected).toEqual(['way5','way6']);
+});

@@ -31,7 +31,10 @@
     scaleBox.innerHTML=bar(mpp*110>=1000?1000:1,mpp*110>=1000?'km':'m')+bar(mpp*110>=1609.344?1609.344:.3048,mpp*110>=1609.344?'mi':'ft');
   }
   var vb = {x:0,y:0,w:W,h:H}, MAXZ = 14;
-  new ResizeObserver(function(){liveScale(vb);}).observe(svg);
+  // The scale and map are siblings observed by the label controller. Updating
+  // its dimensions inside resize delivery can cause a same-depth observer loop.
+  var scaleFrame=null;
+  new ResizeObserver(function(){if(scaleFrame===null)scaleFrame=requestAnimationFrame(function(){scaleFrame=null;liveScale(vb);});}).observe(svg);
   var readout = document.getElementById('readout'), ttip = document.getElementById('ttip');
   // ---- cursor DEM
   var GW = DEM_GW, GH = DEM_GH, bin = atob("DEM_B64"), dem = new Uint16Array(GW*GH);

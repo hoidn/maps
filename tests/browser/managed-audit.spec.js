@@ -1,3 +1,5 @@
+import {mountFixture} from '../support/browser-fixture.js';
+import {collectManagedInventory} from '../support/managed-map-adapter.js';
 import { test, expect } from "@playwright/test";
 import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -261,3 +263,25 @@ test("independent trail inventory preserves authored polyline bends before ancho
 test('frozen audit rejects absent required font declarations instead of fallback',async({browserName})=>{const report=await audit(browserName,{frozen:true},{javaScriptEnabled:false,policy:{...policy,fontFamilies:['Source Sans 3']}});expect(report.status).toBe('incomplete');expect(report.fontCompleteness.missingFamilies).toContain('Source Sans 3');expect(report.fontCompleteness.missingEmbeddedFamilies).toContain('Source Sans 3');});
 test('blocked terrain image makes an otherwise valid frozen map incomplete',async({browserName})=>{const {runAudit}=await import('../../scripts/audit-map.mjs'),dir=await mkdtemp(join(tmpdir(),'managed-image-')),input=join(dir,'map.html');await writeFile(input,html({frozen:true})+'<img alt="terrain" src="https://example.invalid/terrain.png">');const report=await runAudit({input,reportDir:join(dir,'report'),mode:'managed',policy,browserName,javaScriptEnabled:false});expect(report.counts.overlaps).toBe(0);expect(report.status).toBe('incomplete');expect(report.networkErrors.some(e=>e.resourceType==='image')).toBe(true);});
 test('frozen required font passes only with a loaded embedded face and byte hash',async({browserName})=>{const {runAudit}=await import('../../scripts/audit-map.mjs'),{readFile}=await import('node:fs/promises'),dir=await mkdtemp(join(tmpdir(),'managed-embedded-font-')),input=join(dir,'map.html'),font=(await readFile('pipeline/labels/fonts/6ab296ea2b6ea953.ttf')).toString('base64');await writeFile(input,html({frozen:true})+`<style>@font-face{font-family:TestEmbedded;src:url(data:font/ttf;base64,${font})}text{font-family:TestEmbedded}</style>`);const report=await runAudit({input,reportDir:join(dir,'report'),mode:'managed',policy:{...policy,fontFamilies:['TestEmbedded']},browserName,javaScriptEnabled:false});expect(report.status,JSON.stringify(report.fontCompleteness)).toBe('pass');expect(report.fontHashes).toHaveLength(1);expect(report.fontCompleteness.missingFamilies).toEqual([]);expect(report.fontCompleteness.missingEmbeddedFamilies).toEqual([]);});
+test('frozen audit loads an unused required embedded font without running page scripts',async({browserName})=>{
+ const {runAudit}=await import('../../scripts/audit-map.mjs'),{readFile}=await import('node:fs/promises'),dir=await mkdtemp(join(tmpdir(),'managed-unused-font-')),input=join(dir,'map.html'),font=(await readFile('pipeline/labels/fonts/6ab296ea2b6ea953.ttf')).toString('base64');
+ await writeFile(input,html({frozen:true})+`<style>@font-face{font-family:UnusedEmbedded;src:url(data:font/ttf;base64,${font})}</style><script>document.querySelector('svg').remove()</script>`);
+ const report=await runAudit({input,reportDir:join(dir,'report'),mode:'managed',policy:{...policy,fontFamilies:['UnusedEmbedded']},browserName,javaScriptEnabled:false});
+ expect(report.status,JSON.stringify(report.fontCompleteness)).toBe('pass');expect(report.fontHashes).toHaveLength(1);expect(report.fontCompleteness.missingFamilies).toEqual([]);expect(report.fontCompleteness.missingEmbeddedFamilies).toEqual([]);expect(report.views[0].inventory.length).toBeGreaterThan(0);
+});
+test('frozen audit rejects an unused required embedded font that cannot decode',async({browserName})=>{
+ const {runAudit}=await import('../../scripts/audit-map.mjs'),dir=await mkdtemp(join(tmpdir(),'managed-invalid-font-')),input=join(dir,'map.html');
+ await writeFile(input,html({frozen:true})+'<style>@font-face{font-family:InvalidEmbedded;src:url(data:font/ttf;base64,AA==)}</style>');
+ const report=await runAudit({input,reportDir:join(dir,'report'),mode:'managed',policy:{...policy,fontFamilies:['InvalidEmbedded']},browserName,javaScriptEnabled:false});
+ expect(report.status).toBe('incomplete');expect(report.fontCompleteness.missingFamilies).toContain('InvalidEmbedded');expect(report.fontCompleteness.missingEmbeddedFamilies).toEqual([]);
+});
+test('coordinate furniture is registered while the live scale remains a protected control',async({page})=>{
+ const {collectManagedInventory,checkManagedInventory}=await import('../support/managed-map-adapter.js');
+ await page.setContent(html({unknown:true}).replace('</svg>','<g class="coordinate-grid"><text id="grid-coordinate" x="10" y="290">36.10° N</text></g></svg>')+'<div class="live-scale" id="live-scale" style="position:absolute;left:40px;top:40px;width:100px;height:30px">1 km</div>');
+ const inventory=await page.evaluate(collectManagedInventory),report=checkManagedInventory(inventory,policy);
+ expect(inventory.unknown.map(x=>x.id)).not.toContain('grid-coordinate');expect(inventory.unknown.map(x=>x.id)).toContain('rogue');expect(report.overlaps.map(x=>x.ids)).toContainEqual(['label-a','live-scale']);
+});
+test('coverage eligibility excludes names below their declared ground-scale detail',async({page})=>{
+ await mountFixture(page);await page.evaluate(()=>{mapLayout.manifest.map.metersPerMapUnit=30;mapLayout.manifest.annotations.find(a=>a.id==='label-1').maxMetersPerPixel=5;document.getElementById('map-label-manifest').textContent=JSON.stringify(mapLayout.manifest)});
+ const data=await page.evaluate(collectManagedInventory);expect(data.outcomes.find(o=>o.id==='label-0').eligible).toBe(true);expect(data.outcomes.find(o=>o.id==='label-1').eligible).toBe(false);
+});

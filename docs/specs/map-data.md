@@ -176,10 +176,11 @@ rounded readout is not the full-resolution bilinear sampler used by the tables.
 
 ## Known enforcement gaps
 
-The static fetch does not verify returned extent; fetchers do not explicitly
-enforce expected shape or a complete finite/no-data policy; terrain JSON has no
-schema validator; frame constants are duplicated; source identity is not carried
-through terrain intermediates. Automated layout tests, annotation manifests and
+The legacy static fetch does not verify returned extent; legacy fetchers do not
+explicitly enforce expected shape or a complete finite/no-data policy, and their
+terrain intermediates lack complete source metadata. Legacy frame constants are
+still duplicated. The portable path below has separate frame, shape, sample and
+hash checks; those checks do not retroactively establish legacy acquisition evidence. Automated layout tests, annotation manifests and
 verified promotion now exist, but they do not close these geographic-data gaps.
 Those gaps need scoped implementation work, not stronger claims in documentation.
 The [map layout contract](map-layout.md) defines the separate rendering interfaces;
@@ -205,3 +206,87 @@ below trails. Centerline strokes remain only outside mapped area coverage;
 islands do not trigger a centerline fallback. These are mapped bank extents,
 not a live water-level measurement. The 2026-09-08 cache contains OSM relations
 253640 and 382232, tagged as originating from NHD; source angularity remains.
+
+## Portable region catalogs (2026-09-09)
+
+`pipeline/maps/*.json` and `MapSpec` own the geographic frame for the portable
+path. Grand Canyon retains the authored page and legacy profile adapter; Sequoia
+uses `build_region.py`. Both geographic renderers consume the same feature and
+style catalog. Geographic SVG coordinates remain affine longitude/latitude;
+metric geometry operations use a local WGS84 azimuthal-equidistant CRS centered
+on the configured frame. GeoJSON catalogs use longitude/latitude, unlike the
+legacy Python `(latitude, longitude)` chain adapter.
+
+Explicit acquisition is `pipeline/fetch_region.py --map REGION --source all`.
+Individual provider refreshes are supported. Cached build commands do not fetch.
+`cache/REGION/features.json` contains OSM physical features and separate route
+memberships; `catalog.json` assembles national sources and records enrichment,
+conflicts and omissions. IDs retain provider/type/object identity; equal names
+do not merge physical segments. Untagged surface, difficulty, access and flow
+remain unknown. Junction distances use WGS84 geodesics and actual OSM node
+identity, not endpoint proximity. They have no river-mile stationing interpretation.
+
+Raw source files have `.source.json` sidecars recording URL, provider, dataset
+version, retrieval timestamp, AOI, attribution, bytes and SHA-256. Retrieval is
+not survey currency. Derived raster metadata includes frame, shape, registration
+and array hash. Portable terrain caches additionally depend on DEM hash and
+contour-generator version. A same-frame DEM refresh invalidates its contours.
+
+Portable DEM and Annual NLCD arrays are north-up PixelIsArea grids sampled at
+cell centers. Terrain contours use `(column + .5) * mapWidth / rasterWidth` and
+its row equivalent. NLCD acquisition reads the native EPSG:5070 edge lattice
+from WCS metadata, requests aligned cells and uses nearest-neighbor category
+sampling into the map frame. DEM exports validate service extent, dimensions
+and missing samples, then explicitly resample onto the exact configured frame.
+Legacy Grand Canyon elevation/profile sampling retains its documented adapter;
+its authored stops and offsets are not moved by this addition.
+
+The shared SVG scene is still the authored/static and measurement boundary;
+Canvas paints interactive geometry and labels, with WebGL handling contours.
+Candidate and promoted Grand Canyon artifact mappings above are unchanged.
+`pipeline/sequoia_trails_interactive.html` is the portability validation candidate.
+Local promotion still requires the complete release gate.
+
+### Portable cache validation and compatibility
+
+Map dimensions must be positive integers, query buffers finite and nonnegative,
+and contour profiles exactly three descending positive integer intervals in feet.
+Both coarser intervals must be divisible by the finest interval. The legacy
+terrain adapter explicitly rejects a changed extent, map dimensions or contour
+profile; use registered regional caches and `build_region.py` for those changes.
+Its original elevation/profile sampling convention remains unchanged.
+
+Every normalized national feature cache is an object containing `frame`,
+`features` and `issues`, including empty results. The source refresh wrapper owns
+this framing for GNIS, 3DHP and PAD-US. Bare lists and mismatched frames are rejected
+by catalog assembly. Older unframed national caches must be regenerated from verified raw snapshots
+or by the explicit refresh command; they are not reinterpreted under the current region.
+The original OSM route/feature catalog already carries its frame.
+
+Catalog assembly verifies retained raw-file hashes and any present regional DEM
+or land-cover array hash, shape and dtype against their metadata. Land-cover
+arrays must contain recognized integer categories and the configured extent.
+The regional builder additionally requires float32 DEM values in metres, finite
+valid samples, exact-frame PixelIsArea registration and pixel-center sample
+locations. A same-shaped modified array is rejected when its recorded hash no
+longer matches. Terrain cache keys include the verified DEM hash, geometry
+version, frame and contour intervals; changing those inputs invalidates cached
+contours. These checks establish cache consistency, not source survey accuracy.
+
+`sourceInventory` records the configured expected providers, present cache sets
+and missing cache reasons. `sourceIssues` retains national-adapter rejection
+records and `sourceIssueCounts` gives per-source counts, including OSM issues. Missing optional source caches may still permit a build using remaining
+sources; their absence must stay explicit. File availability is separate from
+geographic completeness and currency. A legacy terrain adapter outside the
+registered region catalog does not satisfy the registered-DEM provenance entry.
+Provider refreshes are selected by `--source`; `all` refreshes all implemented
+providers. No cached build acquires newer data implicitly.
+
+Source sidecars separate `retrievedAt` from `datasetVersion`; unknown retrieval or
+survey dates must not be invented. The NLCD `nativeGrid` and `nativeGridSource`
+fields retain the WCS center/edge origins, native spacing, dimensions and hashed
+grid-description source. Raster normalization records both native registration
+and the final map frame. Polygon repair records distinguish ring repairs from
+assembled multi-ring normalization and retain before/after areas. These records
+are evidence of processing, not claims that an agency source was geographically
+or legally corrected. See the [source limitations](../DATA_SOURCES.md#acquisition-evidence-and-remaining-coverage-limits).

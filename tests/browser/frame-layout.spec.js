@@ -137,9 +137,9 @@ test('an empty retained set updates the camera without querying unused collision
  expect(result).toEqual({queries:0,kind:'fast',placed:0,accounted:3,total:3});
 });
 
-test('budget-deferred lines never enter the normalization and measurement batch',async({page})=>{
+test('startup budget-deferred lines never enter the normalization and measurement batch',async({page})=>{
  await mountFixture(page);
- const result=await page.evaluate(async()=>{const l=window.mapLayout;await l.whenSettled();l.policy.interactiveCandidateBudgetMs=0;l.invalidateLayout();l.cache.invalidate();l.lineCache.clear();let lineCalls=0;const normalize=l.normalize.bind(l);l.normalize=(a,...args)=>{if(a.kind==='line-label')lineCalls++;return normalize(a,...args);};await l.render(true);return {lineCalls,reason:l.result.outcomes.find(o=>o.id==='curve').reason};});
+ const result=await page.evaluate(async()=>{const l=window.mapLayout;await l.whenSettled();l.policy.interactiveCandidateBudgetMs=0;l.invalidateLayout();l.cache.invalidate();l.lineCache.clear();l.starting=true;let lineCalls=0;const normalize=l.normalize.bind(l);l.normalize=(a,...args)=>{if(a.kind==='line-label')lineCalls++;return normalize(a,...args);};try{await l.render(true);return {lineCalls,reason:l.result.outcomes.find(o=>o.id==='curve').reason};}finally{l.starting=false;}});
  expect(result).toEqual({lineCalls:0,reason:'budget-deferred'});
 });
 
@@ -147,4 +147,14 @@ test('a mixed background group keeps its vector annotation in the live SVG',asyn
  await mountFixture(page);
  const connected=await page.evaluate(async()=>{const l=window.mapLayout;await l.preview.ready;document.querySelector('.labels').classList.add('terrain');await l.preview.invalidate();l.preview.show();return document.getElementById('label-0')?.isConnected===true;});
  expect(connected).toBe(true);
+});
+
+test('resize notifications defer geometry writes until the next animation frame',async({page})=>{
+ await page.setContent(await fixtureHTML());
+ await page.evaluate(()=>{const Native=window.ResizeObserver;window.insideResize=false;window.ResizeObserver=class extends Native{constructor(callback){super((...args)=>{window.insideResize=true;try{callback(...args)}finally{window.insideResize=false}})}}});
+ await page.addScriptTag({content:await fs.readFile('pipeline/labels/dist/browser.js','utf8')});await page.evaluate(async()=>{await mapLayout.ready;await mapLayout.whenSettled();window.resizeWrites=0;const render=mapLayout.render.bind(mapLayout);mapLayout.render=(...args)=>{if(window.insideResize)window.resizeWrites++;return render(...args)};document.querySelector('.map-wrap').style.width='420px';});
+ await expect.poll(()=>page.evaluate(()=>mapLayout.lastViewport?.width)).toBe(420);
+ await page.evaluate(()=>mapLayout.whenSettled());
+ expect(await page.evaluate(()=>window.resizeWrites)).toBe(0);
+ expect(await page.evaluate(()=>mapLayout.status)).toBe('ready');
 });

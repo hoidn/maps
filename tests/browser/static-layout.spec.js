@@ -39,6 +39,17 @@ async function inputFile(extra = "") {
   );
   return { dir, input, output };
 }
+test('fixed SVG controls retain measured directional paint reserves',async({page})=>{
+  const paths=await inputFile('<script>document.getElementById("mapsvg").insertAdjacentHTML("beforeend",\'<g class="cartouche"><rect x="20" y="20" width="50" height="30"/></g>\');</script>');
+  await page.setContent(await readFile(paths.input,'utf8'));
+  await page.evaluate(()=>window.mapLayout.ready);
+  const result=await page.evaluate(()=>{
+    const c=window.mapLayout,plain=c.controls().find(o=>o.id.startsWith('fixed-')).shape.bounds;
+    c.policy.fixedControlReserves=[{left:.25,top:.5,right:.75,bottom:1}];
+    return {plain,reserved:c.controls().find(o=>o.id.startsWith('fixed-')).shape.bounds};
+  });
+  expect(result.reserved).toEqual({x:result.plain.x-.25,y:result.plain.y-.5,width:result.plain.width+1,height:result.plain.height+1.5});
+});
 test("static finalizer bakes SVG and verifies serialized bytes in three engines and both themes", async ({
   browserName,
 }) => {
@@ -47,7 +58,7 @@ test("static finalizer bakes SVG and verifies serialized bytes in three engines 
     "One workflow invokes all three independent audit engines.",
   );
   const { finalizeStatic } = await import("../../scripts/finalize-static.mjs");
-  const paths = await inputFile();
+  const paths = await inputFile('<script>document.getElementById("mapsvg").insertAdjacentHTML("beforeend",\'<g class="cartouche"><rect x="20" y="320" width="200" height="20" fill="white" stroke="black" stroke-width=".8"/></g>\');</script>');
   const result = await finalizeStatic({
     ...paths,
     reportDir: join(paths.dir, "reports"),
@@ -60,6 +71,8 @@ test("static finalizer bakes SVG and verifies serialized bytes in three engines 
   expect(output).toContain('id="map-layout-frozen-report"');
   expect(output).not.toContain("data-layout-details");
   expect(result.measurementEnvelope.reservePx).toBeGreaterThan(0);
+  expect(result.measurementEnvelope.fixedControlReserves).toHaveLength(1);
+  expect(result.measurementEnvelope.fixedControlReserves[0].bottom).toBeGreaterThan(0);
   expect(result.measurementEnvelope.profiles.map(p=>p.browser)).toEqual(["chromium","firefox","webkit"]);
   expect(result.audits).toHaveLength(6);
   expect(

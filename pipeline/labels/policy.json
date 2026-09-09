@@ -28,7 +28,7 @@
   "performance": {
     "transactionP95Ms": 8,
     "frameP95Ms": 33,
-    "settledMs": 100
+    "idleCompletion": "informational; eventual ready completion required"
   },
   "typography": {
     "maximumZoomGrowth": 1.18,

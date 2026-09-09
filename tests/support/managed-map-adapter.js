@@ -107,7 +107,7 @@ export function collectManagedInventory() {
               (isText && style.strokeLinejoin.startsWith("miter") ? Math.max(1, parseFloat(style.strokeMiterlimit) || 4) : 1);
       if (
         child.tagName.toLowerCase() === "text" &&
-        (child.querySelector("textPath") ||
+        (child.querySelector("textPath,tspan[data-layout-primary]") ||
           Math.abs(m.b) > 1e-8 ||
           Math.abs(m.c) > 1e-8)
       ) {
@@ -126,6 +126,9 @@ export function collectManagedInventory() {
     const s=c.style;if(!s.opacity || (s.fill==='none' && s.stroke==='none'))return [];
     let b=c.bounds;
     if(c.kind==='glyph'){
+      // A whitespace command paints no pixels; some engines still report an
+      // em-height TextMetrics box for it. Do not invent paint from that advance.
+      if(!c.text.trim())return [];
       paintContext.font=s.font;paintContext.fontKerning='none';
       const t=paintContext.measureText(c.text);
       b={x:-t.actualBoundingBoxLeft,y:-t.actualBoundingBoxAscent,
@@ -176,6 +179,7 @@ export function collectManagedInventory() {
     const shapes = !valid ? [] : renderer ? canvasPolygons(a.id) : shown(e) ? polygons(e) : [];
     const eligible =
       a.kind === "point-label" &&
+      (!a.maxMetersPerPixel || !manifest.map.metersPerMapUnit || manifest.map.metersPerMapUnit / Math.hypot(matrix.a, matrix.b) <= a.maxMetersPerPixel) &&
       anchor.x >= viewport.left &&
       anchor.x <= viewport.right &&
       anchor.y >= viewport.top &&
@@ -200,7 +204,7 @@ export function collectManagedInventory() {
       });
   }
   for (const e of all) {
-    if (e.closest("defs,.fixed-ui,.cartouche,.scale")) continue;
+    if (e.closest("defs,.fixed-ui,.cartouche,.scale,.coordinate-grid")) continue;
     const wrapper = e.closest("[data-layout-id]");
     if (e.matches("[data-layout-id]") && !ids.has(e.dataset.layoutId))
       unknown.push({
@@ -220,7 +224,7 @@ export function collectManagedInventory() {
   const obstacles = [];
   const controls = [
     ...document.querySelectorAll(
-      '.ctl,.hint,.zlabel,.readout,.layers summary,.layers[open] .box,.tooltip,.ttip,[data-layout-details],[role="dialog"],[role="tooltip"],button,input,select,[role="button"],#mapsvg .cartouche,#mapsvg .scale',
+      '.ctl,.hint,.zlabel,.readout,.live-scale,.layers summary,.layers[open] .box,.tooltip,.ttip,[data-layout-details],[role="dialog"],[role="tooltip"],button,input,select,[role="button"],#mapsvg .cartouche,#mapsvg .scale',
     ),
   ];
   for (const e of controls) {

@@ -13,8 +13,7 @@ label preparation with stable accepted layouts during pans.
 
 **Tech stack:** Existing Python/Shapely/NumPy pipeline, JavaScript layout engine,
 SVG authoring/static output, Canvas interactive paint and optional WebGL contours;
-Node, Python unittest and Playwright checks. Projection support would add a deliberate
-`pyproj` dependency after checking compatibility with the existing environment.
+Node, Python unittest and Playwright checks. Projection support uses the installed `pyproj` dependency.
 
 **Status:** Implementation active, 2026-09-09. The user authorized execution and
 local output promotion. Hosted publication is separate. Completion and source
@@ -316,12 +315,25 @@ modify relevant fixture builders and `docs/ADAPTING.md`, `docs/DESIGN.md`,
 4. Run all Python/Node tests and affected browser tests. Independently inspect
    geometry, typography, pan stability, zoom transitions, both themes, DPR 1/2,
    narrow/wide viewports and Canvas/WebGL/SVG fallback.
-5. Run sequential renderer/startup benchmarks using immutable before/after files,
+5. Add seeded fuzzing-style visual interaction testing in
+   `scripts/fuzz-cartography.mjs`. Exercise both regions, Canvas/WebGL and SVG
+   fallback, light/dark themes, narrow/wide viewports and DPR 1/2. Generate
+   random pans, zooms, rapid reversals, held/interrupted drags, wheel bursts,
+   layer changes, font-size changes, resizes and reset/return sequences. Check
+   page/console errors, unhandled rejections, finite camera state, eventual
+   completion, correct painted camera, missing/stale layers and label stability
+   on pure pans. Capture periodic screenshots and failure frames; review contact
+   sheets for clipping, blank frames, duplicate/stale text and other visual
+   glitches that geometry checks cannot establish. Record seeds, actions,
+   browser/version, artifact hashes and replay commands. Minimize any failing
+   sequence into a regression before accepting the release. This is additional
+   evidence, not a substitute for the existing deterministic release scenes.
+6. Run sequential renderer/startup benchmarks using immutable before/after files,
    same hardware/browser/viewport, at least three repetitions. Preserve raw results.
    Aim for no >10% regression in median/p95 gesture CPU or early-input latency;
    investigate variance before treating that proposed tolerance as a release contract.
    Report total idle label-completion time separately from responsiveness.
-6. Document remaining unavailable/stale sources. A successful fixture is not proof
+7. Document remaining unavailable/stale sources. A successful fixture is not proof
    that Sequoia's current trails or facilities are complete. Commit validation evidence.
 
 ## Task 12: Release validation and integration
@@ -376,17 +388,19 @@ separate. Preserve worktrees until their evidence and needed artifacts are retai
 
 - [x] 1. Label diagnostics and regression
 - [x] 2. Resumable preparation
-- [ ] 3. Readability and line candidates
-- [ ] 4. Area configuration/provenance
-- [ ] 5. Feature topology/attributes
-- [ ] 6. Transport styling
-- [ ] 7. Hydrography/gazetteer
-- [ ] 8. Facilities and route distances
-- [ ] 9. Land cover/boundaries
-- [ ] 10. Furniture
+- [x] 3. Readability and line candidates
+- [x] 4. Area configuration/provenance
+- [x] 5. Feature topology/attributes
+- [x] 6. Transport styling
+- [x] 7. Hydrography/gazetteer
+- [ ] 8. Facilities and route distances — final glyph/elevation/segment-label review
+- [x] 9. Land cover/boundaries
+- [x] 10. Furniture
 - [ ] 11. Portability/performance validation
+  - [ ] Seeded visual fuzzing, replayable failures, screenshot/contact-sheet review
 - [ ] 12. Release and promotion
-- [ ] 13. Separate startup investigation
+- [ ] 13. Separate production 3× startup target
+  - [x] Corrected probes, trace investigation and diagnostic ablations
 
 User steering: the camera is already smooth. Preserve it; focus implementation on
 font growth/readability, label completion and cartographic content. Idle label latency
@@ -399,3 +413,36 @@ startup deadline remains bounded while idle slices complete all eligible items.
 Progress/pan/gesture/settled tests passed (66 cases before typography changes).
 Zoom growth and text preference passed in all engines (9 focused cases); Canvas
 sprite invalidation has its own regression. Source-only changes are not promoted.
+
+Source foundation: `ad390fb` adds MapSpec, complete OSM attribute/topology caches,
+GNIS, 3DHP, PAD-US, Annual NLCD and 3DEP adapters. Independent review found and
+resolved NLCD native-grid alignment and explicit multi-ring repair reporting.
+Both-region raw/derived hashes and frames were checked. Subsequent renderer
+review produced additional regressions for OSM islands, facility-node
+classification, crossing hydrography and source-identity matching; geographic
+integration is still under validation.
+
+Release tooling: `a5be603` corrects native Canvas/SVG trail-picking checks and
+reserves measured cross-engine font expansion during static freezing, while
+keeping all six serialized audits. Timing schema v2 reports total idle label
+completion separately from camera timing limits. Four unit and ten focused
+browser cases passed. Startup probes/report are tracked in `3afecad`; the 3×
+target remains unproven. No outputs have been promoted by these commits.
+
+
+Visual testing execution: the seeded harness is installed and initial runs exposed
+empty clipped water paths, unnamed-facility label clutter, area-outline scaling,
+missing centered lake candidates and a textPath commit offset reset. Focused
+regressions accompany these fixes. Independent paint audits remain mandatory;
+passing camera-state fuzz checks alone does not establish label correctness.
+See [implementation record](../CARTOGRAPHY_IMPLEMENTATION.md) for evidence/status.
+
+Tasks 3–10 have shared semantics, source provenance, regression cases and
+both-region builds. Final source review is completing missing facility glyphs,
+source-backed peak elevations and on-map segment distances. Portability/paint review and release remain
+Tasks 11–12; their pending status is not a claim that implementation is absent.
+POI priorities now derive from navigation categories; ordinary services and scenic
+features remain available as secondary detail. Static visual review also found
+interaction hit paths painting black; the static scene now omits that interaction
+geometry. Point preparation reserves 0.125px for backend glyph rounding without
+relaxing the painted displacement limit.

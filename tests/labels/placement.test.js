@@ -27,3 +27,58 @@ test('repeat checks visit only matching positive-distance feature members',()=>{
 test('opt-in placement-time diagnostics omit later blockers only when repair is disabled',()=>{const s=scene([a('first',[c('only',20,20)],{priority:100}),a('later',[c('only',20,20)],{priority:10,allowedObstacleIds:['control']})],[{id:'control',kind:'control',shape:shape(20,20)}]);s.policy.repairMaxNeighbors=0;const final=solveLayout(s),fast=solveLayout({...s,policy:{...s.policy,exhaustiveDiagnostics:false}});assert.equal(final.diagnostics,'final');assert.equal(fast.diagnostics,'placement-time');assert.deepEqual(fast.placements,final.placements);assert.deepEqual(fast.missingRequired,final.missingRequired);const early=fast.outcomes.find(o=>o.id==='first'),late=final.outcomes.find(o=>o.id==='first');assert.deepEqual(early.blockerIds,['control']);assert.deepEqual(late.blockerIds,['control','later']);assert.ok(early.blockerIds.every(id=>late.blockerIds.includes(id)));});
 test('repair-enabled solvers always retain final exhaustive diagnostics',()=>{const s=scene([a('a',[c('first',20,20),c('alternate',80,20)],{required:true}),a('b',[c('only',20,20)],{required:true})]);const expected=solveLayout(s),actual=solveLayout({...s,policy:{...s.policy,exhaustiveDiagnostics:false}});assert.equal(actual.diagnostics,'final');assert.deepEqual(actual,expected);safe(actual);});
 test('placement-time mode short-circuits frame and first hard obstacle without changing placements',()=>{let queries=0,partReads=0;const obstacles=Array.from({length:20},(_,i)=>({id:'o'+i,shape:{bounds:{x:20,y:20,width:20,height:10},get parts(){partReads++;return [this.bounds];}}}));const s=scene([a('offscreen',[c('only',-20,20)],{priority:100}),a('blocked',[c('only',20,20)]),a('free',[c('only',100,100)])]);s.queryObstacles=()=>{queries++;return obstacles;};const fast=solveLayout({...s,policy:{...s.policy,repairMaxNeighbors:0,exhaustiveDiagnostics:false}});assert.equal(queries,2);assert.equal(partReads,1);assert.deepEqual(fast.outcomes.find(o=>o.id==='blocked').blockerIds,['o0']);const full=solveLayout({...s,policy:{...s.policy,repairMaxNeighbors:0}});assert.deepEqual(fast.placements,full.placements);assert.deepEqual(fast.missingRequired,full.missingRequired);assert.equal(full.outcomes.find(o=>o.id==='blocked').blockerIds.length,20);});
+test('repair budget bounds neighbor probes across all proposals for one annotation',()=>{
+  let reads=0;
+  const alternatives=[20,40,60,80].map((x,i)=>{const item=c('n'+i,x,20,10,10);const bounds=item.shape.bounds;item.shape={bounds,get parts(){reads++;return [bounds];}};return item;});
+  const s=scene([a('neighbor',alternatives,{priority:100}),a('blocked',Array.from({length:100},(_,i)=>c('b'+i,20,20,100,10)))]);
+  s.policy.repairBudget=4;
+  const r=solveLayout(s);
+  assert.deepEqual(r.placements.map(p=>p.id),['neighbor']);
+  // Initial/final diagnostics also read the accepted neighbor. Unplaced neighbor
+  // alternatives should be probed only within the single shared repair budget.
+  assert.ok(reads<500,`repair restarted its budget per proposal (${reads} reads)`);
+  assert.equal(r.placements[0].candidateId,'n0');safe(r);
+});
+test('static font envelopes reserve each annotation independently',()=>{
+ const s=scene([a('wide-font',[c('only',20,20)],{priority:100}),a('stable-font',[c('only',44,20)])]);
+ s.policy.measurementReserves={'wide-font':3};
+ const r=solveLayout(s);assert.equal(r.placements.length,1);assert.equal(r.placements[0].footprint.bounds.x,17);
+});
+test('required and group retries share the annotation repair budget',()=>{
+  function run(required){
+    let alternateReads=0;
+    const alternatives=[20,40,60,80].map((x,i)=>{const item=c('n'+i,x,20,10,10);if(i){const bounds=item.shape.bounds;item.shape={bounds,get parts(){alternateReads++;return [bounds];}};}return item;});
+    const s=scene([a('neighbor',alternatives,{required:true,priority:100}),a('blocked',[c('only',20,20,100,10)],{required,requiredGroup:required?'main':undefined})]);
+    s.policy.repairBudget=4;s.policy.requiredGroups=required?['main']:[];
+    const result=solveLayout(s);
+    assert.deepEqual(result.placements.map(p=>[p.id,p.candidateId]),[['neighbor','n0']]);
+    assert.deepEqual(result.missingRequired,required?['blocked','route:main']:[]);
+    safe(result);return alternateReads;
+  }
+  const singlePass=run(false),requiredRetries=run(true);
+  assert.ok(singlePass>0,'the scene must exercise neighbor repair');
+  assert.equal(requiredRetries,singlePass,'required/group retries must not restart exhausted neighbor probes');
+});
+test('cached hard IDs remain unique and ordered alongside later label blockers',()=>{
+  const obstacles=['z','a','z'].map(id=>({id,shape:shape(20,20)}));
+  const s=scene([a('blocked',[c('only',20,20)],{required:true,requiredGroup:'main'}),a('later',[c('only',20,20)],{allowedObstacleIds:['a','z']})],obstacles);
+  s.policy.requiredGroups=['main'];
+  const result=solveLayout(s);
+  assert.deepEqual(result.outcomes.find(o=>o.id==='blocked').blockerIds,['a','later','z']);
+  assert.deepEqual(result.placements.map(p=>p.id),['later']);
+  assert.deepEqual(result,solveLayout({...s,policy:{...s.policy,repairMaxNeighbors:0}}));
+});
+test('directional font reserves preserve narrow slots while protecting measured edges',()=>{
+  const s=scene([a('name',[c('only',20,20)])],[{id:'left',shape:shape(0,0,17,100)},{id:'right',shape:shape(43,0,17,100)}]);
+  s.policy.measurementReserves={name:{left:0,top:2,right:0,bottom:2}};
+  const result=solveLayout(s);
+  assert.equal(result.placements.length,1);
+  assert.deepEqual(result.placements[0].footprint.bounds,{x:20,y:18,width:20,height:14});
+  s.obstacles.push({id:'above',shape:shape(20,10,20,7)});
+  assert.equal(solveLayout(s).placements.length,0,'the measured top expansion must still block');
+});
+test('lazy fallback footprints receive all four directional font reserves',()=>{
+  const s=scene([a('name',[],{fallbackCandidates:()=>[c('fallback',20,20)]})]);
+  s.policy.measurementReserves={name:{left:1,top:2,right:3,bottom:4}};
+  assert.deepEqual(solveLayout(s).placements[0]?.footprint.bounds,{x:19,y:18,width:24,height:16});
+});

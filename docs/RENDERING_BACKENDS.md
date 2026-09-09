@@ -1,23 +1,29 @@
 # Interactive rendering backends
 
-Implemented on 2026-09-09; candidate checks and measurements are recorded below. This
-changes the interactive map's paint surface; the static sheet, elevation profile,
-legend icons, authored geography, attribution and standalone delivery remain.
-Output promotion and hosted publication are separate release operations.
+Implemented on 2026-09-09; candidate checks and measurements are recorded below. The
+interactive paint backends share the installed portable cartography, source geometry and
+label preparation. Static output remains SVG; attribution and standalone delivery remain.
+Candidate release validation is pending. Output promotion and hosted publication are
+separate release operations.
 
 ## Running the candidates
 
-The interactive builder defaults to Canvas. From `pipeline/`, using the project's
-Python environment and existing terrain/vector caches:
+`npm run build:maps` selects WebGL contours with Canvas relief and foreground for the
+primary interactive candidate, and emits a Canvas companion. It also builds a standalone
+Sequoia candidate when that region's feature and DEM caches exist. For direct builds from
+`pipeline/`, use the project's Python environment and existing source/terrain caches:
 
 ```sh
-python build_interactive.py
-python build_interactive.py --renderer webgl --output grand_canyon_trails_webgl.html
+python build_interactive.py --renderer webgl
+python build_interactive.py --renderer canvas --output grand_canyon_trails_canvas.html
+python build_region.py --map sequoia --renderer webgl
 ```
 
 Every generated interactive file also accepts `?renderer=svg`, `?renderer=canvas`
-or `?renderer=webgl` before its `#v=...` camera fragment. The companion WebGL file
+or `?renderer=webgl` before its `#v=...` camera fragment. The Canvas companion
 is useful when opening an absolute local path without adding a query string.
+The direct Grand Canyon builder's omitted `--renderer` option still selects Canvas;
+the cached build passes WebGL explicitly.
 An unknown query value uses the SVG fallback. No additional network resources,
 tiles, fonts, service workers or server are required to view these candidates.
 
@@ -48,12 +54,13 @@ SVG parsing, embedded source geometry, browser typography measurement or settled
 layout work. Those costs still affect startup and post-gesture work. Canvas is not
 by itself a threefold startup improvement.
 
-## WebGL prototype
+## WebGL contour backend and fidelity limits
 
 WebGL 2 replaces the contour surface only. Relief and foreground use the same
 Canvas renderer, making the comparison specifically about dense line rendering.
-The prototype uploads 2,268,548 line segments (54,445,152 buffer bytes for the
-current cached terrain) once, then updates camera and stroke uniforms. Instanced
+The initial prototype measurement uploaded 2,268,548 line segments (54,445,152 buffer
+bytes for that cached terrain) once, then updated camera and stroke uniforms. Current
+counts depend on the region and source caches. Instanced
 quads provide round joins, butt/round endpoints and analytic antialiasing. Visible
 chunk ranges cull offscreen segments; adjacent ranges merge before drawing.
 
@@ -62,7 +69,8 @@ The prototype unions contours with identical styling before applying their ink
 opacity. Unlike separate SVG/Canvas path strokes, overlapping *different* paths
 in that group do not accumulate opacity. Very dense contours can therefore look
 lighter. Antialiasing also differs from native Canvas/SVG. This is an explicit
-visual approximation, so WebGL remains an optional prototype.
+visual approximation retained in the current WebGL backend. Selecting it for cached
+builds does not establish SVG/Canvas pixel equivalence or waive release validation.
 
 Solid, round-joined polyline contours are supported. Unsupported contour syntax
 or GPU initialization failure falls back to Canvas; a lost GPU context replaces
@@ -109,5 +117,8 @@ and startup input latency are different measures; reaching a 60 Hz display's fra
 limit cannot demonstrate a threefold frame-rate increase.
 
 Measured results and the remaining startup limit belong in
-[the performance record](PERFORMANCE.md). Candidate release and promotion remain
-subject to [layout validation](LAYOUT_VALIDATION.md).
+[the performance record](PERFORMANCE.md) and [startup investigation](STARTUP_INVESTIGATION.md).
+The current 3× initial-responsiveness target remains unproven. Schema 2 warm-gesture reports
+gate camera transaction work and frame intervals, require eventual successful label completion,
+and retain `settledMs` as informational. Candidate release, cartography audit/fuzz commands
+and promotion remain subject to [layout validation](LAYOUT_VALIDATION.md).

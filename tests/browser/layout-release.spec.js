@@ -22,3 +22,11 @@ for(const backend of ['svg','canvas'])test(`pin verification natively selects vi
  expect(await page.evaluate(()=>window.nativePinClicks)).toBe(1);
  await page.locator('[data-layout-details]').evaluate(e=>e.style.display='none');await expect(checkPinnedTrailDetails(page)).rejects.toThrow('visible details');
 });
+test('destination coverage counts reviewed identity alternatives once and keeps every required core',()=>{
+ const data={manifest:{annotations:[{id:'a',kind:'point-label'},{id:'alias',kind:'point-label'},{id:'b',kind:'point-label'}]},visible:['alias'],outcomes:[]};
+ const scene={viewportWidth:1440,destinations:{minViewportWidth:1200,minimumFraction:.8,requiredMinimumFraction:1,groups:[{id:'first',annotationIds:['a','alias'],required:true},{id:'second',annotationIds:['b'],required:true}]}};
+ const failures=checkSceneCoverage(data,scene);expect(failures).toContainEqual({kind:'reviewed-destinations',minimumFraction:.8,numerator:1,denominator:2,fraction:.5,missing:['second']});expect(failures).toContainEqual({kind:'required-destinations',minimumFraction:1,numerator:1,denominator:2,fraction:.5,missing:['second']});
+ data.visible.push('b');expect(checkSceneCoverage(data,scene)).toEqual([]);data.visible=[];expect(checkSceneCoverage(data,{...scene,viewportWidth:360})).toEqual([]);
+ expect(checkSceneCoverage(data,{...scene,destinations:{...scene.destinations,groups:[]}})).toContainEqual({kind:'reviewed-destinations',minimumFraction:.8,numerator:0,denominator:0,fraction:0,missing:[]});
+ expect(checkSceneCoverage(data,{...scene,destinations:{...scene.destinations,groups:[{id:'unknown',annotationIds:['absent'],required:true}]}}).some(f=>f.missing.includes('unknown'))).toBe(true);
+});

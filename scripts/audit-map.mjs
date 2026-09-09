@@ -142,11 +142,22 @@ export async function runAudit({
       }, theme);
     let fontReady;
     if (!javaScriptEnabled) {
-      // Firefox suppresses page Promise jobs with JS disabled; poll from Node.
+      const requiredFamilies=mode==='managed'?(auditPolicy.fontFamilies??[]):[];
+      // A frozen scene may not paint every embedded family. Exercise those font
+      // bytes explicitly instead of treating an unused, unloaded face as absent.
+      // Start native loads synchronously; Firefox suppresses page Promise jobs
+      // with JavaScript disabled, so completion must be polled from Node.
+      await page.evaluate(required=>{
+        const normalize=name=>name.replaceAll('"','').replaceAll("'",'').trim();
+        for(const face of document.fonts)if(required.includes(normalize(face.family)))face.load().catch(()=>{});
+      },requiredFamilies);
       const deadline = Date.now() + 10000;
       do {
         fontReady = await page.evaluate(
-          () => document.fonts.status === "loaded",
+          required => {
+            const normalize=name=>name.replaceAll('"','').replaceAll("'",'').trim();
+            return document.fonts.status==='loaded'&&[...document.fonts].every(face=>!required.includes(normalize(face.family))||!['unloaded','loading'].includes(face.status));
+          },requiredFamilies,
         );
         if (fontReady) break;
         await new Promise((resolve) => setTimeout(resolve, 50));
@@ -228,13 +239,17 @@ export async function runAudit({
         document.querySelector("#audit-overlay")?.remove(),
       );
     }
-    const fontCompleteness=mode==='managed'?await page.evaluate(required=>{
+    // WebKit releases unused loaded faces during screenshot capture. For frozen
+    // pages, retain the native load evidence collected with the audited geometry,
+    // before that audit-only screenshot step; page scripts remain disabled.
+    const frozenLoadedFamilies=!javaScriptEnabled?views.flatMap(v=>v.fonts.filter(f=>f.status==='loaded').map(f=>f.family)):null;
+    const fontCompleteness=mode==='managed'?await page.evaluate(({required,frozenLoadedFamilies})=>{
       const normalize=name=>name.replaceAll('"','').replaceAll("'",'').trim();
-      const loaded=new Set([...document.fonts].filter(f=>f.status==='loaded').map(f=>normalize(f.family))),embedded=new Set();
+      const loaded=new Set((frozenLoadedFamilies??[...document.fonts].filter(f=>f.status==='loaded').map(f=>f.family)).map(normalize)),embedded=new Set();
       const visit=rules=>{for(const rule of rules){if(rule.type===CSSRule.FONT_FACE_RULE&&/data:font\/[^;]+;base64,/.test(rule.style.getPropertyValue('src')))embedded.add(normalize(rule.style.getPropertyValue('font-family')));if(rule.cssRules)visit(rule.cssRules);}};
       for(const sheet of document.styleSheets)try{visit(sheet.cssRules);}catch{}
       return {requiredFamilies:required,missingFamilies:required.filter(f=>!loaded.has(f)),missingEmbeddedFamilies:required.filter(f=>!embedded.has(f))};
-    },auditPolicy.fontFamilies??[]):null;
+    },{required:auditPolicy.fontFamilies??[],frozenLoadedFamilies}):null;
     const imageFailures=mode==='managed'?await page.evaluate(()=>[...document.images].filter(img=>!img.complete||!img.naturalWidth).map(img=>({src:img.currentSrc||img.src,complete:img.complete,naturalWidth:img.naturalWidth}))):[];
     const incomplete =
       !fontReady || imageFailures.length>0 || (mode==='managed'&&(fontCompleteness.missingFamilies.length>0||(!javaScriptEnabled&&(fontCompleteness.missingEmbeddedFamilies.length>0||(fontCompleteness.requiredFamilies.length>0&&embeddedFonts.length===0))))) ||

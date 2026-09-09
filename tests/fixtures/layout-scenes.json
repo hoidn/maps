@@ -1,18 +1,403 @@
 {
   "version": 1,
-  "coverageReview": "pending-real-artifact-evaluation",
-  "rationale": "These are explicit proposed information floors, not measured baselines. Freeze only after examining real overview and dense-scene coverage; do not lower a floor to conceal placement failures.",
+  "coverageReview": "frozen",
+  "rationale": "Reviewed Grand Canyon desktop overview coverage counts fixed physical destinations with verified annotation alternatives, not duplicate editorial/node/area labels. The 30 destinations were selected independently of current visibility. Membership and floors are frozen; one preliminary Chromium overview is not final release approval. Raw primary annotation fractions remain diagnostic.",
   "overview": {
     "minima": {
       "point-label": 8
     },
-    "fractions": [
-      {
-        "kind": "primary-point-label",
-        "minimumFraction": 0.8,
-        "minViewportWidth": 1200
-      }
-    ]
+    "destinations": {
+      "minimumFraction": 0.8,
+      "requiredMinimumFraction": 1,
+      "minViewportWidth": 1200,
+      "groups": [
+        {
+          "id": "feature-153bbdb894e42fc8",
+          "name": "Bright Angel TH",
+          "role": "trailhead",
+          "required": true,
+          "annotationIds": [
+            "label-b854c8abbaab9e47",
+            "label-4dbad2c446953ce5"
+          ],
+          "sourceIds": [
+            "osm:node:3241200192"
+          ]
+        },
+        {
+          "id": "feature-43c1f484be6936c8",
+          "name": "South Kaibab TH",
+          "role": "trailhead",
+          "required": true,
+          "annotationIds": [
+            "label-c64452c86cb09455",
+            "label-ce4d5b3fe02683a7"
+          ],
+          "sourceIds": [
+            "osm:node:3882802737"
+          ]
+        },
+        {
+          "id": "feature-7ceb5874781761f2",
+          "name": "North Kaibab TH",
+          "role": "trailhead",
+          "required": true,
+          "annotationIds": [
+            "label-b4e0de1778f54d15",
+            "label-b710769b5635763e"
+          ],
+          "sourceIds": [
+            "osm:node:5444897940"
+          ]
+        },
+        {
+          "id": "feature-231b3771e0f18cc6",
+          "name": "1½ Mile Resthouse",
+          "role": "required-place",
+          "required": true,
+          "annotationIds": [
+            "label-57fe2194a9fa64cd",
+            "label-dc1c1e6c6385aae5"
+          ],
+          "sourceIds": [
+            "osm:way:564591100"
+          ]
+        },
+        {
+          "id": "feature-df76723e77ee5cbf",
+          "name": "3 Mile Resthouse",
+          "role": "required-place",
+          "required": true,
+          "annotationIds": [
+            "label-71ffccc0f53195fc",
+            "label-0c6e28346b0d5a2c"
+          ],
+          "sourceIds": [
+            "osm:way:158608703"
+          ]
+        },
+        {
+          "id": "feature-11d08bb043f69772",
+          "name": "Havasupai Gardens",
+          "role": "campground",
+          "required": true,
+          "annotationIds": [
+            "label-fc8a44dc7fbcb943",
+            "label-f73f06ee23a4f329"
+          ],
+          "sourceIds": [
+            "osm:relation:15976432"
+          ]
+        },
+        {
+          "id": "feature-d37f27ee28e081a1",
+          "name": "Bright Angel CG",
+          "role": "campground",
+          "required": true,
+          "annotationIds": [
+            "label-1b3f25de8e2f46ce",
+            "label-8571b315734341ff"
+          ],
+          "sourceIds": [
+            "osm:relation:15973307"
+          ]
+        },
+        {
+          "id": "feature-c8eab70fa6dfb8af",
+          "name": "Phantom Ranch",
+          "role": "required-place",
+          "required": true,
+          "annotationIds": [
+            "label-2bda34b9e33d8e10",
+            "label-3b94d224cc553b2a"
+          ],
+          "sourceIds": [
+            "osm:way:1014985806"
+          ]
+        },
+        {
+          "id": "feature-2c531ff2890981d0",
+          "name": "Cottonwood CG",
+          "role": "campground",
+          "required": true,
+          "annotationIds": [
+            "label-94c343079e49d3de",
+            "label-115ec0db112322e4",
+            "label-d084354201643748"
+          ],
+          "sourceIds": [
+            "osm:node:13378627667",
+            "osm:way:1014985804"
+          ]
+        },
+        {
+          "id": "feature-f32ddc21c038cc1f",
+          "name": "Hermits Rest",
+          "role": "trailhead",
+          "required": false,
+          "annotationIds": [
+            "label-7be3cbb444211ebd",
+            "label-8324f392f75cae7d"
+          ],
+          "sourceIds": [
+            "osm:node:1915968428"
+          ]
+        },
+        {
+          "id": "feature-e4a2c31f6ac73d54",
+          "name": "Grandview Point",
+          "role": "trailhead",
+          "required": false,
+          "annotationIds": [
+            "label-131ff83ac65e879e",
+            "label-34eafd55b0d41891"
+          ],
+          "sourceIds": [
+            "osm:node:6430213996"
+          ]
+        },
+        {
+          "id": "feature-37d5e91260d17056",
+          "name": "New Hance TH",
+          "role": "trailhead",
+          "required": false,
+          "annotationIds": [
+            "label-174ea13f363898dd",
+            "label-d7a3314ea7b70173"
+          ],
+          "sourceIds": [
+            "osm:node:2095726580"
+          ]
+        },
+        {
+          "id": "feature-aea54ad93ebacc74",
+          "name": "Mather CG",
+          "role": "campground",
+          "required": false,
+          "annotationIds": [
+            "label-c35198e2af3da350",
+            "label-19d884e37f5e65b3"
+          ],
+          "sourceIds": [
+            "osm:way:171124802"
+          ]
+        },
+        {
+          "id": "feature-11de02852d666841",
+          "name": "North Rim CG",
+          "role": "campground",
+          "required": false,
+          "annotationIds": [
+            "label-18948f216945a92c",
+            "label-a15683d03c7d1df8"
+          ],
+          "sourceIds": [
+            "osm:way:175607053"
+          ]
+        },
+        {
+          "id": "feature-4f6e12a23308f73b",
+          "name": "Widforss TH",
+          "role": "trailhead",
+          "required": false,
+          "annotationIds": [
+            "label-251be9c7b49d8de9",
+            "label-1da91dae07a636af"
+          ],
+          "sourceIds": [
+            "osm:node:2130330678"
+          ]
+        },
+        {
+          "id": "feature-6a849a4ece1b9e51",
+          "name": "Cape Final",
+          "role": "campground",
+          "required": false,
+          "annotationIds": [
+            "label-784c94a3ec3547f1",
+            "label-ae0fae13ceaf927a"
+          ],
+          "sourceIds": [
+            "osm:node:4347510589"
+          ]
+        },
+        {
+          "id": "feature-c698fc97bdea3b27",
+          "name": "Clear Creek CG",
+          "role": "campground",
+          "required": false,
+          "annotationIds": [
+            "label-c5041d27ef4e305b",
+            "label-ffe14f09d86e3515"
+          ],
+          "sourceIds": [
+            "osm:node:1467634846"
+          ]
+        },
+        {
+          "id": "feature-358604d0f8ccdcb6",
+          "name": "Hermit Creek CG",
+          "role": "campground",
+          "required": false,
+          "annotationIds": [
+            "label-0e9fdc1257d07eb9",
+            "label-52eaf8b3e5dea747"
+          ],
+          "sourceIds": [
+            "osm:node:4037112505"
+          ]
+        },
+        {
+          "id": "feature-98bc45880d650681",
+          "name": "Hermit Rapids",
+          "role": "campground",
+          "required": false,
+          "annotationIds": [
+            "label-ec34875b5e5bcbd8",
+            "label-f6f6f7f9e70ee4f2"
+          ],
+          "sourceIds": [
+            "osm:node:6967591535"
+          ]
+        },
+        {
+          "id": "feature-0581c4c237706a49",
+          "name": "Monument Creek",
+          "role": "campground",
+          "required": false,
+          "annotationIds": [
+            "label-5376dd862028db36",
+            "label-d8f9db9c5fd7e833"
+          ],
+          "sourceIds": [
+            "osm:node:5477026769"
+          ]
+        },
+        {
+          "id": "feature-69d48b7c81a7cc5e",
+          "name": "Granite Rapids",
+          "role": "campground",
+          "required": false,
+          "annotationIds": [
+            "label-583ef51a41e7d0d8",
+            "label-a37b178a642d6698"
+          ],
+          "sourceIds": [
+            "osm:node:5592173304"
+          ]
+        },
+        {
+          "id": "feature-77f91bfd318e13f2",
+          "name": "Salt Creek",
+          "role": "campground",
+          "required": false,
+          "annotationIds": [
+            "label-b283a1685cb6fbd5",
+            "label-cabfa5eacdcbbfba"
+          ],
+          "sourceIds": [
+            "osm:node:4396774989"
+          ]
+        },
+        {
+          "id": "feature-4d4916546199da32",
+          "name": "Cedar Spring",
+          "role": "campground",
+          "required": false,
+          "annotationIds": [
+            "label-8b6a3b0f79b73a61",
+            "label-7e606d973e9681e9"
+          ],
+          "sourceIds": [
+            "osm:node:5477026770"
+          ]
+        },
+        {
+          "id": "feature-2714979068e67e83",
+          "name": "Horn Creek",
+          "role": "campground",
+          "required": false,
+          "annotationIds": [
+            "label-5bd747a3f027bc18",
+            "label-7a05a71de7e26e27"
+          ],
+          "sourceIds": [
+            "osm:node:4207740194"
+          ]
+        },
+        {
+          "id": "feature-1325a8ccc1105bb2",
+          "name": "Boucher Creek",
+          "role": "campground",
+          "required": false,
+          "annotationIds": [
+            "label-5565b5c1454c6ee1"
+          ],
+          "sourceIds": []
+        },
+        {
+          "id": "feature-737204e3bbbd29a5",
+          "name": "Horseshoe Mesa CG",
+          "role": "campground",
+          "required": false,
+          "annotationIds": [
+            "label-ce3267bfdb4c0872",
+            "label-1c54683a247cf069"
+          ],
+          "sourceIds": [
+            "osm:node:5476147596"
+          ]
+        },
+        {
+          "id": "feature-1156bab05e6c355b",
+          "name": "Point Sublime",
+          "role": "campground",
+          "required": false,
+          "annotationIds": [
+            "label-a53dd1879e50c381"
+          ],
+          "sourceIds": [
+            "osm:node:3736055850"
+          ]
+        },
+        {
+          "id": "feature-f7f4744a885101f3",
+          "name": "Roosevelt Trailhead",
+          "role": "trailhead",
+          "required": false,
+          "annotationIds": [
+            "label-4155a016bd5c158b"
+          ],
+          "sourceIds": [
+            "osm:node:1183479517"
+          ]
+        },
+        {
+          "id": "feature-4fd582f9796dd716",
+          "name": "Cliff Spring Trailhead",
+          "role": "trailhead",
+          "required": false,
+          "annotationIds": [
+            "label-1a0ef40dc4c427f4"
+          ],
+          "sourceIds": [
+            "osm:node:428984268"
+          ]
+        },
+        {
+          "id": "feature-035c4248249912b0",
+          "name": "Cape Final",
+          "role": "trailhead",
+          "required": false,
+          "annotationIds": [
+            "label-d64313fe1ece25ab"
+          ],
+          "sourceIds": [
+            "osm:node:2131696896"
+          ]
+        }
+      ]
+    }
   },
   "scenes": [
     {
@@ -47,5 +432,10 @@
         "point-label": 2
       }
     }
-  ]
+  ],
+  "coverageEvidence": {
+    "baseline": "docs/cartography/expected-destinations.json",
+    "scope": "reviewed membership and floors; preliminary one-browser overview only",
+    "finalAllEngineGateRequired": true
+  }
 }

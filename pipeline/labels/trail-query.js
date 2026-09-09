@@ -7,7 +7,7 @@ const strokeBounds=({a,b,width})=>({x:Math.min(a.x,b.x)-width/2,y:Math.min(a.y,b
 /** One immutable camera snapshot. Shared segments are projected at most once.
  * forRegion caches a conservative neighborhood, then searches a small CSS-space
  * index. Out-of-neighborhood requests safely use the complete source index. */
-export function createTrailQuery({segments,index,matrix,inverse,strokeScale,scale,maxWidth}) {
+export function createTrailQuery({segments,index,matrix,inverse,strokeScale,scale,maxWidth,metersPerPixel}) {
   const projected=new Map();
   function query(rect){
     validRect(rect);
@@ -16,7 +16,7 @@ export function createTrailQuery({segments,index,matrix,inverse,strokeScale,scal
     const r={x,y,width:Math.max(...points.map(p=>p.x))+radius-x,height:Math.max(...points.map(p=>p.y))+radius-y};
     const result=[];
     for(const i of index.query(r)){
-      const segment=segments[i];if(!touches(segment.bounds,r))continue;
+      const segment=segments[i];if(segment.maxMpp&&metersPerPixel>segment.maxMpp)continue;if(!touches(segment.bounds,r))continue;
       let obstacle=projected.get(i);
       if(!obstacle){obstacle={id:segment.id,kind:'trail',line:{a:project(matrix,segment.a),b:project(matrix,segment.b),width:segment.width*strokeScale*scale}};projected.set(i,obstacle);}
       result.push(obstacle);

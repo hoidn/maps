@@ -351,6 +351,22 @@ modify relevant fixture builders and `docs/ADAPTING.md`, `docs/DESIGN.md`,
    review. Correct defects through general typography, source identity, priority,
    spacing and scale rules, with regression cases; do not introduce regional
    exclusion lists or arbitrary label-count reductions to hide crowded scenes.
+   Additional user examples are explicit review cases: unintended truncation or
+   opaque route codes replacing a full trail name (for example “TONT”), odd
+   feature association, spelled-out toilet/service names that should be symbols,
+   missing campground legend entries, and unexplained alternate tent glyphs or
+   colors. Audit active symbol classes against the legend and unify equivalent
+   classes across authored and imported features. Preserve genuine signed road
+   references and source metadata; a short code is not automatically a clipping bug.
+   The user has also tightened the initial-label requirement: show a useful
+   prioritized label set promptly, then finish eligible detail without blocking
+   the camera. Introduce a shared, documented text-importance score and ground-scale
+   thresholds so overview text is deliberately selective and additional names
+   appear with zoom. Apply selection to text only; geometry and facility symbols
+   retain their own visibility rules. Use semantic classes and explicit source or
+   editorial importance, preserve unknowns, and test renaming/translation parity.
+   Check both first-useful-label latency and final text density/placement; neither
+   an early lone glyph nor a full but crowded label set satisfies this requirement.
 6. Run sequential renderer/startup benchmarks using immutable before/after files,
    same hardware/browser/viewport, at least three repetitions. Preserve raw results.
    Aim for no >10% regression in median/p95 gesture CPU or early-input latency;

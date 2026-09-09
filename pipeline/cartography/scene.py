@@ -18,7 +18,7 @@ from path_geometry import detail_path
 from features import feature_roles
 from .transport import transport_style
 from .hydro import hydro_style
-from .poi import poi_style
+from .poi import poi_style,SYMBOL_ONLY_SERVICES
 from .symbols import symbol_svg
 from .entities import match_display_repeats
 
@@ -155,6 +155,12 @@ def render_scene(features,routes,spec,M,existing=(),distances=()):
   if st['symbol']!='point':
    raw=f'<g style="transform:translate({p.x:.3f}px,{p.y:.3f}px) scale(var(--k))">{symbol_svg(st["symbol"])}</g>'
    groups['peaks' if st['symbol']=='peak' else 'symbols'].append(M.symbol(raw,st['symbol'],xy,source_id=f['id']));M.annotations[-1].update(sourceId=f['id'],maxMetersPerPixel=st['maxMetersPerPixel'],**{**importance,'priority':importance['priority']+10})
+  if st['symbol'] in SYMBOL_ONLY_SERVICES:
+   fid=M._feature(xy,name or '',st['symbol'],directory=bool(name),source_id=f['id'])
+   M.features[fid]['mapLabelPolicy']='symbol-only-service'
+   if name:omitted.append({'id':f['id'],'role':'poi-label','reason':'symbol-only-service-label','symbolKind':st['symbol']})
+   selected['poi']+=1
+   return
   elevation=source_peak_elevation(f) if st['symbol']=='peak' else None
   raw=annotate(f,name,'l-peak' if st['symbol']=='peak' else 'l-minor' if fc else 'l-place',xy,max_mpp=st['maxMetersPerPixel'],importance=importance,secondary=f'{elevation["valueMeters"]/.3048:,.0f} ft' if elevation else None)
   if raw and elevation:M.annotations[-1]['elevation']=elevation

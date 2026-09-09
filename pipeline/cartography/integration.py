@@ -66,7 +66,7 @@ def transport_legend(context):
  if context['report'].get('selected',{}).get('barrier',0):
   out.append('<span class="lg-item"><svg viewBox="0 0 34 14" width="34" height="14" aria-hidden="true"><path d="M1,7 H33" fill="none" stroke="var(--ink)" stroke-width=".65" stroke-dasharray="2,2"/></svg>Fence / wall · not an access designation</span>')
  from .symbols import symbol_svg
- facility_names={'shop':'Supplies','fuel':'Fuel','bench':'Bench','waste':'Waste disposal','saddle':'Saddle','gate':'Gate','barrier':'Barrier','picnic':'Picnic area / table','telephone':'Telephone','ford':'Ford','crossing':'Road crossing'}
+ facility_names={'camp':'Campground / campsite','toilets':'Toilets','shop':'Supplies','fuel':'Fuel','bench':'Bench','waste':'Waste disposal','saddle':'Saddle','gate':'Gate','barrier':'Barrier','picnic':'Picnic area / table','telephone':'Telephone','ford':'Ford','crossing':'Road crossing'}
  active=context['report'].get('facilitySymbols',{})
  if any(active.get(kind) for kind in facility_names):
   out.append('<span class="lg-title">Facilities and crossings · access and availability unverified</span>')

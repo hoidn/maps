@@ -124,13 +124,14 @@ def trail_label_near(chain, lat, lon, half, text, cls, off=9, flip=False):
     return trail_label(chain, max(d - half, 0), d + half, text, cls, off, flip)
 
 # ---------------------------------------------------------------- symbols
+from cartography.symbols import camp_symbol
 def _symbol_svg(kind, lat, lon, dx=0, dy=0):
     X, Y = P(lat, lon)
     return f'<g{anchored(X, Y, dx, dy)}>{_sym(kind)}</g>'
 def _sym(kind):
     x = y = 0.0
     if kind == "camp":
-        return f'<path class="s-camp" d="M{x-6:.1f},{y+4:.1f} L{x:.1f},{y-6.5:.1f} L{x+6:.1f},{y+4:.1f} Z"/><path class="s-camp-base" d="M{x-7.5:.1f},{y+4.5:.1f} H{x+7.5:.1f}"/>'
+        return camp_symbol(x,y)
     if kind == "th": return f'<rect class="s-th" x="{x-4.2:.1f}" y="{y-4.2:.1f}" width="8.4" height="8.4"/>'
     if kind == "water": return f'<path class="s-water" d="M{x:.1f},{y-6:.1f} C{x+4.2:.1f},{y-1.2:.1f} {x+4.2:.1f},{y+3.8:.1f} {x:.1f},{y+3.8:.1f} C{x-4.2:.1f},{y+3.8:.1f} {x-4.2:.1f},{y-1.2:.1f} {x:.1f},{y-6:.1f} Z"/>'
     if kind == "shelter": return f'<path class="s-shelter" d="M{x-4.5:.1f},{y+3.5:.1f} h9 v-4.5 l-4.5,-4 l-4.5,4 z"/>'
@@ -597,7 +598,7 @@ def lg(kind, label):
     elif kind == "contour": sw = '<svg viewBox="0 0 34 14"><path d="M0,4 C10,0 20,8 34,3" class="cx" style="opacity:1"/><path d="M0,11 C10,7 20,14 34,9" class="ci" style="opacity:1;stroke-width:.8"/></svg>'
     else:
         x, y = 17, 7
-        inner = {"camp": f'<path class="s-camp" d="M{x-6},{y+4} L{x},{y-6.5} L{x+6},{y+4} Z"/><path class="s-camp-base" d="M{x-7.5},{y+4.5} H{x+7.5}"/>',
+        inner = {"camp": camp_symbol(x,y),
                  "th": f'<rect class="s-th" x="{x-4.2}" y="{y-4.2}" width="8.4" height="8.4"/>',
                  "water": f'<path class="s-water" d="M{x},{y-6} C{x+4.2},{y-1.2} {x+4.2},{y+3.8} {x},{y+3.8} C{x-4.2},{y+3.8} {x-4.2},{y-1.2} {x},{y-6} Z"/>',
                  "shelter": f'<path class="s-shelter" d="M{x-4.5},{y+3.5} h9 v-4.5 l-4.5,-4 l-4.5,4 z"/>',

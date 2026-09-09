@@ -106,8 +106,10 @@ class SceneTests(unittest.TestCase):
   by={a['sourceId']:a for a in m.annotations if a['kind']=='point-label'}
   for key,tags,primary in cases:
    with self.subTest(key=key):
+    if key=='toilets':
+     self.assertNotIn(key,by);self.assertTrue(next(f for f in m.features.values() if f['sourceId']==key)['directory']);continue
     self.assertEqual(by[key]['priority']>=800,primary);self.assertEqual(by[key]['importanceClass'],'primary' if primary else 'secondary');self.assertTrue(by[key]['priorityReason'])
-  self.assertEqual(report['selected']['poi'],len(cases));self.assertEqual(report['omitted'],[])
+  self.assertEqual(report['selected']['poi'],len(cases));self.assertEqual([(o['id'],o['reason']) for o in report['omitted']],[('toilets','symbol-only-service-label')])
  def test_poi_priority_is_stable_under_renaming_and_translation(self):
   from copy import deepcopy
   f={'id':'p','kind':'poi','name':'First name','geometry':{'type':'Point','coordinates':[.03,.04]},'tags':{'tourism':'viewpoint'}}

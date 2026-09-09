@@ -21,5 +21,10 @@ PATHS={
  'ford':'M-6,-3 Q-3,-6 0,-3 T6,-3 M-6,3 Q-3,0 0,3 T6,3 M-2,-1 H2',
  'crossing':'M-5,-5 V5 M5,-5 V5 M-2,-4 H2 M-2,-1 H2 M-2,2 H2 M-2,5 H2',
  'historic':'M-5,0 L0,-5 L5,0 M-3,0 V5 M3,0 V5 M-5,5 H5','point':'M-2,0 A2,2 0 1 0 2,0 A2,2 0 1 0 -2,0'}
+def camp_symbol(x=0.,y=0.):
+ """One filled tent for every mapped campsite; color conveys no provider/status."""
+ return f'<path class="s-camp" d="M{x-6:.1f},{y+4:.1f} L{x:.1f},{y-6.5:.1f} L{x+6:.1f},{y+4:.1f} Z"/><path class="s-camp-base" d="M{x-7.5:.1f},{y+4.5:.1f} H{x+7.5:.1f}"/>'
+
 def symbol_svg(kind):
+ if kind=='camp':return camp_symbol()
  return '<path class="facility-mark" d="'+PATHS.get(kind,PATHS['point'])+'"/>'

@@ -1,5 +1,9 @@
 # High-resolution maps: the 1 m lidar path
 
+**Status:** Proposed high-resolution pipeline with a dated catalogue snapshot.
+This is not an active implementation plan or a change to the current
+[data contract](specs/map-data.md). See the [index](index.md) for other work.
+
 The two maps in `output/` run on the USGS ⅓-arc-second grid (about 10 m cells), which is good
 to 50 ft contours and a little beyond. For finer work USGS publishes 1 m lidar-derived DEMs
 over this frame, and this file is the plan for using them. Nothing here has been built yet;

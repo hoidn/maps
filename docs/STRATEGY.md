@@ -1,5 +1,9 @@
 # Strategy notes: is there a product here?
 
+**Status:** Exploratory product discussion, not approved requirements or an
+execution queue. Verify external claims before using them for a product decision.
+Current implementation and proposals are separated in the [index](index.md).
+
 Written 2026-09-06 after the first two maps. Everything below is opinion and estimate, recorded
 so the reasoning is not lost; none of it has been tested against a customer.
 

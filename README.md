@@ -34,20 +34,19 @@ existing outputs if a check fails. Intermediates and browser caches are Git-igno
 
 ## Read next
 
-- `docs/PROCESS.md` — the pipeline step by step, with what each script does and produces
-- `docs/DATA_SOURCES.md` — where the terrain and vector data come from, licences, request details
-- `docs/DESIGN.md` — cartographic decisions: projection, palette, symbology, typography, labels
-- `docs/PITFALLS.md` — the things that went wrong and how they were caught, so they are not repeated
-- `docs/ADAPTING.md` — checklist for pointing the pipeline at a different area
-- `docs/HIGH_RES.md` — plan and size arithmetic for 10 ft contours from the USGS 1 m lidar tiles (`pipeline/fetch_dem_1m.py` lists and fetches them)
-- `docs/STRATEGY.md` — where this has value versus Gaia/NatGeo, monetisation options, market-size estimates, differentiators, the generator idea
-- `docs/AUTOMATION.md` — what is automatic today, how the visual check was really done, and the roadmap to a no-touch generator (label placement is the gate)
-- [Automatic layout design](docs/plans/2026-09-08-automatic-map-layout-design.md) and [implementation plan](docs/plans/2026-09-08-automatic-map-layout-plan.md) — architecture for automatic placement, continuous-zoom collision prevention and release validation
+- [Documentation index](docs/index.md) — routes by task to contracts, guides, plans and historical context
+- [Agent working rules](AGENTS.md) — scope, document authority, source/output ownership and evidence expectations
+- [Process](docs/PROCESS.md), [validation](docs/VALIDATION.md) and [layout validation](docs/LAYOUT_VALIDATION.md) — build stages and automated release checks
+
+The automatic-layout implementation follows the [design and plan](docs/plans/2026-09-08-automatic-map-layout-design.md);
+release evidence determines whether candidate maps may replace the delivered edition.
+Lidar delivery remains a proposal. [HANDOFF.md](HANDOFF.md) records the original session.
+
 
 ## Layout
 
 ```
 pipeline/   fetch_*.py, process_dem*.py, osmdata.py, build_static.py, build_interactive.py, run_all.sh
-docs/       process notes and preview images
+docs/       task index, contracts, guides, plans and preview images
 output/     the finished HTML maps
 ```

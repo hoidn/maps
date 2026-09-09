@@ -10,9 +10,13 @@ export function measurePointVariants(element,annotation,measurement={}) {
    if(!Array.isArray(variant.lines)||variant.lines.join(' ')!==annotation.text)throw new Error('Invalid declared text variant');
    text.innerHTML=original;
    const secondary=[...text.children].map(e=>e.cloneNode(true)),x=text.getAttribute('x')||'0';
+   // Persist the measured local baseline advance. WebKit can retain resolved
+   // em lengths on existing tspans after the parent font changes; identical
+   // textHTML would then paint different spacing from the measured variant.
+   const lineAdvance=1.12*parseFloat(getComputedStyle(text).fontSize);
    text.replaceChildren();
    for(const [j,line] of variant.lines.entries()){
-    const span=document.createElementNS(ns,'tspan');span.dataset.layoutPrimary='';span.setAttribute('x',x);span.setAttribute('dy',j?'1.12em':'0');span.textContent=line;text.append(span);
+    const span=document.createElementNS(ns,'tspan');span.dataset.layoutPrimary='';span.setAttribute('x',x);span.setAttribute('dy',j?String(lineAdvance):'0');span.textContent=line;text.append(span);
    }
    for(const sub of secondary)text.append(sub);
    result.push({id:'wrap-'+i,textHTML:text.innerHTML,shape:{...measureElement(element,.35,measurement),paintInset:.35}});

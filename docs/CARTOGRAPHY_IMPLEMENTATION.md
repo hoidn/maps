@@ -188,5 +188,10 @@ real font-loading events handle load cycles. Its regression set still rejects mi
 and broken fonts. A stabilized capture verifies that screenshot and independent audit
 refer to the same renderer/font generation. Required font bytes are explicitly loaded
 for audits instead of accepting unloaded faces. Targeted real Sequoia captures restore
-314 overview labels and 73 after resize; the subsequent enlarged-text overlap remains
-under investigation before final release.
+314 overview annotations and 73 after resize. The subsequent enlarged-text overlap
+was traced to reused SVG spans retaining old resolved `em` baseline advances in
+WebKit. Wrapped variants now serialize their measured local baseline advance,
+so a changed font size also updates the committed spacing. Cross-engine regressions
+cover SVG/Canvas, primary text and attached elevations at 125%, 150% and reset.
+The exact source-state replay keeps its candidate, position and font size while
+restoring a 17.015 px label–ford gap. Final rebuilt-matrix review remains separate.

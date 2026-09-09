@@ -1,6 +1,6 @@
 import {MapScene,captureCommands,commandBounds,paintCommands,viewMatrix,matrixArray} from './scene.js';
 import {WebGLContours} from './webgl-contours.js';
-import {moveShape,projectAreaPolygons} from '../labels/geometry.js';
+import {moveShape} from '../labels/geometry.js';
 const ORDER=['boundaries','buildings','contour-labels','hydro','roads','trails','regions','hydro-labels','boundary-labels','peaks','symbols','trail-labels','labels','fixed-ui','coordinate-grid','neatline','other'];
 const center=b=>[b.x+b.width/2,b.y+b.height/2];
 const EMPTY_CANDIDATES=Object.freeze([]);
@@ -73,13 +73,13 @@ export class CanvasMapRenderer{
    ...(a.kind==='symbol'?{anchorTrailRadius:6,anchorTrailFootprint:true}:{})})));
   for(let i=0;i<items.length;i++){
    const a=l.manifest.annotations[i],item=items[i],anchor=[m.a*a.anchor[0]+m.c*a.anchor[1]+m.e,m.b*a.anchor[0]+m.d*a.anchor[1]+m.f];
-   item.anchor=anchor;item.candidates=EMPTY_CANDIDATES;item.areaPolygons=a.areaPolygons;
+   item.anchor=anchor;item.candidates=EMPTY_CANDIDATES;item.areaPolygons=a.areaPolygons;item.areaTransform=undefined;
    item.eligibleReason=l.eligible(a,anchor,viewport,z,pixelsPerMapUnit);
    if(a.kind==='line-label')item.repeatDistance=l.policy.repeatDistance;
    if(item.eligibleReason)continue;
    const record=this.labels.get(a.id);
    if(!record){item.eligibleReason='budget-deferred';continue;}
-   item.areaPolygons=projectAreaPolygons(a.areaPolygons,m);
+   if(a.areaPolygons)item.areaTransform={a:m.a,b:m.b,c:m.c,d:m.d,e:m.e,f:m.f};
    const [x,y]=record.worldCenter,dx=m.a*x+m.c*y+m.e-record.center[0],dy=m.b*x+m.d*y+m.f-record.center[1];
    item.candidates=[{...record.placement,id:record.placement.candidateId,shape:moveShape(record.placement.footprint,dx,dy)}];
   }

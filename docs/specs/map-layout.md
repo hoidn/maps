@@ -348,11 +348,26 @@ separate 3× startup target. See [startup investigation](../STARTUP_INVESTIGATIO
 
 Area annotations may provide `areaPolygons`: an array of polygons, each containing
 an exterior ring followed by hole rings, with closed `[x,y]` pairs in world SVG
-coordinates. The runtime projects eligible area geometry into CSS coordinates for
-both settled and fast preparation. Every measured rectangle must remain within
-its owning polygon without touching/crossing exterior or hole boundaries; a hole
-entirely enclosed by a text rectangle also rejects it. The diagnostic blocker is
-`area-boundary`. This constraint does not replace label/trail/control clearance.
+coordinates. Settled preparation and the SVG fast path project eligible rings
+into CSS coordinates. Canvas fast preparation instead retains the immutable
+world rings and supplies optional `areaTransform: {a,b,c,d,e,f}` on the prepared
+annotation. Without that field, solver `areaPolygons` retain their existing
+CSS-coordinate meaning. Both representations are plain structured-clone data
+and are accepted by synchronous and worker placement.
+
+For axis-aligned pan/zoom (including nonuniform scale and reflection), containment
+reuses a camera-independent edge index. Inverse transforms only select a
+conservative set of potentially relevant edges; final ray-crossing and rectangle
+intersection checks project those original endpoints into CSS coordinates.
+Rotation, shear and degenerate transforms use the existing full-projection path.
+The indexed rings must remain immutable; a changed polygon needs a new ring
+array identity. Cached geometry does not retain camera state or candidate results.
+
+Every measured rectangle must remain within its owning polygon without
+touching/crossing exterior or hole boundaries; a hole entirely enclosed by a text
+rectangle also rejects it. Separate footprint parts may occupy separate polygon
+components. The diagnostic blocker is `area-boundary`. This constraint does not
+replace label/trail/control clearance.
 
 ### Portable label spacing and static font envelopes
 

@@ -84,7 +84,12 @@ function pointInRing([x,y],ring) {
 }
 /** Every measured rectangle must fit one polygon, excluding every hole. Testing
  * corners alone misses concave boundary incursions and holes enclosed by text. */
-export function shapeInsidePolygons(shape,polygons) {
+export function shapeInsidePolygons(shape,polygons,matrix) {
+  if(matrix){
+    // General affine cameras retain the original exact CSS-space path.
+    if(matrix.b!==0||matrix.c!==0||!matrix.a||!matrix.d||![matrix.a,matrix.d,matrix.e,matrix.f].every(Number.isFinite))return shapeInsidePolygons(shape,projectAreaPolygons(polygons,matrix));
+    return indexedAreaContains(shape,polygons,matrix);
+  }
   return shape.parts.every(r=>polygons.some(rings=>{
     if(!rings.length)return false;
     const corners=[[r.x,r.y],[r.x+r.width,r.y],[r.x+r.width,r.y+r.height],[r.x,r.y+r.height]];
@@ -94,4 +99,60 @@ export function shapeInsidePolygons(shape,polygons) {
       return lineHitsRect({a:{x,y},b:{x:bx,y:by},width:0},r);
     }));
   }));
+}
+
+
+// Immutable manifest rings retain one camera-independent edge tree. Cached
+// nodes never contain projected coordinates, candidates, or previous results.
+const areaRingIndices=new WeakMap();
+function areaRingIndex(ring){
+  let cached=areaRingIndices.get(ring);if(cached)return cached;
+  const edges=ring.map(([x,y],i)=>{
+    const [bx,by]=ring[(i+1)%ring.length];
+    return {x,y,bx,by,left:Math.min(x,bx),right:Math.max(x,bx),top:Math.min(y,by),bottom:Math.max(y,by)};
+  });
+  const build=edges=>{
+    let left=Infinity,right=-Infinity,top=Infinity,bottom=-Infinity;
+    for(const e of edges){left=Math.min(left,e.left);right=Math.max(right,e.right);top=Math.min(top,e.top);bottom=Math.max(bottom,e.bottom);}
+    const node={left,right,top,bottom};
+    if(edges.length<=12){node.edges=edges;return node;}
+    const horizontal=right-left>=bottom-top;
+    edges.sort(horizontal?(a,b)=>(a.left+a.right)-(b.left+b.right):(a,b)=>(a.top+a.bottom)-(b.top+b.bottom));
+    const middle=edges.length>>1;node.first=build(edges.slice(0,middle));node.second=build(edges.slice(middle));return node;
+  };
+  cached=build(edges);areaRingIndices.set(ring,cached);return cached;
+}
+function visitAreaEdges(node,q,visit){
+  if(node.right<q.left||node.left>q.right||node.bottom<q.top||node.top>q.bottom)return false;
+  if(node.edges){for(const e of node.edges)if(e.right>=q.left&&e.left<=q.right&&e.bottom>=q.top&&e.top<=q.bottom&&visit(e))return true;return false;}
+  return visitAreaEdges(node.first,q,visit)||visitAreaEdges(node.second,q,visit);
+}
+function indexedAreaContains(shape,polygons,m){
+  // Inversion is only broad-phase selection. Final ray and intersection tests
+  // project the selected original endpoints using the same operation order as
+  // projectAreaPolygons; boundary touch remains rejected, including hole edges.
+  const projected=e=>({x:m.a*e.x+m.c*e.y+m.e,y:m.b*e.x+m.d*e.y+m.f,bx:m.a*e.bx+m.c*e.by+m.e,by:m.b*e.bx+m.d*e.by+m.f});
+  const tolerance=(x,y)=>1e-9*(1+Math.abs(x)+Math.abs(y)+Math.abs(m.e/m.a)+Math.abs(m.f/m.d));
+  const inside=(x,y,index)=>{
+    const wx=(x-m.e)/m.a,wy=(y-m.f)/m.d,t=tolerance(wx,wy),q={left:m.a>0?wx-t:index.left-t,right:m.a>0?index.right+t:wx+t,top:wy-t,bottom:wy+t};
+    let value=false;
+    visitAreaEdges(index,q,e=>{
+      const p=projected(e);
+      if((p.y>y)!==(p.by>y)&&x<(p.x-p.bx)*(y-p.by)/(p.y-p.by)+p.bx)value=!value;
+      return false;
+    });
+    return value;
+  };
+  return shape.parts.every(r=>{
+    const x=(r.x-m.e)/m.a,y=(r.y-m.f)/m.d,bx=(r.x+r.width-m.e)/m.a,by=(r.y+r.height-m.f)/m.d;
+    if(![x,y,bx,by].every(Number.isFinite))return shapeInsidePolygons({parts:[r]},projectAreaPolygons(polygons,m));
+    const t=Math.max(tolerance(x,y),tolerance(bx,by)),q={left:Math.min(x,bx)-t,right:Math.max(x,bx)+t,top:Math.min(y,by)-t,bottom:Math.max(y,by)+t};
+    const corners=[[r.x,r.y],[r.x+r.width,r.y],[r.x+r.width,r.y+r.height],[r.x,r.y+r.height]];
+    return polygons.some(rings=>{
+      if(!rings.length)return false;
+      const indices=rings.map(areaRingIndex);
+      if(!corners.every(([x,y])=>inside(x,y,indices[0])&&!indices.slice(1).some(index=>inside(x,y,index))))return false;
+      return !indices.some(index=>visitAreaEdges(index,q,e=>{const p=projected(e);return lineHitsRect({a:{x:p.x,y:p.y},b:{x:p.bx,y:p.by},width:0},r);}));
+    });
+  });
 }

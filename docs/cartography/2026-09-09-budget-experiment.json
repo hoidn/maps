@@ -1,0 +1,515 @@
+[
+  {
+    "name": "larger-budget",
+    "z": 1,
+    "view": {
+      "x": 0,
+      "y": 0,
+      "w": 1300,
+      "h": 1070
+    },
+    "placed": 236,
+    "hydro": [
+      {
+        "id": "label-1344bd27458e0ae3",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Colorado River"
+      },
+      {
+        "id": "label-a913a034e67fbaf3",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Colorado River"
+      },
+      {
+        "id": "label-cc4f3d8e75702fee",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Colorado River"
+      },
+      {
+        "id": "label-0278b7b831dc306b",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Cottonwood Creek"
+      },
+      {
+        "id": "label-1789b1156bd2f166",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Horn Creek"
+      },
+      {
+        "id": "label-210d6fe8a56386ae",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Seventy-Five Mile Creek"
+      },
+      {
+        "id": "label-212e9f0f7e4112c1",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Crystal Creek"
+      },
+      {
+        "id": "label-29debca50f127e0c",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Boucher Creek"
+      },
+      {
+        "id": "label-2dc78a2e180cb2d6",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Asbestos Canyon"
+      },
+      {
+        "id": "label-31e6e53c5c33a210",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Cremation Creek"
+      },
+      {
+        "id": "label-34b76c700e659de8",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Zoroaster Canyon"
+      },
+      {
+        "id": "label-3dcb12548c441681",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Clear Creek"
+      },
+      {
+        "id": "label-477d32eed9182924",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Slate Creek"
+      },
+      {
+        "id": "label-4a503e7de47c2295",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Boulder Creek"
+      },
+      {
+        "id": "label-5a1dd0c7194b7a70",
+        "reason": "placed",
+        "blockerIds": [],
+        "text": "?"
+      },
+      {
+        "id": "label-6ae7ab04d04ff925",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Wall Creek"
+      },
+      {
+        "id": "label-794dc54972285272",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Monument Creek"
+      },
+      {
+        "id": "label-7ba6dfca80a45e81",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Pipe Creek"
+      },
+      {
+        "id": "label-8f254898c89f8067",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Hance Creek"
+      },
+      {
+        "id": "label-94936fd0434e4aaf",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Trinity Creek"
+      },
+      {
+        "id": "label-94bb46c948503728",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Outlet Canyon"
+      },
+      {
+        "id": "label-95f71c7c342e0c06",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Obi Canyon"
+      },
+      {
+        "id": "label-981a84d7dd3c070e",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Vishnu Creek"
+      },
+      {
+        "id": "label-a947b9d3de95e9f3",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Dragon Creek"
+      },
+      {
+        "id": "label-aa29f51629b9d3ab",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Phantom Creek"
+      },
+      {
+        "id": "label-aff5d1ed503fd250",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Grapevine Creek"
+      },
+      {
+        "id": "label-c0a2d989b226dc29",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Salt Creek"
+      },
+      {
+        "id": "label-c1268f54cbc27974",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Manzanita Creek"
+      },
+      {
+        "id": "label-c2d7fc90f9415b25",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "The Transept"
+      },
+      {
+        "id": "label-cb76a513449d0b2b",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Mineral Canyon"
+      },
+      {
+        "id": "label-dc7190a9dbc39e0b",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Bright Angel Creek"
+      },
+      {
+        "id": "label-dcaa55ac73e0bcd4",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Papago Creek"
+      },
+      {
+        "id": "label-e4cff84a4f48c3b4",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Roaring Springs Canyon"
+      },
+      {
+        "id": "label-f43244afe69774c9",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Hermit Creek"
+      },
+      {
+        "id": "label-f6403a64fd8f9453",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Garden Creek"
+      }
+    ],
+    "fonts": {
+      "l-region": [
+        14
+      ],
+      "l-hydro": [
+        12
+      ],
+      "l-peak": [
+        10
+      ],
+      "l-peak:secondary": [
+        10
+      ],
+      "l-trail-c": [
+        13
+      ],
+      "l-trail": [
+        13
+      ],
+      "l-trail-r": [
+        13
+      ],
+      "l-major": [
+        14
+      ],
+      "l-major:secondary": [
+        10
+      ],
+      "l-place": [
+        12
+      ],
+      "l-place:secondary": [
+        10
+      ],
+      "l-minor": [
+        10
+      ]
+    }
+  },
+  {
+    "name": "larger-budget",
+    "z": 6,
+    "view": {
+      "x": 541.6666666666666,
+      "y": 445.8333333333333,
+      "w": 216.66666666666666,
+      "h": 178.33333333333334
+    },
+    "placed": 16,
+    "hydro": [
+      {
+        "id": "label-1344bd27458e0ae3",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Colorado River"
+      },
+      {
+        "id": "label-a913a034e67fbaf3",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Colorado River"
+      },
+      {
+        "id": "label-cc4f3d8e75702fee",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Colorado River"
+      },
+      {
+        "id": "label-0278b7b831dc306b",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Cottonwood Creek"
+      },
+      {
+        "id": "label-1789b1156bd2f166",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Horn Creek"
+      },
+      {
+        "id": "label-210d6fe8a56386ae",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Seventy-Five Mile Creek"
+      },
+      {
+        "id": "label-212e9f0f7e4112c1",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Crystal Creek"
+      },
+      {
+        "id": "label-29debca50f127e0c",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Boucher Creek"
+      },
+      {
+        "id": "label-2dc78a2e180cb2d6",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Asbestos Canyon"
+      },
+      {
+        "id": "label-31e6e53c5c33a210",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Cremation Creek"
+      },
+      {
+        "id": "label-34b76c700e659de8",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Zoroaster Canyon"
+      },
+      {
+        "id": "label-3dcb12548c441681",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Clear Creek"
+      },
+      {
+        "id": "label-477d32eed9182924",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Slate Creek"
+      },
+      {
+        "id": "label-4a503e7de47c2295",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Boulder Creek"
+      },
+      {
+        "id": "label-5a1dd0c7194b7a70",
+        "reason": "budget-deferred",
+        "blockerIds": [],
+        "text": "?"
+      },
+      {
+        "id": "label-6ae7ab04d04ff925",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Wall Creek"
+      },
+      {
+        "id": "label-794dc54972285272",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Monument Creek"
+      },
+      {
+        "id": "label-7ba6dfca80a45e81",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Pipe Creek"
+      },
+      {
+        "id": "label-8f254898c89f8067",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Hance Creek"
+      },
+      {
+        "id": "label-94936fd0434e4aaf",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Trinity Creek"
+      },
+      {
+        "id": "label-94bb46c948503728",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Outlet Canyon"
+      },
+      {
+        "id": "label-95f71c7c342e0c06",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Obi Canyon"
+      },
+      {
+        "id": "label-981a84d7dd3c070e",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Vishnu Creek"
+      },
+      {
+        "id": "label-a947b9d3de95e9f3",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Dragon Creek"
+      },
+      {
+        "id": "label-aa29f51629b9d3ab",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Phantom Creek"
+      },
+      {
+        "id": "label-aff5d1ed503fd250",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Grapevine Creek"
+      },
+      {
+        "id": "label-c0a2d989b226dc29",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Salt Creek"
+      },
+      {
+        "id": "label-c1268f54cbc27974",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Manzanita Creek"
+      },
+      {
+        "id": "label-c2d7fc90f9415b25",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "The Transept"
+      },
+      {
+        "id": "label-cb76a513449d0b2b",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Mineral Canyon"
+      },
+      {
+        "id": "label-dc7190a9dbc39e0b",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Bright Angel Creek"
+      },
+      {
+        "id": "label-dcaa55ac73e0bcd4",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Papago Creek"
+      },
+      {
+        "id": "label-e4cff84a4f48c3b4",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Roaring Springs Canyon"
+      },
+      {
+        "id": "label-f43244afe69774c9",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Hermit Creek"
+      },
+      {
+        "id": "label-f6403a64fd8f9453",
+        "reason": "no-valid-candidate",
+        "blockerIds": [],
+        "text": "Garden Creek"
+      }
+    ],
+    "fonts": {
+      "l-peak": [
+        10
+      ],
+      "l-peak:secondary": [
+        10
+      ],
+      "l-trail-cs": [
+        13
+      ],
+      "l-trail": [
+        13
+      ],
+      "l-major": [
+        14
+      ],
+      "l-major:secondary": [
+        10
+      ],
+      "l-place": [
+        12
+      ],
+      "l-minor": [
+        10
+      ],
+      "l-region-s": [
+        14
+      ]
+    }
+  }
+]

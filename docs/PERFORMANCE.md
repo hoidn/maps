@@ -402,3 +402,60 @@ geometry checks passed at zoom 2, 6 and 14. These sampled checks do not replace
 the complete release gate. The rebuilt integrated candidate SHA-256 is
 `257d5da3c7cb22003a58c3c9a52a987259f4a6873f2cc6b880842c7455c8c28b`.
 Reports remain under ignored `artifacts/integration/` in the integration worktree.
+
+## Persistent Canvas and WebGL contours — 2026-09-09
+
+The visible interactive map now stays on Canvas after settlement. SVG remains a
+connected measurement/source fallback. Label sprites cache browser-positioned text;
+pans translate those sprites unchanged. Chunk-wide halo painting preserves text
+paint order. Cached world bounds exclude offscreen roads and waterways before
+Canvas paint calls. Trail picking uses cached geometry, and hover only repaints the
+foreground. See [backend design and limits](RENDERING_BACKENDS.md).
+
+Sequential Chromium 140.0.7339.186, Apple M3/Metal, headed browser, 1440×1000, DPR 1;
+three runs per backend. Values below are medians of per-run medians, in milliseconds.
+The baseline is main at `bc41ade` after the earlier pan/cancellable-settling work.
+These are additional gains, not comparisons against the original slow version.
+
+| Work | Prior SVG/hybrid | Canvas | WebGL contours + Canvas foreground |
+|---|---:|---:|---:|
+| Pan frame CPU, 2× view | 5.0 | 3.1 | 3.55 |
+| Pan frame CPU, 6× view | 7.0 | 2.4 | 2.9 |
+| Pan frame CPU, 14× view | 6.6 | 2.15 | 2.6 |
+| Continuous zoom frame CPU | 14.4 | 4.6 | 3.0 |
+| Slow trusted drag, frame CPU | 5.7 | 4.0 | 4.3 |
+| Early input → rAF paint proxy, including queue delay | 127.8 | 123.0 | 117.6 |
+| Navigation → ready and settled | 1380.3 | 1365.5 | 1484.7 |
+
+Canvas achieves about **3.1× less CPU work for continuous zoom and 14×-view
+panning**, and 2.9× at 6× view. WebGL achieves 4.8× less zoom CPU work than the
+baseline, or 1.5× less than Canvas. Canvas is faster for panning, so it remains
+the default. All modes' median rAF cadence was approximately 16.7 ms on this
+60 Hz test; these are **not** threefold frame-rate gains. Slow pointer drags and
+startup did not improve threefold. Startup still pays for the embedded SVG DOM,
+path preparation, image decoding, typography measurement and initial placement.
+
+Continuous-zoom p95 CPU time fell from 17.7 ms to 7.7 ms (Canvas) and 3.8 ms
+(WebGL). The WebGL prototype uploads 54,445,152 bytes of contour endpoints/caps;
+its mask compositing is approximate between distinct overlapping same-style
+paths. A headless SwiftShader trial was discarded for hardware comparisons:
+software WebGL was much slower and is not a useful reason to select this backend.
+
+Reproduce with `scripts/benchmark-renderers.mjs` using `HEADED=1`; the command and
+method are in the backend guide. Raw nine-run evidence is in
+[the dated benchmark JSON](performance/2026-09-09-renderers.json), including version, GPU string,
+per-frame timings, input hashes, startup queue timing and trusted wheel/drag input.
+
+Baseline SHA-256:
+`257d5da3c7cb22003a58c3c9a52a987259f4a6873f2cc6b880842c7455c8c28b`.
+Canvas/WebGL-query candidate SHA-256:
+`81e4df40f3827c7a6ebc92a96aa61e68c473a80efe788b5bc78718283e2cd035`.
+
+Validation: 72 Node unit tests; the full browser run had 373 passes and 10 skips,
+with three missing-worktree-Python failures subsequently passing and the already
+known Firefox/light static-finalizer overlap remaining. A final focused run after
+renderer lifecycle/culling changes passed 51 tests across all three engines.
+The initial real-map Chromium matrix passed 120 paint/typography/layer/pan scenes
+across both backends, light/dark and DPR 1/2; focused final-candidate real-map audits
+provide additional cross-engine evidence. This does not replace the static+interactive
+release gate, and no files in `output/` were promoted.

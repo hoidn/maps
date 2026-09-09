@@ -50,11 +50,11 @@ export class ContourPreview {
       item.style={color:s.stroke,width:parseFloat(s.strokeWidth)*z,opacity:opacity*Number(s.strokeOpacity),cap:s.strokeLinecap,join:s.strokeLinejoin,miter:Number(s.strokeMiterlimit),dash:s.strokeDasharray==='none'?[]:s.strokeDasharray.split(/[ ,]+/).map(v=>parseFloat(v)*z),dashOffset:parseFloat(s.strokeDashoffset)*z};
     }
   }
-  render(view,viewport,maxBytes){
+  render(view,viewport,maxBytes,{hidden=this.svg.classList.contains('no-contours')}={}){
     if(!this.context||!this.layers.length)return;
     const fit=Math.min(viewport.width/view.w,viewport.height/view.h),visibleW=viewport.width/fit,visibleH=viewport.height/fit,
       visibleX=view.x-(visibleW-view.w)/2,visibleY=view.y-(visibleH-view.h)/2,z=this.map.width/view.w,
-      hidden=this.svg.classList.contains('no-contours'),dpr=devicePixelRatio||1,cached=this.cached;
+      dpr=devicePixelRatio||1,cached=this.cached;
     if(cached&&cached.fit===fit&&cached.z===z&&cached.dpr===dpr&&cached.maxBytes===maxBytes&&cached.hidden===hidden&&
       visibleX>=cached.x&&visibleY>=cached.y&&visibleX+visibleW<=cached.x+cached.w&&visibleY+visibleH<=cached.y+cached.h)return;
     // Keep a 64 CSS-pixel margin on each side. Pans within it only change the

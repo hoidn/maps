@@ -2,7 +2,12 @@
 """Draws the Grand Canyon trail sheet: hand-designed SVG cartography over USGS 3DEP terrain
 with trail/river geometry from OpenStreetMap."""
 from path_geometry import detail_path, detail_points
+import argparse
 import json, math, html, numpy as np
+parser = argparse.ArgumentParser(description="Build a standalone interactive map candidate")
+parser.add_argument("--renderer", choices=("svg", "canvas", "webgl"), default="canvas")
+parser.add_argument("--output", default="grand_canyon_trails_interactive.html")
+args = parser.parse_args()
 from label_manifest import Manifest, embedded_fonts, layout_script
 M = Manifest("interactive")
 from water_areas import WaterAreas
@@ -444,7 +449,7 @@ cartouche = f'''
 </g>'''
 
 # ---------------------------------------------------------------- assemble SVG
-svg = f'''<svg id="mapsvg" class="map" viewBox="0 0 {W} {H}" data-w="{W}" data-h="{H}" role="img" aria-label="Hand-drawn map of the central Grand Canyon showing the Bright Angel, South Kaibab, North Kaibab, Tonto, Hermit, Grandview and rim trails over USGS shaded relief and 250-foot contours" xmlns="http://www.w3.org/2000/svg">
+svg = f'''<svg id="mapsvg" data-renderer="{args.renderer}" class="map" viewBox="0 0 {W} {H}" data-w="{W}" data-h="{H}" role="img" aria-label="Hand-drawn map of the central Grand Canyon showing the Bright Angel, South Kaibab, North Kaibab, Tonto, Hermit, Grandview and rim trails over USGS shaded relief and 250-foot contours" xmlns="http://www.w3.org/2000/svg">
 <defs>{"".join(hydro_defs)}{"".join(contour_defs)}</defs>
 <image class="terrain t-light" href="{T["uri_light"]}" x="0" y="0" width="{W}" height="{H}" preserveAspectRatio="none"/>
 <image class="terrain t-dark" href="{T["uri_dark"]}" x="0" y="0" width="{W}" height="{H}" preserveAspectRatio="none"/>
@@ -841,14 +846,15 @@ JS = r'''
   var CLS={corridor:'Corridor trail',threshold:'Threshold trail',primitive:'Primitive route',rim:'Rim & plateau walk'};
   var miles={}; document.querySelectorAll('.trails .tr').forEach(function(p){ miles[p.dataset.name]=(miles[p.dataset.name]||0)+parseFloat(p.dataset.mi||0); });
   var pinned=null;
-  function light(name){ document.querySelectorAll('.trails .tr').forEach(function(p){ p.classList.toggle('lit', !!name && p.dataset.name===name); p.classList.toggle('dim', !!name && p.dataset.name!==name); }); }
+  function light(name){ if(window.mapLayout.renderer?.active){window.mapLayout.renderer.highlight(name);return;} document.querySelectorAll('.trails .tr').forEach(function(p){ p.classList.toggle('lit', !!name && p.dataset.name===name); p.classList.toggle('dim', !!name && p.dataset.name!==name); }); }
   function showTip(p, e){ var n=p.dataset.name; var r=fig.getBoundingClientRect();
     ttip.innerHTML='<div class="cls">'+CLS[p.dataset.cls]+'</div><b>'+n+'</b><div>'+miles[n].toFixed(1)+' mi on this sheet</div>';
     ttip.hidden=true; if(window.mapLayout)window.mapLayout.details.textContent=n+' · '+CLS[p.dataset.cls]+' · '+miles[n].toFixed(1)+' mi on this sheet'; }
-  svg.addEventListener('pointerover', function(e){ var p=e.target.closest && e.target.closest('.hit'); if(!p||pinned) return; light(p.dataset.name); showTip(p,e); });
-  svg.addEventListener('pointermove', function(e){ var p=e.target.closest && e.target.closest('.hit'); if(p && !pinned) showTip(p,e); else if(!pinned) ttip.hidden=true; if(pinned && !p) ttip.hidden=true; });
+  svg.addEventListener('pointerover', function(e){ var p=window.mapLayout.renderer?.active?window.mapLayout.pickTrail(e.clientX,e.clientY):(e.target.closest && e.target.closest('.hit')); if(!p||pinned) return; light(p.dataset.name); showTip(p,e); });
+  svg.addEventListener('pointermove', function(e){ if(ptrs.size){ttip.hidden=true;return;} var p=window.mapLayout.renderer?.active?window.mapLayout.pickTrail(e.clientX,e.clientY):(e.target.closest && e.target.closest('.hit')); if(!pinned && window.mapLayout.renderer?.active) light(p?.dataset.name||null); if(p && !pinned) showTip(p,e); else if(!pinned) ttip.hidden=true; if(pinned && !p) ttip.hidden=true; });
+  svg.addEventListener('mouseleave', function(){if(!pinned)light(null);});
   svg.addEventListener('pointerout', function(e){ if(!pinned && e.target.closest && e.target.closest('.hit')){ light(null); ttip.hidden=true; } });
-  svg.addEventListener('click', function(e){ if(moved) return; var p=e.target.closest && e.target.closest('.hit');
+  svg.addEventListener('click', function(e){ if(moved) return; var p=window.mapLayout.renderer?.active?window.mapLayout.pickTrail(e.clientX,e.clientY):(e.target.closest && e.target.closest('.hit'));
     if(p){ if(pinned===p.dataset.name){ pinned=null; light(null); ttip.hidden=true; } else { pinned=p.dataset.name; light(pinned); showTip(p,e); } }
     else if(pinned){ pinned=null; light(null); ttip.hidden=true; } });
   apply();
@@ -962,6 +968,6 @@ page = f'''<meta charset="utf-8">
 {layout_script()}
 <script>{JS}</script>
 '''
-open("grand_canyon_trails_interactive.html", "w").write(page)
+open(args.output, "w").write(page)
 print("wrote", len(page) // 1024, "KB; r2r", round(total, 2), "mi; wps", [(n, round(d, 1), round(e)) for n, d, e in wps])
 print("silver", round(silver_d, 2), "hermit camp", round(hermit_camp, 2))

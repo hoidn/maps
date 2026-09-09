@@ -17,7 +17,16 @@ export function collectManagedInventory() {
     right: r.right,
     bottom: r.bottom,
   });
-  const viewport = rect(map.getBoundingClientRect());
+  const mapRect = map.getBoundingClientRect(), viewport = rect(mapRect);
+  const renderer = window.mapLayout?.renderer?.active ? window.mapLayout.renderer : null;
+  const cameraView = renderer ? window.mapLayout.view : null;
+  const sourceMatrix = map.getScreenCTM();
+  const fit = cameraView ? Math.min(mapRect.width / cameraView.w, mapRect.height / cameraView.h) : 1;
+  const cameraMatrix = cameraView ? new DOMMatrix([fit,0,0,fit,
+    mapRect.x+(mapRect.width-cameraView.w*fit)/2-cameraView.x*fit,
+    mapRect.y+(mapRect.height-cameraView.h*fit)/2-cameraView.y*fit]) : sourceMatrix;
+  const canvasPaint = new Map(renderer?.painted.map(p => [p.id,p]) || []);
+  const paintContext = renderer ? document.createElement('canvas').getContext('2d') : null;
   const screen = { left: 0, top: 0, right: innerWidth, bottom: innerHeight };
   const shown = (e) => {
     for (let p = e; p && p !== document; p = p.parentElement) {
@@ -25,7 +34,7 @@ export function collectManagedInventory() {
       if (
         s.display === "none" ||
         s.visibility === "hidden" ||
-        Number(s.opacity) === 0 ||
+        (Number(s.opacity) === 0 && !(renderer && p === map)) ||
         p.hasAttribute("hidden")
       )
         return false;
@@ -111,12 +120,47 @@ export function collectManagedInventory() {
     }
     return result;
   };
+  // Bound actual Canvas paint commands independently of solver footprints.
+  // Glyph ink metrics come from the browser's Canvas font renderer.
+  const canvasPolygons = id => (canvasPaint.get(id)?.commands || []).flatMap(c => {
+    const s=c.style;if(!s.opacity || (s.fill==='none' && s.stroke==='none'))return [];
+    let b=c.bounds;
+    if(c.kind==='glyph'){
+      paintContext.font=s.font;paintContext.fontKerning='none';
+      const t=paintContext.measureText(c.text);
+      b={x:-t.actualBoundingBoxLeft,y:-t.actualBoundingBoxAscent,
+        width:t.actualBoundingBoxLeft+t.actualBoundingBoxRight,
+        height:t.actualBoundingBoxAscent+t.actualBoundingBoxDescent};
+    }
+    if(!b || !(b.width||b.height))return [];
+    if(c.kind==='path'){
+      // Rasterize the actual path to measure joins/caps, rather than multiplying
+      // a bounding box by the miter limit (which invents false symbol collisions).
+      // The half-coverage boundary estimates geometric ink, as the SVG audit
+      // does; faint antialiasing fringes are not treated as extra geometry.
+      const pad=s.width/2*Math.max(1,s.miter)+1,density=16,ctx=paintContext;
+      ctx.canvas.width=Math.ceil((b.width+2*pad)*density);ctx.canvas.height=Math.ceil((b.height+2*pad)*density);
+      ctx.setTransform(density,0,0,density,(pad-b.x)*density,(pad-b.y)*density);
+      ctx.lineWidth=s.width;ctx.lineJoin=s.join;ctx.lineCap=s.cap;ctx.miterLimit=s.miter;
+      if(s.fill!=='none'){ctx.fillStyle='black';ctx.fill(c.path,s.fillRule);}
+      if(s.stroke!=='none'&&s.width){ctx.strokeStyle='black';ctx.stroke(c.path);}
+      const w=ctx.canvas.width,h=ctx.canvas.height,data=ctx.getImageData(0,0,w,h).data;
+      let left=w,top=h,right=0,bottom=0;
+      for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(data[(y*w+x)*4+3]>=128){left=Math.min(left,x);top=Math.min(top,y);right=Math.max(right,x+1);bottom=Math.max(bottom,y+1);}
+      if(right<=left)return [];
+      b={x:b.x-pad+(left+0.5)/density,y:b.y-pad+(top+0.5)/density,width:(right-left-1)/density,height:(bottom-top-1)/density};
+    }
+    const m=new DOMMatrix(c.matrix);
+    m.e+=mapRect.x-renderer.paintViewport.x+(canvasPaint.get(id).offset?.[0]||0);m.f+=mapRect.y-renderer.paintViewport.y+(canvasPaint.get(id).offset?.[1]||0);
+    const pad=c.kind==='path'||s.stroke==='none'?0:s.width/2*(s.join.startsWith('miter')?Math.max(1,s.miter):1);
+    return [paintedQuad(b,m,pad,s.join==='round')];
+  });
   const inventory = [],
     outcomes = [],
     unknown = [],
     features = new Map(manifest.features.map((f) => [f.id, f])),
     ids = new Set();
-  const matrix = map.getScreenCTM();
+  const matrix = cameraMatrix;
   for (const a of manifest.annotations) {
     const owner = features.get(a.featureId),
       e = document.getElementById(a.elementId || a.id),
@@ -129,7 +173,7 @@ export function collectManagedInventory() {
     if (ids.has(a.id) || !owner || (e && !valid))
       unknown.push({ id: a.id, reason: "invalid-manifest-binding" });
     ids.add(a.id);
-    const shapes = valid && shown(e) ? polygons(e) : [];
+    const shapes = !valid ? [] : renderer ? canvasPolygons(a.id) : shown(e) ? polygons(e) : [];
     const eligible =
       a.kind === "point-label" &&
       anchor.x >= viewport.left &&
@@ -180,6 +224,7 @@ export function collectManagedInventory() {
     ),
   ];
   for (const e of controls) {
+    if (renderer && e instanceof SVGElement && manifest.map.width/cameraView.w>1.02) continue;
     if (!shown(e) || controls.some((p) => p !== e && p.contains(e))) continue;
     const r = e.getBoundingClientRect();
     if (!r.width || !r.height) continue;
@@ -200,12 +245,13 @@ export function collectManagedInventory() {
   }
   for (const e of map.querySelectorAll('[data-layout-obstacle="trail"]')) {
     if (!shown(e)) continue;
-    const m = e.getScreenCTM(),
+    const m = renderer ? cameraMatrix.multiply(sourceMatrix.inverse()).multiply(e.getScreenCTM()) : e.getScreenCTM(),
       s = getComputedStyle(e);
+    const strokeRatio = renderer ? cameraView.w/map.viewBox.baseVal.width : 1;
     if (s.stroke === "none") continue;
     const scale = Math.max(Math.hypot(m.a, m.b), Math.hypot(m.c, m.d)),
       width =
-        (parseFloat(s.strokeWidth) || 0) *
+        (parseFloat(s.strokeWidth) || 0) * strokeRatio *
         (s.vectorEffect === "non-scaling-stroke" ? 1 : scale),
       length = e.getTotalLength(),
       steps = Math.max(1, Math.ceil((length * scale) / 3));
@@ -296,10 +342,10 @@ export function collectManagedInventory() {
     unresolved: unknown,
     viewport,
     viewBox: {
-      x: map.viewBox.baseVal.x,
-      y: map.viewBox.baseVal.y,
-      width: map.viewBox.baseVal.width,
-      height: map.viewBox.baseVal.height,
+      x: cameraView?.x ?? map.viewBox.baseVal.x,
+      y: cameraView?.y ?? map.viewBox.baseVal.y,
+      width: cameraView?.w ?? map.viewBox.baseVal.width,
+      height: cameraView?.h ?? map.viewBox.baseVal.height,
     },
     fonts: [...document.fonts].map((f) => ({
       family: f.family,

@@ -171,7 +171,8 @@ for staging, finalized, and delivered filenames.
 
 ## Independent acceptance evidence
 
-The [managed audit](../../scripts/audit-map.mjs) remeasures visible DOM annotations,
+The [managed audit](../../scripts/audit-map.mjs) remeasures visible SVG annotations
+or Canvas paint commands and their actual draw offsets,
 fixed controls, and protected trail strokes without importing production solver
 acceptance logic. It checks ownership inventory, collisions, clipping, required
 content, and typography. Hidden annotations remain in the outcome inventory.
@@ -191,13 +192,36 @@ export environment, or real touch device. The operations guide specifies the
 current supported checks and limits. Until the real candidate pair passes them,
 release validation remains pending.
 
+## Interactive Canvas and WebGL paint boundary
+
+Interactive candidates default to persistent Canvas paint. `?renderer=svg` retains
+SVG mode; `?renderer=webgl` selects the experimental GPU contour surface. The
+[backend guide](../RENDERING_BACKENDS.md) owns operation, implementation explanation,
+measured comparison and prototype fidelity limits.
+
+The manifest and placement interfaces above are unchanged. SVG annotations remain
+connected measurement sources with their existing identities. Canvas paints their
+accepted glyph/shape commands; visibility is established by the painted inventory,
+not the hidden measurement SVG. Pure pan translates accepted screen-size text
+without relayout. Fast camera frames do not mutate the measurement SVG camera.
+Settled layout can update it to obtain fresh typography metrics after zoom.
+
+Independent Canvas collectors measure paint commands and draw offsets, glyph font
+metrics and symbol ink; SVG collectors still apply to static, frozen and explicit
+SVG mode. Consumers that equated SVG visibility with interactive map visibility
+must use this paint boundary. Font/layout failure clears visible Canvas labels. `getReport().renderer` adds
+requested/active backend, fallback reason, estimated RGBA bytes and GPU buffer bytes;
+these memory counts exclude source DOM, decoded images and driver overhead.
+
 ## Interactive line widths
 
 The camera sets the line-scale variable `--s` to `1 / zoom`. Trails, contours,
 waterway centerlines, roads, trail dash patterns and hit targets retain their overview
 screen dimensions at a fixed viewport size. Protected trail queries use the
 same inverse-zoom factor; cached base widths are recovered by multiplying the
-current SVG stroke width by zoom. Static line styling is unchanged. Embedded raster relief images remain in the live SVG without startup re-encoding.
+current SVG stroke width by zoom. Static line styling is unchanged. In explicit SVG mode, embedded raster relief images remain in the live SVG without startup re-encoding.
+The following temporary-preview behavior describes explicit SVG mode. Canvas
+mode keeps relief and vector foreground on persistent surfaces instead.
 Other background content retains the bounded temporary raster preview. Contour paths are
 prepared in yielding batches, parsed once and redrawn on a bounded canvas at the current camera scale, stroke
 width, theme, and detail level. Generated polylines retain every vertex; cached

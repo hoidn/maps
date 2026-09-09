@@ -29,7 +29,9 @@ npm run promote:maps           # revalidate and replace both local output files
 ```
 
 See [layout validation](docs/LAYOUT_VALIDATION.md) for checks, reports, required coverage and
-supported layout limits. Builds write candidates into `pipeline/`; promotion preserves the
+supported layout limits. Interactive candidates now default to Canvas; the
+[backend guide](docs/RENDERING_BACKENDS.md) describes the optional WebGL contour prototype
+and direct SVG comparison. Builds write candidates into `pipeline/`; promotion preserves the
 existing outputs if a check fails. Intermediates and browser caches are Git-ignored.
 
 ## Read next

@@ -3,6 +3,24 @@ export function collectTypography() {
   const svg=document.querySelector('#mapsvg'),source=document.querySelector('#map-label-manifest');
   if(!svg||!source)throw new Error('Typography manifest/map missing');
   const manifest=JSON.parse(source.textContent),items=[];
+  const renderer=window.mapLayout?.renderer?.active?window.mapLayout.renderer:null;
+  if(renderer){
+    const ctx=document.createElement('canvas').getContext('2d'),r=svg.getBoundingClientRect(),v=window.mapLayout.view,
+      scale=Math.min(r.width/v.w,r.height/v.h),tx=r.x+(r.width-v.w*scale)/2-v.x*scale,ty=r.y+(r.height-v.h*scale)/2-v.y*scale,
+      annotations=new Map(manifest.annotations.map(a=>[a.id,a]));
+    for(const paint of renderer.painted){
+      const a=annotations.get(paint.id),glyphs=paint.commands.filter(c=>c.kind==='glyph');if(!glyphs.length)continue;
+      const item={id:a.id,kind:a.kind,style:a.style,fonts:[],angles:[],anchor:{x:a.anchor[0]*scale+tx,y:a.anchor[1]*scale+ty},bounds:{left:Infinity,top:Infinity,right:-Infinity,bottom:-Infinity}};
+      for(const c of glyphs){const m=new DOMMatrix(c.matrix),s=c.style;m.e+=(paint.offset?.[0]||0)+r.x-renderer.paintViewport.x;m.f+=(paint.offset?.[1]||0)+r.y-renderer.paintViewport.y;
+        item.fonts.push({size:s.fontSize*Math.min(Math.hypot(m.a,m.b),Math.hypot(m.c,m.d)),secondary:c.secondary});
+        if(c.text.trim())item.angles.push(Math.atan2(m.b,m.a)*180/Math.PI);
+        ctx.font=s.font;ctx.fontKerning='none';const t=ctx.measureText(c.text),p=s.stroke==='none'?0:s.width/2;
+        for(const x of [Math.min(0,-t.actualBoundingBoxLeft)-p,Math.max(t.width,t.actualBoundingBoxRight)+p])for(const y of [-(t.fontBoundingBoxAscent??t.actualBoundingBoxAscent)-p,(t.fontBoundingBoxDescent??t.actualBoundingBoxDescent)+p]){const q=new DOMPoint(x,y).matrixTransform(m);item.bounds.left=Math.min(item.bounds.left,q.x);item.bounds.right=Math.max(item.bounds.right,q.x);item.bounds.top=Math.min(item.bounds.top,q.y);item.bounds.bottom=Math.max(item.bounds.bottom,q.y);}
+      }
+      items.push(item);
+    }
+    return {mode:manifest.map.mode,backend:renderer.backend,items};
+  }
   const shown=e=>{for(let p=e;p?.nodeType===1;p=p.parentElement){const s=getComputedStyle(p);if(s.display==='none'||s.visibility==='hidden'||+s.opacity===0||p.hasAttribute('hidden'))return false;}return true;};
   const project=(m,x,y)=>({x:m.a*x+m.c*y+m.e,y:m.b*x+m.d*y+m.f});
   const angle=(m,degrees=0)=>{const rad=degrees*Math.PI/180,x=Math.cos(rad),y=Math.sin(rad);return Math.atan2(m.b*x+m.d*y,m.a*x+m.c*y)*180/Math.PI;};

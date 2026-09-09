@@ -1,6 +1,7 @@
 import {InitialPlacementClient} from './initial-placement-client.js';
 import {pointFallback} from './point-fallback.js';
 import {MotionPreview} from './motion-preview.js';
+import {CanvasMapRenderer} from '../render/canvas-renderer.js';
 import {validateManifest} from './schema.js';
 import {ensureFonts,measureElement,MetricCache} from './measure.js';
 import {moveShape,intersects,anchorDistance} from './geometry.js';
@@ -63,6 +64,8 @@ export class LayoutController {
       if(this.mode==='interactive'){
         this.starting=true;this.initialPlacer=new InitialPlacementClient();
         this.preview=new MotionPreview(this.svg,this.manifest.map);
+        const backend=new URLSearchParams(location.search).get('renderer')||this.svg.dataset.renderer||'svg';
+        if(['canvas','webgl'].includes(backend))try{this.renderer=new CanvasMapRenderer(this,backend);}catch(error){this.rendererError=error.message;}
         this.preview.ready.catch(()=>{}); // The initial transaction reports preparation failures.
         try{let committed=false;while(!committed){this.status='ready';committed=await this.render(true);if(this.status==='error')throw new Error(this.error);}}
         finally{this.starting=false;}
@@ -95,6 +98,7 @@ export class LayoutController {
   }
   fontsChanged(){
     this.invalidateLayout();
+    this.renderer?.clearLabels();
     this.preview?.restore();
     this.panLayout=null;
     const generation=this.fontGeneration=(this.fontGeneration??0)+1;this.status='loading';
@@ -163,8 +167,9 @@ export class LayoutController {
   }
   whenSettled(){return this.ready.then(()=>this.fontReady).then(()=>this.frame||this.settlePending||this.settleJob||this.gestures.size?new Promise(resolve=>this.waiters.push(resolve)):this.getReport());}
   resolveWaiters(){if(this.frame||this.settlePending||this.settleJob||this.gestures.size)return;for(const resolve of this.waiters.splice(0))resolve(this.getReport());}
-  getReport(){return {status:this.status,error:this.error,view:{...this.view},diagnostics:this.result?.diagnostics,outcomes:this.result?.outcomes||[],missingRequired:this.result?.missingRequired||[],placements:this.result?.placements||[],timings:this.timings.slice(-200),samples:this.samples.slice(-200),transactionKind:this.transactionKind};}
+  getReport(){return {renderer:{requested:this.renderer?.requestedBackend||'svg',active:this.renderer?.backend||'svg',fallback:this.renderer?.fallbackReason||this.rendererError,rgbaBytes:this.renderer?.rgbaBytes,gpuBufferBytes:this.renderer?.gpu?.bufferBytes},status:this.status,error:this.error,view:{...this.view},diagnostics:this.result?.diagnostics,outcomes:this.result?.outcomes||[],missingRequired:this.result?.missingRequired||[],placements:this.result?.placements||[],timings:this.timings.slice(-200),samples:this.samples.slice(-200),transactionKind:this.transactionKind};}
   camera(readAfter=true){
+    if(this.renderer?.active&&this.transactionKind==='fast')return this.renderer.camera(this.view);
     const v=this.view,W=this.manifest.map.width;
     // Read the old, internally consistent camera before writing either scale.
     // A layout read between viewBox and --k makes Firefox shape text at a
@@ -198,6 +203,7 @@ export class LayoutController {
       const r=rectangle(e.getBoundingClientRect());if(r.width&&r.height&&getComputedStyle(e).display!=='none')out.push({id:'control-'+i++,kind:'control',shape:shape(r)});
     }
     for(const e of this.svg.querySelectorAll('.cartouche,.scale')){
+      if(this.renderer?.active&&this.manifest.map.width/this.view.w>1.02)continue;
       if(getComputedStyle(e.parentElement).display==='none')continue;
       const r=rectangle(e.getBoundingClientRect());if(r.width&&r.height)out.push({id:'fixed-'+i++,kind:'control',shape:shape(r)});
     }
@@ -242,6 +248,7 @@ export class LayoutController {
     for(const p of result.placements)if(!placements.has(p.id))placements.set(p.id,{...p,footprint:moveShape(p.footprint,matrix.e-m.e,matrix.f-m.f)});
   }
   fastPrepared(m,viewport,z,fixed=null){
+    if(this.renderer?.active)return this.renderer.prepareFast(m,viewport,z);
     const previous=new Map((this.previous?.placements||[]).map(p=>[p.id,p]));
     return this.manifest.annotations.map(a=>{
       const anchor=project(m,a.anchor),item={...a,anchor,candidates:[],required:false};
@@ -264,6 +271,7 @@ export class LayoutController {
     });
   }
   commit(result,m,s,normalizeText=false){
+    if(this.renderer?.active&&!normalizeText){this.visibleIds=new Set(result.placements.map(p=>p.id));this.previous=result;this.renderer.draw(result,m);return;}
     const next=new Set(result.placements.map(p=>p.id));
     for(const [id,e] of this.elements)if(!next.has(id)&&e.style.display!=='none'){e.style.visibility='hidden';e.style.display='none';}
     const retained=new Map();
@@ -289,7 +297,9 @@ export class LayoutController {
       retained.set(a.id,{anchor:project(m,a.anchor),parentMatrix:placement.application?parents.get(parent):null});
     }
     this.visibleIds=next;this.retained=retained;this.previous=result;this.commitMatrix=m;
+    if(this.renderer){this.renderer.capture(result,m);this.renderer.activate();this.renderer.draw(result,m);}
   }
+  pickTrail(x,y){return this.renderer?.pickTrail(x,y)||null;}
   async render(includeCurves){
     if(this.status!=='ready'||this.rendering)return;
     this.rendering=true;const started=performance.now(),settled=includeCurves||this.mode==='static';
@@ -307,7 +317,7 @@ export class LayoutController {
     };
     const pause=async()=>{this.rendering=false;await new Promise(resolve=>setTimeout(resolve,0));if(!current())throw new DOMException('Placement cancelled','AbortError');this.rendering=true;};
     try {
-      if(settled)this.preview?.restore();else this.preview?.show(this.panLayout?.placements);
+      if(settled)this.preview?.restore();else if(!this.renderer?.active)this.preview?.show(this.panLayout?.placements);
       // With no retained labels, no painted annotation needs geometry validation.
       // Keep the camera write atomic and defer its layout to normal browser paint.
       const dormant=!settled&&this.previous?.placements.length===0&&!!this.lastViewport&&!this.panLayout?.placements.size;
@@ -317,11 +327,11 @@ export class LayoutController {
       // Pure translation preserves prior trail clearance. Only the viewport,
       // fixed controls and the retained-label visibility need checking again.
       const queryObstacles=dormant||!settled&&fixed?undefined:this.trailQuery(m,s,z);
-      if(!settled&&!fixed)for(const p of this.previous?.placements||[])if(!p.application)this.elements.get(p.id).setAttribute('transform','');
+      if(!settled&&!fixed&&!this.renderer?.active)for(const p of this.previous?.placements||[])if(!p.application)this.elements.get(p.id).setAttribute('transform','');
       // Preserve occupied map positions even while their text is clipped or under
       // a control. Newly revealed labels must not displace existing placements.
       if(settled&&fixed)for(const [id,p] of fixed)obstacles.push({id:'pan-reserved:'+id,kind:'label',shape:p.footprint});
-      if(!settled)this.preview?.render(this.view,viewport);
+      if(!settled&&!this.renderer?.active)this.preview?.render(this.view,viewport);
       if(this.previewDirty){this.previewDirty=false;this.preview?.invalidate();}
       const cameraDone=performance.now();let prepared;
       if(dormant)prepared=this.manifest.annotations.map(a=>({...a,required:false,candidates:[],eligibleReason:this.layers[a.layer]?'budget-deferred':'layer-off'}));
@@ -448,6 +458,7 @@ export class LayoutController {
         return this.initialPlacer.solve(payload).then(async result=>{
           // Read the current preparation promise: a layer/theme change can replace it.
           let ready;do{ready=this.preview.ready;await ready;}while(ready!==this.preview.ready);
+          if(this.renderer)try{await this.renderer.ready;}catch(error){this.rendererError=error.message;this.renderer.fallback(error);}
           const current=[...document.fonts];
           if(current.length!==faces.length||current.some((face,i)=>face!==faces[i]?.[0]||face.status!==faces[i]?.[1])){
             this.cache.invalidate();this.lineCache.clear();this.previous=null;
@@ -458,7 +469,7 @@ export class LayoutController {
         });
       }
       return finish(solveLayout(args));
-    }catch(error){if(error.name==='AbortError')return false;for(const e of this.elements.values())e.style.visibility='hidden';this.visibleIds.clear();this.status='error';this.error=error.message;this.details.textContent='Map labels unavailable: '+error.message;}
+    }catch(error){if(error.name==='AbortError')return false;for(const e of this.elements.values())e.style.visibility='hidden';this.visibleIds.clear();this.renderer?.clearLabels();this.status='error';this.error=error.message;this.details.textContent='Map labels unavailable: '+error.message;}
     finally{job?.cleanup();if(this.settleJob===job)this.settleJob=null;this.rendering=false;}
   }
 }

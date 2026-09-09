@@ -63,26 +63,53 @@ from a checked source item. Keep it updated as requests and evidence arrive.
 - [x] Identify unlabeled-peak screenshot. The two pictured OSM peaks are unnamed;
   all 124 named peaks across both candidates have paired annotations at exact anchors.
   Do not invent names. Source-backed elevation-only labels are a separate choice.
-- [ ] Fix a separate peak/facility association defect: optional text must not
+- [x] Fix a separate peak/facility association defect: optional text must not
   suppress its own true-anchor marker because its importance sorts first. Reserve
   a paired marker before its name, retaining all clearance checks and testing
   unrelated features, static required content and pan stability. Owner: `review_startup`.
-  Source ordering/dependency-cache regressions now pass; real-map recheck pending.
-- [ ] Make forest visibly distinct from shrub/scrub, grassland and barren ground.
+  Source ordering/dependency-cache regressions pass. Rebuilt Angels Gate, Dunn,
+  Hall, Hawkins and Howlands views retain their own markers; both-region named
+  peak views reviewed in light/dark. Evidence: `artifacts/cartography/quality-followup-views/`.
+- [x] Make forest visibly distinct from shrub/scrub, grassland and barren ground.
   Correct pale palette/double opacity, retain categorical data and nodata, verify
   light/dark relief blending and legend in both regions. Do not relabel all scrub
   as desert. Owner: root.
   Source implementation now uses distinct light/dark palettes, stronger forest
   greens and dry-ground hues, 190/255 raster alpha ×.75 layer opacity (previously
   145/255 ×.65), and explained swatches. Theme-selection pixel tests and categorical
-  nodata tests pass; both-region real-map visual review remains pending.
+  nodata tests pass; overview and dense views in both regions/themes now reviewed.
+  Final legend/whole-release checks remain part of the broader visual gate.
 - [x] Give settlements stronger typography than local streets (Grand Canyon Village
   versus Boulder Alley screenshot), from portable settlement/network classes.
   Defaults 18/12/14 px distinguish settlements/local roads/major roads and refs;
   zoom growth and 100–150% preference remain. Nine SVG/Canvas/WebGL browser cases
   across three engines preserve full names and hierarchy; source renaming and
   independent minimum checks pass. Actual cached Village/Alley records generate
-  the expected roles. Rebuilt-map coverage/visual review remains pending.
+  the expected roles. At 14×, Village is visibly larger than Boulder Alley with
+  complete names. At 8×, Village is omitted; inspect round-by-round blockers
+  before considering this hierarchy fully validated.
+- [ ] Resolve newly observed display repetition: nearby transit-stop/viewpoint
+  names and numeric aliases such as decimal versus fractional mileage resthouse
+  names. Use semantic roles, full-name normalization and conservative source
+  identity/proximity evidence; no regional name filters or geographic merges.
+- [x] Consolidate repeated legend strokes by actual color/dash/casing family,
+  with road width explained independently. Preserve genuinely different steps,
+  difficult/poor-visibility paths, surface and restricted patterns; ensure source
+  style inventory cannot overwrite a different dash pattern of the same class.
+  Source regression catches both duplicate swatches and lost difficulty variants.
+  Eight generated-key views at 430/1440px, both regions/themes, pass overflow
+  checks and visual review (`artifacts/cartography/legend-views/`).
+- [x] Cover every active symbol in the generated key, including transit, parking,
+  information, rangers, food, historic features, springs/waterfalls, summits and
+  authored landmarks. Share glyphs between both builders and the key so one
+  meaning does not silently acquire different symbols by provider. Verify inventory
+  coverage, symbol/anchor parity and both-region theme/layout examples. Five
+  focused tests pass, including exact shared/authored glyph parity. Both-region
+  key previews include every active kind; rebuilt-map/static checks remain pending.
+- [ ] Investigate apparent double trail strokes near the Bright Angel switchbacks.
+  Trace physical trail, road/status and protected-boundary sources before deciding
+  whether geometry is redundant or distinct meaning needs clearer symbology.
+  Apply any fix by semantics/source identity/geometry evidence across all regions.
 - [ ] Complete final visual review: whole views plus full-resolution dense/curved
   crops, repeated names, marker association, text density, proximity, clipping,
   symbol-only services and key consistency. Cover Grand Canyon and Sequoia.
@@ -669,9 +696,12 @@ viewpoint qualifies; its separate bus stop is not merged.
 
 The authored 1½ Mile Resthouse lies approximately 104 metres from the OSM shelter
 building centroid, so it does not qualify for the conservative spatial alias
-rule. Resolving that case needs explicit identity evidence or a deliberate
-source-anchor decision; no broad distance exception has been added.
+rule. The follow-up screenshot of both numerical spellings is addressed by
+normalizing exact rational spellings in the existing point display-repeat key,
+without asserting a source alias. All other words and punctuation remain
+distinct. The source-anchor discrepancy still needs explicit identity evidence
+or a deliberate source-anchor decision; no broad distance exception was added.
 
-Focused verification: 13 entity/display tests, 33 cartographic scene tests and
+Focused verification: 14 entity/display tests, 33 cartographic scene tests and
 one catalog test pass. These source changes still require fresh candidates and
 visual checks of the reported cases; they are not a release or performance pass.

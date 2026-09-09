@@ -363,3 +363,26 @@ useful label coverage, worst uninterrupted work and exact-quality regressions.
 The follow-up cached build passed all six static finalization audits. Its input
 hashes are retained in `artifacts/cartography/rounds-hierarchy-landcover-inputs.json`;
 real-map review and full release validation remain separate.
+
+
+## Shared legend and glyph follow-up
+
+The transport key groups actual color, dash and road-casing families, with width
+explained separately as network hierarchy. Paved/unknown-surface cycling paths or
+different restricted road classes no longer repeat identical swatches. The source
+style inventory now preserves different difficulty/visibility dash patterns even
+when highway class and surface match. Legend swatches use longer, unscaled samples
+with the same rounded caps as mapped paths.
+
+Every active symbol kind now receives a generated key entry. Authored static and
+interactive markers use the same glyph helper as imported features and the key;
+feature coordinates and intentional marker offsets remain separate. The two
+landmark variants share one glyph and meaning. Adding an active kind without a
+legend description raises an error instead of silently omitting it.
+
+Five focused regressions cover distinct/same stroke families, complete active-kind
+coverage and shared/authored glyph parity. Eight standalone generated-key previews
+cover Grand Canyon and Sequoia, light/dark and 430/1440px widths; all pass horizontal
+overflow checks and visual inspection. Reports/screenshots are retained under
+`artifacts/cartography/legend-views/`. Full rebuilt-map glyph/placement review,
+static finalization and verified promotion remain pending.

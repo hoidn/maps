@@ -54,28 +54,38 @@ def catalog_panel(context):
 def transport_legend(context):
  if not context:return None
  from html import escape
- out=['<span class="lg-title">Mapped transport</span>'];seen=set()
- for st in sorted(context['report']['styles'],key=lambda s:(s['kind'],-s['importance'],s['surface'],s['class'])):
-  key=(st['kind'],st['importance'],st['surface'],st['color'])
-  if key in seen:continue
-  seen.add(key);color={'road':'var(--road-fill)','trail':'var(--trail-ink)','restricted':'var(--restricted-ink)'}[st['color']]
-  dash=','.join(map(str,st['dash'])) or 'none';label=st['class'].replace('_',' ')+' · '+st['surface']
-  if st['color']=='restricted':label+=' · restricted/inactive'
-  case=f'<path d="M1,7 H33" stroke="var(--road)" stroke-width="{st["caseWidth"]}"/>' if st['caseWidth'] else ''
-  out.append(f'<span class="lg-item"><svg viewBox="0 0 34 14" width="34" height="14">{case}<path d="M1,7 H33" stroke="{color}" stroke-width="{st["width"]}" stroke-dasharray="{dash}"/></svg>{escape(label)}</span>')
+ # Width represents an independent hierarchy; one swatch explains each actual
+ # color/dash/casing family, instead of repeating identical ink for source tags.
+ groups={}
+ for st in context['report']['styles']:
+  key=(st['kind'],st['color'],tuple(st['dash']))
+  groups.setdefault(key,[]).append(st)
+ out=['<span class="lg-title">Mapped transport</span>']
+ for (kind,ink,pattern),styles in sorted(groups.items()):
+  st=max(styles,key=lambda s:s['width'])
+  color={'road':'var(--road-fill)','trail':'var(--trail-ink)','restricted':'var(--restricted-ink)'}[ink]
+  dash=','.join(map(str,pattern)) or 'none'
+  if ink=='restricted':label=('Road' if kind=='road' else 'Path')+' · restricted or inactive'
+  elif kind=='road':label={(): 'Road · paved',(5,2):'Road · unpaved',(8,2):'Road · surface unknown',(4,3):'Track'}.get(pattern,'Road')
+  else:label={(4,2):'Walking / cycling path',(1,2):'Steps',(2,3):'Demanding route / poor visibility'}.get(pattern,'Path')
+  classes=', '.join(sorted({s['class'].replace('_',' ') for s in styles}))
+  key=kind+':'+ink+':'+(','.join(map(str,pattern)) or 'solid')
+  case=f'<path d="M2,7 H62" stroke="var(--road-case)" stroke-width="{st["caseWidth"]}"/>' if st['caseWidth'] else ''
+  out.append(f'<span class="lg-item"><svg data-transport-key="{key}" viewBox="0 0 64 14" width="64" height="14" role="img" aria-label="{escape(label)}"><title>{escape(classes)}</title>{case}<path d="M2,7 H62" fill="none" stroke="{color}" stroke-width="{st["width"]}" stroke-linecap="round" stroke-dasharray="{dash}"/></svg>{escape(label)}</span>')
  if context['report'].get('selected',{}).get('railway',0):
   out.append('<span class="lg-item"><svg data-symbol="railway" viewBox="0 0 34 14" width="34" height="14" aria-hidden="true"><path d="M1,7 H33" fill="none" stroke="var(--ink)" stroke-width=".8"/><path d="M1,7 H33" fill="none" stroke="var(--ink)" stroke-width="3.6" stroke-linecap="butt" stroke-dasharray="1,6"/></svg>Railway · faint/dashed: inactive or unbuilt alignment</span>')
  if context['report'].get('selected',{}).get('barrier',0):
   out.append('<span class="lg-item"><svg viewBox="0 0 34 14" width="34" height="14" aria-hidden="true"><path d="M1,7 H33" fill="none" stroke="var(--ink)" stroke-width=".65" stroke-dasharray="2,2"/></svg>Fence / wall · not an access designation</span>')
- from .symbols import symbol_svg
- facility_names={'camp':'Campground / campsite','toilets':'Toilets','shop':'Supplies','fuel':'Fuel','bench':'Bench','waste':'Waste disposal','saddle':'Saddle','gate':'Gate','barrier':'Barrier','picnic':'Picnic area / table','telephone':'Telephone','ford':'Ford','crossing':'Road crossing'}
+ from .symbols import legend_symbols
  active=context['report'].get('facilitySymbols',{})
- if any(active.get(kind) for kind in facility_names):
-  out.append('<span class="lg-title">Facilities and crossings · access and availability unverified</span>')
-  for kind,label in facility_names.items():
-   if active.get(kind):out.append(f'<span class="lg-item"><svg viewBox="-8 -8 16 16" width="16" height="16" aria-hidden="true">{symbol_svg(kind)}</svg>{label}</span>')
+ entries=legend_symbols(active)
+ if entries:
+  out.append('<span class="lg-title">Places, facilities and crossings · access and availability unverified</span>')
+  for entry in entries:
+   kinds=' '.join(entry['kinds']);label=escape(entry['label'])
+   out.append(f'<span class="lg-item"><svg data-legend-symbols="{kinds}" viewBox="-8 -8 16 16" width="20" height="20" role="img" aria-label="{label}">{entry["svg"]}</svg>{label}</span>')
  interaction='Select a trail to emphasize it. ' if context.get('mode','interactive')=='interactive' else ''
- out.append('<span class="lg-item">'+interaction+'Class, surface, access and hiking difficulty are independent attributes.</span>')
+ out.append('<span class="lg-item">'+interaction+'Road width follows network class; casing identifies roads. Path dashes distinguish steps and mapped difficulty/visibility. Road surfaces, access and hiking difficulty remain separate attributes.</span>')
  coarse,medium,fine=context['spec'].contour_intervals
  out.append('<span class="lg-title">Land cover</span>')
  for category,label in COVER_KEY:

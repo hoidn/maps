@@ -173,7 +173,7 @@ def render_scene(features,routes,spec,M,existing=(),distances=()):
   if g.is_empty:omitted.append({'id':f['id'],'reason':'outside-frame'});continue
   common=f' data-source-id="{escape(f["id"])}"'
   if kind in ('trail','road'):
-   st=transport_style(f.get('tags',{}));styles[str((st['kind'],st['class'],st['surface'],st['color'],st['status']))]=st
+   st=transport_style(f.get('tags',{}));styles[str((st['kind'],st['class'],st['surface'],st['color'],st['status'],tuple(st['dash']),st['width'],st['caseWidth']))]=st
    color=PALETTE[st['color']];dash=','.join(f'calc({n}px * var(--s))' for n in st['dash']) or 'none';limit=st['maxMetersPerPixel']
    name=f.get('name') or next((route_by_id[r]['name'] for r in f.get('routeIds',[]) if r in route_by_id and route_by_id[r].get('name')),None)
    named={**f,'name':name};tags=f.get('tags',{})

@@ -21,6 +21,20 @@ PATHS={
  'ford':'M-6,-3 Q-3,-6 0,-3 T6,-3 M-6,3 Q-3,0 0,3 T6,3 M-2,-1 H2',
  'crossing':'M-5,-5 V5 M5,-5 V5 M-2,-4 H2 M-2,-1 H2 M-2,2 H2 M-2,5 H2',
  'historic':'M-5,0 L0,-5 L5,0 M-3,0 V5 M3,0 V5 M-5,5 H5','point':'M-2,0 A2,2 0 1 0 2,0 A2,2 0 1 0 -2,0'}
+# Both authored landmarks use one glyph and one legend meaning.
+PATHS['wp']=PATHS['wp2']='M-3,0 A3,3 0 1 0 3,0 A3,3 0 1 0 -3,0'
+SYMBOL_NAMES={
+ 'camp':'Campground / campsite','th':'Trailhead','peak':'Summit','view':'Viewpoint',
+ 'spring':'Spring','falls':'Waterfall','water':'Mapped drinking water',
+ 'shelter':'Shelter / resthouse','lodge':'Lodging','bridge':'Bridge',
+ 'parking':'Parking','info':'Visitor information','toilets':'Toilets',
+ 'food':'Food / cafe','ranger':'Ranger station','bus':'Transit stop',
+ 'shop':'Supplies','fuel':'Fuel','bench':'Bench','waste':'Waste disposal',
+ 'saddle':'Saddle','gate':'Gate','barrier':'Barrier','picnic':'Picnic area / table',
+ 'telephone':'Telephone','ford':'Ford','crossing':'Road crossing',
+ 'historic':'Historic feature','point':'Mapped point',
+ 'wp':'Trail landmark','wp2':'Trail landmark'}
+
 def camp_symbol(x=0.,y=0.):
  """One filled tent for every mapped campsite; color conveys no provider/status."""
  return f'<path class="s-camp" d="M{x-6:.1f},{y+4:.1f} L{x:.1f},{y-6.5:.1f} L{x+6:.1f},{y+4:.1f} Z"/><path class="s-camp-base" d="M{x-7.5:.1f},{y+4.5:.1f} H{x+7.5:.1f}"/>'
@@ -28,3 +42,19 @@ def camp_symbol(x=0.,y=0.):
 def symbol_svg(kind):
  if kind=='camp':return camp_symbol()
  return '<path class="facility-mark" d="'+PATHS.get(kind,PATHS['point'])+'"/>'
+
+
+def symbol_at(kind,x=0.,y=0.):
+ """The same glyph at a supplied anchor, without changing feature coordinates."""
+ inner=symbol_svg(kind)
+ return inner if x==0 and y==0 else f'<g transform="translate({x},{y})">{inner}</g>'
+
+def legend_symbols(active):
+ """One entry per active glyph/meaning; adding a glyph requires a description."""
+ missing={kind for kind,count in active.items() if count and kind not in SYMBOL_NAMES}
+ if missing:raise ValueError('Missing symbol legend description: '+', '.join(sorted(missing)))
+ groups={}
+ for kind,label in SYMBOL_NAMES.items():
+  if not active.get(kind):continue
+  glyph=symbol_svg(kind);groups.setdefault((label,glyph),[]).append(kind)
+ return [{'kinds':kinds,'label':label,'svg':glyph} for (label,glyph),kinds in groups.items()]

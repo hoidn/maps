@@ -124,26 +124,12 @@ def trail_label_near(chain, lat, lon, half, text, cls, off=9, flip=False):
     return trail_label(chain, max(d - half, 0), d + half, text, cls, off, flip)
 
 # ---------------------------------------------------------------- symbols
-from cartography.symbols import camp_symbol
+from cartography.symbols import camp_symbol, symbol_svg, symbol_at
 def _symbol_svg(kind, lat, lon, dx=0, dy=0):
     X, Y = P(lat, lon)
     return f'<g{anchored(X, Y, dx, dy)}>{_sym(kind)}</g>'
 def _sym(kind):
-    x = y = 0.0
-    if kind == "camp":
-        return camp_symbol(x,y)
-    if kind == "th": return f'<rect class="s-th" x="{x-4.2:.1f}" y="{y-4.2:.1f}" width="8.4" height="8.4"/>'
-    if kind == "water": return f'<path class="s-water" d="M{x:.1f},{y-6:.1f} C{x+4.2:.1f},{y-1.2:.1f} {x+4.2:.1f},{y+3.8:.1f} {x:.1f},{y+3.8:.1f} C{x-4.2:.1f},{y+3.8:.1f} {x-4.2:.1f},{y-1.2:.1f} {x:.1f},{y-6:.1f} Z"/>'
-    if kind == "shelter": return f'<path class="s-shelter" d="M{x-4.5:.1f},{y+3.5:.1f} h9 v-4.5 l-4.5,-4 l-4.5,4 z"/>'
-    if kind == "lodge": return f'<path class="s-lodge" d="M{x-5.5:.1f},{y+4.5:.1f} h11 v-5.5 l-5.5,-5 l-5.5,5 z"/>'
-    if kind == "bridge": return f'<rect class="s-bridge" x="{x-2.6:.1f}" y="{y-5.5:.1f}" width="5.2" height="11" rx="1.2"/>'
-    if kind == "view": return f'<circle class="s-view" cx="{x:.1f}" cy="{y:.1f}" r="2.8"/>'
-    if kind == "peak": return f'<path class="s-peak" d="M{x:.1f},{y-4.2:.1f} L{x+4:.1f},{y+3:.1f} L{x-4:.1f},{y+3:.1f} Z"/>'
-    if kind == "spring": return f'<circle class="s-spring" cx="{x:.1f}" cy="{y:.1f}" r="2.3"/>'
-    if kind == "wp": return f'<circle class="s-wp" cx="{x:.1f}" cy="{y:.1f}" r="3"/>'
-    if kind == "wp2": return f'<circle class="s-wp2" cx="{x:.1f}" cy="{y:.1f}" r="2.6"/>'
-    if kind == "falls": return f'<path class="s-falls" d="M{x-3:.1f},{y-5:.1f} v10 M{x:.1f},{y-5:.1f} v10 M{x+3:.1f},{y-5:.1f} v10"/>'
-    return ""
+    return symbol_svg(kind)
 
 def sym(kind, lat, lon, dx=0, dy=0, source_id=None):
     return M.symbol(_symbol_svg(kind,lat,lon,dx,dy),kind,P(lat,lon),(dx,dy),source_id=source_id)
@@ -597,17 +583,7 @@ def lg(kind, label):
     elif kind == "river": sw = '<svg viewBox="0 0 34 14"><path d="M0,9 C10,3 22,11 34,5" class="river" style="stroke-width:3"/></svg>'
     elif kind == "contour": sw = '<svg viewBox="0 0 34 14"><path d="M0,4 C10,0 20,8 34,3" class="cx" style="opacity:1"/><path d="M0,11 C10,7 20,14 34,9" class="ci" style="opacity:1;stroke-width:.8"/></svg>'
     else:
-        x, y = 17, 7
-        inner = {"camp": camp_symbol(x,y),
-                 "th": f'<rect class="s-th" x="{x-4.2}" y="{y-4.2}" width="8.4" height="8.4"/>',
-                 "water": f'<path class="s-water" d="M{x},{y-6} C{x+4.2},{y-1.2} {x+4.2},{y+3.8} {x},{y+3.8} C{x-4.2},{y+3.8} {x-4.2},{y-1.2} {x},{y-6} Z"/>',
-                 "shelter": f'<path class="s-shelter" d="M{x-4.5},{y+3.5} h9 v-4.5 l-4.5,-4 l-4.5,4 z"/>',
-                 "lodge": f'<path class="s-lodge" d="M{x-5.5},{y+4.5} h11 v-5.5 l-5.5,-5 l-5.5,5 z"/>',
-                 "bridge": f'<rect class="s-bridge" x="{x-2.6}" y="{y-5.5}" width="5.2" height="11" rx="1.2"/>',
-                 "view": f'<circle class="s-view" cx="{x}" cy="{y}" r="2.8"/>',
-                 "peak": f'<path class="s-peak" d="M{x},{y-4.2} L{x+4},{y+3} L{x-4},{y+3} Z"/>',
-                 "spring": f'<circle class="s-spring" cx="{x}" cy="{y}" r="2.3"/>',
-                 "wp": f'<circle class="s-wp" cx="{x}" cy="{y}" r="3"/>'}[kind]
+        inner = symbol_at(kind,17,7)
         sw = f'<svg viewBox="0 0 34 14">{inner}</svg>'
     return f'<span class="lg">{sw}{label}</span>'
 legend = "".join([

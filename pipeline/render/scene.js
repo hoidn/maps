@@ -41,17 +41,40 @@ export function captureCommands(root,svg,{world=false}={}){
  }
  return output;
 }
-export function paintCommands(ctx,commands,outer=new DOMMatrix(),{strokeFactor=1,opacity=1}={}){
+/** A fresh cache belongs to one synchronous draw and one context. Between calls
+ * only transforms, globalAlpha and drawImage may be changed externally. Discard
+ * it after save/restore, context reset, resize, or any external style mutation.
+ * Commands need not share style/array identities; dash values are compared.
+ */
+export const createPaintState=ctx=>({context:ctx,dash:null});
+export function paintCommands(ctx,commands,outer=new DOMMatrix(),{strokeFactor=1,opacity=1,state}={}){
+ if(state?.context!==ctx)state=undefined;
  const paint=(c,pass)=>{
   const t=c.matrix,s=c.style;
   // Most geographic paths have only a stroke. An absent paint pass must not
   // repeat transform, dash and font setup for thousands of invisible fills.
   if(pass==='fill'?s.fill==='none':s.stroke==='none'||!s.width)return;
   ctx.setTransform(outer.a*t[0]+outer.c*t[1],outer.b*t[0]+outer.d*t[1],outer.a*t[2]+outer.c*t[3],outer.b*t[2]+outer.d*t[3],outer.a*t[4]+outer.c*t[5]+outer.e,outer.b*t[4]+outer.d*t[5]+outer.f);
-  ctx.lineWidth=s.width*strokeFactor;ctx.lineCap=s.cap;ctx.lineJoin=s.join;ctx.miterLimit=s.miter;ctx.setLineDash(s.dash.map(n=>n*strokeFactor));ctx.lineDashOffset=s.dashOffset*strokeFactor;
-  if(c.kind==='glyph'){ctx.font=s.font;ctx.textAlign='left';ctx.textBaseline='alphabetic';ctx.fontKerning='none';}
-  if(pass==='fill'&&s.fill!=='none'){ctx.globalAlpha=s.opacity*s.fillOpacity*opacity;ctx.fillStyle=s.fill;if(c.kind==='glyph')ctx.fillText(c.text,0,0);else ctx.fill(c.path,s.fillRule);}
-  if(pass==='stroke'&&s.stroke!=='none'&&s.width){ctx.globalAlpha=s.opacity*s.strokeOpacity*opacity;ctx.strokeStyle=s.stroke;if(c.kind==='glyph')ctx.strokeText(c.text,0,0);else ctx.stroke(c.path);}
+  if(state){
+   const width=s.width*strokeFactor,offset=s.dashOffset*strokeFactor;
+   if(state.width!==width)ctx.lineWidth=state.width=width;
+   if(state.cap!==s.cap)ctx.lineCap=state.cap=s.cap;
+   if(state.join!==s.join)ctx.lineJoin=state.join=s.join;
+   if(state.miter!==s.miter)ctx.miterLimit=state.miter=s.miter;
+   if(state.dashOffset!==offset)ctx.lineDashOffset=state.dashOffset=offset;
+   let same=state.dash?.length===s.dash.length;
+   if(same)for(let i=0;i<s.dash.length;i++)if(state.dash[i]!==s.dash[i]*strokeFactor){same=false;break;}
+   if(!same){const dash=s.dash.map(n=>n*strokeFactor);ctx.setLineDash(dash);state.dash=dash;}
+   if(c.kind==='glyph'){
+    if(state.font!==s.font)ctx.font=state.font=s.font;
+    if(!state.textDefaults){ctx.textAlign='left';ctx.textBaseline='alphabetic';ctx.fontKerning='none';state.textDefaults=true;}
+   }
+  }else{
+   ctx.lineWidth=s.width*strokeFactor;ctx.lineCap=s.cap;ctx.lineJoin=s.join;ctx.miterLimit=s.miter;ctx.setLineDash(s.dash.map(n=>n*strokeFactor));ctx.lineDashOffset=s.dashOffset*strokeFactor;
+   if(c.kind==='glyph'){ctx.font=s.font;ctx.textAlign='left';ctx.textBaseline='alphabetic';ctx.fontKerning='none';}
+  }
+  if(pass==='fill'&&s.fill!=='none'){ctx.globalAlpha=s.opacity*s.fillOpacity*opacity;if(!state||state.fill!==s.fill){ctx.fillStyle=s.fill;if(state)state.fill=s.fill;}if(c.kind==='glyph')ctx.fillText(c.text,0,0);else ctx.fill(c.path,s.fillRule);}
+  if(pass==='stroke'&&s.stroke!=='none'&&s.width){ctx.globalAlpha=s.opacity*s.strokeOpacity*opacity;if(!state||state.stroke!==s.stroke){ctx.strokeStyle=s.stroke;if(state)state.stroke=s.stroke;}if(c.kind==='glyph')ctx.strokeText(c.text,0,0);else ctx.stroke(c.path);}
  };
  for(let i=0;i<commands.length;){
   const c=commands[i];let end=i+1;

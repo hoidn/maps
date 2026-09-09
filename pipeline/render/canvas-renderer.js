@@ -1,4 +1,4 @@
-import {MapScene,captureCommands,commandBounds,paintCommands,viewMatrix,matrixArray} from './scene.js';
+import {MapScene,captureCommands,commandBounds,paintCommands,createPaintState,viewMatrix,matrixArray} from './scene.js';
 import {WebGLContours} from './webgl-contours.js';
 import {moveShape} from '../labels/geometry.js';
 const ORDER=['boundaries','buildings','contour-labels','hydro','roads','trails','regions','hydro-labels','boundary-labels','peaks','symbols','trail-labels','labels','fixed-ui','coordinate-grid','neatline','other'];
@@ -151,10 +151,10 @@ export class CanvasMapRenderer{
   this.painted=[];
   const placementsByLayer=new Map();
   for(const p of result.placements){const record=this.labels.get(p.id);if(!record)continue;let entries=placementsByLayer.get(record.layer);if(!entries){entries=[];placementsByLayer.set(record.layer,entries);}entries.push([p,record]);}
-  const deviceValues=matrixArray(device);
+  const deviceValues=matrixArray(device),paintState=createPaintState(this.fg);
   const view={x:-world.e/world.a,y:-world.f/world.d,w:width/world.a,h:height/world.d};
   for(const layer of ORDER){
-   for(const item of this.scene.byLayer.get(layer)||[])if(this.scene.visible(item,l.layers,z,view))paintCommands(this.fg,item.commands,world,{strokeFactor:item.constantStroke?1/z:1,opacity:layer==='trails'&&this.highlighted&&(this.highlighted instanceof Set?!this.highlighted.has(item.element.dataset.sourceId||item.element.dataset.featureId||item.element.id):item.name!==this.highlighted)?0.25:1});
+   for(const item of this.scene.byLayer.get(layer)||[])if(this.scene.visible(item,l.layers,z,view))paintCommands(this.fg,item.commands,world,{state:paintState,strokeFactor:item.constantStroke?1/z:1,opacity:layer==='trails'&&this.highlighted&&(this.highlighted instanceof Set?!this.highlighted.has(item.element.dataset.sourceId||item.element.dataset.featureId||item.element.id):item.name!==this.highlighted)?0.25:1});
    const entries=placementsByLayer.get(layer);
    if(entries){this.fg.setTransform(...deviceValues);this.fg.globalAlpha=1;}
    for(const [p,record] of entries||[]){

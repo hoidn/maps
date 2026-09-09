@@ -43,8 +43,7 @@ test('independent frame audit detects a deliberately defective painted frame',as
 });
 test('gesture defers fresh optional enumeration and resize completes a settled pass',async({page})=>{
  await mountFixture(page);
- await page.evaluate(async()=>{window.mapLayout.requestView({x:10,y:0,w:400,h:320});await new Promise(requestAnimationFrame);});
- const frame=await page.evaluate(()=>({kind:window.mapLayout.transactionKind,max:Math.max(...window.mapLayout.prepared.map(a=>a.candidates.length))}));
+ const frame=await page.evaluate(async()=>{window.mapLayout.requestView({x:10,y:0,w:400,h:320});await new Promise(requestAnimationFrame);return {kind:window.mapLayout.transactionKind,max:Math.max(...window.mapLayout.prepared.map(a=>a.candidates.length))};});
  expect(frame.kind).toBe('fast');expect(frame.max).toBeLessThanOrEqual(1);
  await page.setViewportSize({width:360,height:800});
  await page.waitForTimeout(150);

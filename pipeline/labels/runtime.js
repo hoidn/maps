@@ -110,7 +110,7 @@ export class LayoutController {
   }
   whenSettled(){return this.ready.then(()=>this.fontReady).then(()=>this.frame||this.settleTimer?new Promise(resolve=>this.waiters.push(resolve)):this.getReport());}
   resolveWaiters(){for(const resolve of this.waiters.splice(0))resolve(this.getReport());}
-  getReport(){return {status:this.status,error:this.error,view:{...this.view},outcomes:this.result?.outcomes||[],missingRequired:this.result?.missingRequired||[],placements:this.result?.placements||[],timings:this.timings.slice(-200),samples:this.samples.slice(-200),transactionKind:this.transactionKind};}
+  getReport(){return {status:this.status,error:this.error,view:{...this.view},diagnostics:this.result?.diagnostics,outcomes:this.result?.outcomes||[],missingRequired:this.result?.missingRequired||[],placements:this.result?.placements||[],timings:this.timings.slice(-200),samples:this.samples.slice(-200),transactionKind:this.transactionKind};}
   camera(readAfter=true){
     const v=this.view,W=this.manifest.map.width;
     // Read the old, internally consistent camera before writing either scale.
@@ -286,7 +286,7 @@ export class LayoutController {
       }
       this.prepared=prepared;this.lastObstacles=obstacles;
       const preparedDone=performance.now();
-      this.result=solveLayout({annotations:prepared,obstacles,queryObstacles,viewport,previous:this.previous,policy:{...this.policy,repairMaxNeighbors:this.mode==='interactive'?0:2,requiredGroups:this.mode==='static'?this.policy.requiredRoutes:[]}});
+      this.result=solveLayout({annotations:prepared,obstacles,queryObstacles,viewport,previous:this.previous,policy:{...this.policy,exhaustiveDiagnostics:this.mode!=='interactive',repairMaxNeighbors:this.mode==='interactive'?0:2,requiredGroups:this.mode==='static'?this.policy.requiredRoutes:[]}});
       const solvedDone=performance.now();this.commit(this.result,m,s);
       this.phases={camera:cameraDone-started,prepare:preparedDone-cameraDone,solve:solvedDone-preparedDone,commit:performance.now()-solvedDone};
       const elapsed=performance.now()-started;this.timings.push(elapsed);this.samples.push({kind:this.transactionKind,total:elapsed,...this.phases,placements:this.result.placements.length,candidates:prepared.reduce((n,a)=>n+a.candidates.length,0)});

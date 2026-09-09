@@ -5,7 +5,7 @@ from pathlib import Path
 import tempfile
 import numpy as np
 
-HILLSHADE_VERSION = 2
+HILLSHADE_VERSION = 3
 
 
 def illuminate(gx, gy, azimuth, altitude, exaggeration=1.15):

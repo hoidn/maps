@@ -22,17 +22,17 @@ def ramp(stops):
     e = np.array([s[0] for s in stops], float); c = np.array([s[1] for s in stops], float)
     return lambda z: np.stack([np.interp(z, e, c[:, i]) for i in range(3)], -1)
 def hx(s): return tuple(int(s[i:i + 2], 16) for i in (1, 3, 5))
-light = ramp([(2200, hx("#8f7a68")), (2900, hx("#b9a08a")), (3400, hx("#cbb99b")), (3900, hx("#d3c9a8")), (4500, hx("#dbc4a2")), (5200, hx("#e3bf9a")),
-              (6000, hx("#ead0b0")), (6600, hx("#ecdfc4")), (7200, hx("#e4e3cf")), (8000, hx("#d5dcc2")), (8800, hx("#c9d3b8"))])
-dark = ramp([(2200, hx("#241d19")), (2900, hx("#33291f")), (3400, hx("#3b3327")), (3900, hx("#3d3a2c")), (4500, hx("#45382c")), (5200, hx("#4d3b2c")),
-             (6000, hx("#52432f")), (6600, hx("#514a37")), (7200, hx("#4b4d3c")), (8000, hx("#414b3c")), (8800, hx("#3a4638"))])
+light = ramp([(2200, hx("#eee9dc")), (2900, hx("#ede7d8")), (3400, hx("#eae3d1")), (3900, hx("#e7dfcc")), (4500, hx("#e5dbc8")), (5200, hx("#e3d5be")),
+              (6000, hx("#e6dcc9")), (6600, hx("#e8e1d0")), (7200, hx("#e4e3cf")), (8000, hx("#d5dcc2")), (8800, hx("#c9d3b8"))])
+dark = ramp([(2200, hx("#343b3a")), (2900, hx("#373d3b")), (3400, hx("#3a403c")), (3900, hx("#3d423d")), (4500, hx("#42443e")), (5200, hx("#49483f")),
+             (6000, hx("#4c4b42")), (6600, hx("#4b4d42")), (7200, hx("#474e43")), (8000, hx("#414b3c")), (8800, hx("#3a4638"))])
 def render(rampf, lo, hi, name, q):
     img = np.clip(rampf(Z) / 255.0 * (lo + (hi - lo) * hs)[..., None], 0, 1)
     im = Image.fromarray((img * 255).astype(np.uint8)); buf = io.BytesIO()
     im.save(buf, "JPEG", quality=q, optimize=True, subsampling=1); b = buf.getvalue(); open(name, "wb").write(b)
     print(name, len(b) // 1024, "KB"); return "data:image/jpeg;base64," + base64.b64encode(b).decode()
-uri_light = render(light, 0.62, 1.10, "terrain_hi_light.jpg", 72)
-uri_dark = render(dark, 0.55, 1.45, "terrain_hi_dark.jpg", 72)
+uri_light = render(light, 0.80, 1.04, "terrain_hi_light.jpg", 72)
+uri_dark = render(dark, 0.82, 1.20, "terrain_hi_dark.jpg", 72)
 print("images done", round(time.time() - t0))
 if '--shading-only' in sys.argv:
     refresh_cache('terrain_hi.json',uri_light,uri_dark)

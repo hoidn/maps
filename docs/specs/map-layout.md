@@ -60,6 +60,16 @@ carry shapes or stroked line segments. An optional `queryObstacles` provider mus
 conservatively return every nearby painted obstacle; spatial indexing must not
 omit a potentially colliding segment.
 
+A provider may expose `forRegion(bounds)` to create a reusable local query.
+The solver uses this for point-label candidate neighborhoods, including a
+conservative allowance for dense fallback positions. The returned query must
+fall back to the complete index for any rectangle outside its cached region.
+The trail adapter caches screen-space segment projections once per camera
+snapshot and grid-cell membership within each local neighborhood. Exact
+stroked-bounds filtering and solver collision tests still run for every candidate;
+these caches do not simplify geometry or carry results across camera changes.
+
+
 The result records accepted placements, an outcome for every annotation, and
 missing required content. Candidate order and repair are bounded and deterministic.
 Required content takes precedence over optional detail. Hiding every eligible

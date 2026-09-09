@@ -27,10 +27,22 @@ export function solveLayout({annotations,obstacles=[],viewport,previous,policy={
   const old=new Map((Array.isArray(previous)?previous:previous?.placements??[]).map(p=>[p.id,p.candidateId]));
   const obstacleIndex=new SpatialIndex(),obstacleMap=new Map();
   obstacles.forEach((o,i)=>{const key=String(i);obstacleMap.set(key,o);const b=o.shape?.bounds??{x:Math.min(o.line.a.x,o.line.b.x)-(o.line.width||0)/2,y:Math.min(o.line.a.y,o.line.b.y)-(o.line.width||0)/2,width:Math.abs(o.line.a.x-o.line.b.x)+(o.line.width||0),height:Math.abs(o.line.a.y-o.line.b.y)+(o.line.width||0)};obstacleIndex.insert(key,b);});
-  const accepted=new Map(),hardCache=new Map();let placedIndex=new SpatialIndex();
+  const accepted=new Map(),hardCache=new Map(),localQueries=new Map();let placedIndex=new SpatialIndex();
   const indexPlacement=(id,c)=>placedIndex.insert(id,c.shape.bounds);
   const proximity=(a,c)=>a.kind==='point-label'&&a.anchor?Math.floor((anchorDistance(c.shape?.bounds,a.anchor)+1e-6)/(policy.pointDistanceBand??4)):0;
   const candidates=a=>{const cs=[...(a.candidates??[])];const ix=cs.findIndex(c=>c.id===old.get(a.id));if(ix>0)cs.unshift(...cs.splice(ix,1));return cs.sort((c,d)=>proximity(a,c)-proximity(a,d));};
+  function nearbyTrails(a,rect){
+    if(!queryObstacles)return [];
+    if(!queryObstacles.forRegion||a.kind!=='point-label')return queryObstacles(rect);
+    if(!localQueries.has(a.id)){
+      const boxes=a.candidates.filter(c=>validShape(c.shape)).map(c=>c.shape.bounds);
+      if(!boxes.length)return queryObstacles(rect);
+      const x=Math.min(...boxes.map(r=>r.x)),y=Math.min(...boxes.map(r=>r.y));
+      const region=expand({x,y,width:Math.max(...boxes.map(r=>r.x+r.width))-x,height:Math.max(...boxes.map(r=>r.y+r.height))-y},clearance+(a.fallbackCandidates?(policy.maxPointDisplacement??32):0));
+      localQueries.set(a.id,queryObstacles.forRegion(region));
+    }
+    return localQueries.get(a.id)(rect);
+  }
   function blockers(a,c) {
     const labels=[],repeat=[];
     let cache=hardCache.get(a.id);if(!cache){cache=new Map();hardCache.set(a.id,cache);}
@@ -42,7 +54,7 @@ export function solveLayout({annotations,obstacles=[],viewport,previous,policy={
     const allowed=new Set(a.allowedObstacleIds??[]);
     const query=expand(c.shape.bounds,clearance);
     const nearby=obstacleIndex.query(query).map(key=>obstacleMap.get(key));
-    if(queryObstacles)nearby.push(...queryObstacles(query));
+    if(queryObstacles)nearby.push(...nearbyTrails(a,query));
     for(const o of nearby) {
       if(allowed.has(o.id)&&o.kind!=='trail')continue;
       // A geographic marker is painted over the trail at its true location.

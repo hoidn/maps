@@ -6,6 +6,7 @@ import {pointCandidates,regionCandidates} from './candidates.js';
 import {measurePointVariants} from './point-variants.js';
 import {solveLayout} from './place.js';
 import {SpatialIndex} from './spatial-index.js';
+import {createTrailQuery} from './trail-query.js';
 import {buildLineCandidates,applyLineCandidate,reprojectLineCandidate} from './line-candidates.js';
 const rectangle=r=>({x:r.x,y:r.y,width:r.width,height:r.height});
 const shape=r=>({parts:[r],bounds:r});
@@ -164,24 +165,10 @@ export class LayoutController {
         }
       }
     }
-    const inverse=m.inverse(),strokeScale=this.mode==='interactive'?1/z:1;
-    const cache=new Map();
-    return rect=>{
-      const key=[rect.x,rect.y,rect.width,rect.height].join(',');if(cache.has(key))return cache.get(key);
-      const points=[[rect.x,rect.y],[rect.x+rect.width,rect.y],[rect.x,rect.y+rect.height],[rect.x+rect.width,rect.y+rect.height]].map(p=>project(inverse,p));
-      const radius=this.maxTrailWidth*strokeScale/2,x=Math.min(...points.map(p=>p[0]))-radius,y=Math.min(...points.map(p=>p[1]))-radius;
-      const r={x,y,width:Math.max(...points.map(p=>p[0]))+radius-x,height:Math.max(...points.map(p=>p[1]))+radius-y};
-      const result=this.trailIndex.query(r).filter(index=>{
-        // Grid cells are only a broad phase. Keep boundary contacts and zero-area
-        // segment bounds, but avoid projecting distant occupants of the same cell.
-        const b=this.trailSegments[index].bounds;
-        return b.x<=r.x+r.width&&b.x+b.width>=r.x&&b.y<=r.y+r.height&&b.y+b.height>=r.y;
-      }).map(index=>{
-        const segment=this.trailSegments[index],a=project(m,segment.a),b=project(m,segment.b),width=segment.width*strokeScale*s;
-        return {id:segment.id,kind:'trail',line:{a:{x:a[0],y:a[1]},b:{x:b[0],y:b[1]},width}};
-      });cache.set(key,result);return result;
-    };
+    return createTrailQuery({segments:this.trailSegments,index:this.trailIndex,matrix:m,inverse:m.inverse(),
+      strokeScale:this.mode==='interactive'?1/z:1,scale:s,maxWidth:this.maxTrailWidth});
   }
+
   eligible(a,anchor,viewport,z){
     if(!this.layers[a.layer])return 'layer-off';
     if(a.style?.split(' ').includes('l-contour-f')&&z<2||a.style?.split(' ').includes('l-contour-ff')&&z<4.5)return 'below-detail';

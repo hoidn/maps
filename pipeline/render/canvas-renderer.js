@@ -16,16 +16,39 @@ export class CanvasMapRenderer{
   this.bg=this.background.getContext('2d');this.contourContext=backend==='webgl'?null:this.contourCanvas.getContext('2d');this.fg=this.foreground.getContext('2d');
   if(!this.bg||(!this.contourContext&&backend!=='webgl')||!this.fg)throw new Error('Canvas 2D unavailable');
   this.hitContext=document.createElement('canvas').getContext('2d');
-  this.ready=this.prepare();this.ready.catch(()=>{}); // The initial transaction awaits and reports preparation failure.
+  this.geometryPending=1;this.baseReady=this.prepare();
+  this.ready=this.baseReady.then(()=>this.ensureView(controller.view));this.ready.catch(()=>{});
+  this.complete=Promise.all([this.baseReady,controller.preview.contours.ready]).then(async()=>{if(this.gpu){const gpu=this.gpu;try{await gpu.prepare();}catch(error){if(this.gpu===gpu)this.useCanvas(error);}}}).catch(error=>{if(this.controller.renderer===this)this.fallback(error);}).finally(()=>{this.geometryPending=0;this.controller.resolveWaiters();});
+  this.baseReady.then(()=>{if(this.controller.renderer===this)this.controller.schedule();},()=>{}); // The initial transaction awaits and reports preparation failure.
   this.themeObserver=new MutationObserver(()=>this.refresh());this.themeObserver.observe(document.documentElement,{attributes:true,attributeFilter:['data-theme','style','class']});
   this.media=matchMedia('(prefers-color-scheme: dark)');this.themeChanged=()=>this.refresh();this.media.addEventListener('change',this.themeChanged);
   this.pageHidden=event=>{if(!event.persisted)this.destroy();};window.addEventListener('pagehide',this.pageHidden,{once:true});
  }
  async prepare(){
   // Independent scene/image work can progress while contour chunks prepare.
-  await Promise.all([this.controller.preview.ready,this.scene.prepare()]);
+  await Promise.all([this.controller.preview.backgroundReady??this.controller.preview.ready,this.scene.prepare()]);
   if([...this.svg.children].some(e=>e.matches('.contours')&&!this.controller.preview.contours.layers.includes(e)))throw new Error('Unsupported Canvas contour group');
-  if(this.requestedBackend==='webgl')try{this.gpu=new WebGLContours(this.contourCanvas,this.controller.preview.contours,error=>this.useCanvas(error));await this.gpu.prepare();}catch(error){this.useCanvas(error);}
+  if(this.requestedBackend==='webgl')try{this.gpu=new WebGLContours(this.contourCanvas,this.controller.preview.contours,error=>this.useCanvas(error));}catch(error){this.useCanvas(error);}
+  this.basePrepared=true;
+ }
+ isViewReady(view){
+  if(!this.basePrepared)return false;
+  if(!this.controller.layers.contours||!this.geometryPending)return true;
+  const z=this.controller.manifest.map.width/view.w;
+  return this.controller.preview.contours.isReady(view)&&(!this.gpu||this.gpu.isReadyFor(z));
+ }
+ async ensureView(view){
+  await this.baseReady;
+  if(this.controller.layers.contours){
+   await this.controller.preview.contours.readyFor(view);
+   if(this.gpu){const gpu=this.gpu;try{await gpu.prepare(this.controller.manifest.map.width/view.w);}catch(error){if(this.gpu===gpu)this.useCanvas(error);}}
+  }
+ }
+ requestCamera(view){
+  if(this.isViewReady(view))return true;
+  const key=view.w+':'+this.controller.layers.contours;
+  if(this.pendingCameraKey!==key){this.pendingCameraKey=key;this.ensureView({...view}).then(()=>{if(this.pendingCameraKey===key)this.pendingCameraKey=null;if(this.controller.renderer===this)this.controller.schedule();},error=>{if(this.controller.renderer===this)this.fallback(error);});}
+  return false;
  }
  useCanvas(error){
   this.fallbackReason=error?.message||String(error);this.gpu?.destroy();this.gpu=null;
@@ -110,6 +133,7 @@ export class CanvasMapRenderer{
   record.sprite={canvas,x,y,dpr};
  }
  draw(result,m,{foregroundOnly=false}={}){
+  if(!this.requestCamera(this.controller.view))return;
   if(!this.active)return;
   const l=this.controller,r=this.svg.getBoundingClientRect(),z=l.manifest.map.width/l.view.w,dpr=Math.min(devicePixelRatio||1,2),width=Math.max(1,Math.ceil(r.width*dpr)),height=Math.max(1,Math.ceil(r.height*dpr));
   m=viewMatrix(l.view,r);this.scene.metersPerPixel=(l.manifest.map.metersPerMapUnit||0)/m.a;

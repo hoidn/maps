@@ -144,7 +144,7 @@ export class LayoutController {
   startupSnapshot(){const r=this.svg.getBoundingClientRect();return JSON.stringify([this.view,this.layers,this.textScale,this.revision,r.x,r.y,r.width,r.height,this.controls()]);}
   paintStartupCamera(){
     const renderer=this.renderer;
-    if(renderer&&renderer===this.startupRendererReady&&!renderer.refreshPending){
+    if(renderer&&renderer.basePrepared&&!renderer.refreshPending&&renderer.requestCamera(this.view)){
       // Geometry is complete for this camera before any annotation is exposed.
       // Readiness continues to mean initial labels; camera paint is independent.
       this.preview?.restore();renderer.activate();renderer.draw({placements:[]},renderer.camera(this.view).m);
@@ -200,8 +200,8 @@ export class LayoutController {
       });
     },delay);
   }
-  whenSettled(){return this.ready.then(()=>this.fontReady).then(()=>this.frame||this.settlePending||this.settleJob||this.roundJob||this.gestures.size||this.renderer?.refreshPending?new Promise(resolve=>this.waiters.push(resolve)):this.getReport());}
-  resolveWaiters(){if(this.frame||this.settlePending||this.settleJob||this.roundJob||this.gestures.size||this.renderer?.refreshPending)return;for(const resolve of this.waiters.splice(0))resolve(this.getReport());}
+  whenSettled(){return this.ready.then(()=>this.fontReady).then(()=>this.frame||this.settlePending||this.settleJob||this.roundJob||this.gestures.size||this.renderer?.refreshPending||this.renderer?.geometryPending?new Promise(resolve=>this.waiters.push(resolve)):this.getReport());}
+  resolveWaiters(){if(this.frame||this.settlePending||this.settleJob||this.roundJob||this.gestures.size||this.renderer?.refreshPending||this.renderer?.geometryPending)return;for(const resolve of this.waiters.splice(0))resolve(this.getReport());}
   getReport(){return {textScale:this.textScale,renderer:{requested:this.renderer?.requestedBackend||'svg',active:this.renderer?.backend||'svg',fallback:this.renderer?.fallbackReason||this.rendererError,rgbaBytes:this.renderer?.rgbaBytes,gpuBufferBytes:this.renderer?.gpu?.bufferBytes},status:this.status,error:this.error,view:{...this.view},diagnostics:this.result?.diagnostics,outcomes:this.result?.outcomes||[],missingRequired:this.result?.missingRequired||[],placements:this.result?.placements||[],timings:this.timings.slice(-200),samples:this.samples.slice(-200),transactionKind:this.transactionKind};}
   camera(readAfter=true){
     if(this.renderer?.active&&this.transactionKind==='fast')return this.renderer.camera(this.view);
@@ -568,6 +568,8 @@ export class LayoutController {
         this.rendering=false;
         const result=await this.initialPlacer.solve(payload);
         if(!validSnapshot())return false;
+        await this.renderer?.ensureView(this.view);
+        if(!validSnapshot())return false;
         return finish(result);
       }
       if(settled&&this.starting){
@@ -579,8 +581,8 @@ export class LayoutController {
         this.status='loading';this.rendering=false;
         return await this.initialPlacer.solve(payload).then(async result=>{
           // Read the current preparation promise: a layer/theme change can replace it.
-          let ready;do{ready=this.preview.ready;await ready;}while(ready!==this.preview.ready);
-          if(this.renderer)try{await this.renderer.ready;}catch(error){this.rendererError=error.message;this.renderer.fallback(error);}
+          if(this.renderer){const renderer=this.renderer;try{await renderer.ensureView(this.view);}catch(error){this.rendererError=error.message;if(this.renderer===renderer)renderer.fallback(error);}}
+          if(!this.renderer){let ready;do{ready=this.preview.ready;await ready;}while(ready!==this.preview.ready);}
           const current=[...document.fonts];
           if(current.length!==faces.length||current.some((face,i)=>face!==faces[i]?.[0]||face.status!==faces[i]?.[1])){
             this.cache.invalidate();this.lineCache.clear();this.previous=null;

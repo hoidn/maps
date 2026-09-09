@@ -158,9 +158,11 @@ view, outcomes, placements, missing required content, and timing samples.
 
 Interactive startup measures private annotation clones in cooperative main-thread
 slices and sends plain geometry and fallback-candidate inputs to an embedded worker.
-Canvas/WebGL scene decoding and contour preparation proceed together. Once both
-are complete, the renderer can paint the complete base at the current camera
-before labels are ready; activation alone does not establish a completed frame.
+Canvas/WebGL scene decoding and contour preparation proceed together. Contour
+preparation prioritizes the tiers required by the current camera, independently
+of source paint order. Once scene assets and every currently visible tier are
+complete, the renderer can paint the complete base before labels are ready;
+activation alone does not establish a completed frame.
 While preparation or the initial solve is pending, camera/layer input remains active. A result is committed only if the camera, viewport,
 controls and loaded font identities/status still match; otherwise it is recomputed.
 `ready` resolves after a current initial placement and preview preparation complete.
@@ -173,6 +175,22 @@ Worker construction/execution failure uses the same numerical solver in
 cancellable cooperative slices on the main thread. These slices do not establish
 a hard latency bound. Static finalization retains synchronous placement.
 The worker is released on page hide.
+
+Contour preparation exposes `readyFor(view)`/`isReady(view)` for complete visible
+tiers and retains `ready`/`initialized` for the complete source inventory. SVG
+motion previews continue to wait for complete inventory before detaching any
+source contours. Persistent renderers expose `baseReady` for scene assets,
+`ensureView(view)` for complete visible geometry, and `complete` for all
+background preparation/uploads. WebGL uploads each newly required tier once,
+keeps source paint order, and reuses buffers for subsequent camera movement.
+Hidden tiers continue cooperatively; `whenSettled()` includes `geometryPending`
+until the complete background inventory is prepared. A camera requesting a still
+pending tier retains the last complete Canvas/WebGL frame until that tier is
+ready; it does not publish a new `paintedView`/`paintedRevision` for incomplete
+geometry. Deep initial views wait for all their required tiers. Unsupported
+late WebGL geometry follows the same complete Canvas fallback as initial failure.
+These interfaces do not promise a latency bound for a first visit to pending
+high-detail geometry, or establish the separate startup speedup target.
 
 Interactive pointer drags defer scheduled settled layout until all accepted
 pointers are released, cancelled or lose capture (window blur also releases the

@@ -16,9 +16,9 @@ export class MotionPreview {
     this.themeObserver.observe(document.documentElement,{attributes:true,attributeFilter:['data-theme','class','style']});
     this.media=matchMedia('(prefers-color-scheme: dark)');this.themeChanged=()=>this.invalidate();this.media.addEventListener('change',this.themeChanged);
     this.pageHide=()=>this.destroy();window.addEventListener('pagehide',this.pageHide,{once:true});
-    this.ready=Promise.all([this.contours.ready,this.build()]);
+    this.backgroundReady=this.build();this.ready=Promise.all([this.contours.ready,this.backgroundReady]);
   }
-  invalidate(){this.restore();this.contours.refreshStyles();this.generation++;this.release();this.ready=Promise.all([this.contours.ready,this.build()]);return this.ready;}
+  invalidate(){this.restore();this.contours.refreshStyles();this.generation++;this.release();this.backgroundReady=this.build();this.ready=Promise.all([this.contours.ready,this.backgroundReady]);return this.ready;}
   release(){this.generation++;this.image?.remove();this.image=null;if(this.url)URL.revokeObjectURL(this.url);this.url=null;this.rgbaBytes=0;}
   async build(){
     const generation=++this.generation,started=performance.now();let sourceURL,bitmapURL;

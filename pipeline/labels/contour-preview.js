@@ -8,47 +8,72 @@ export class ContourPreview {
     this.element=document.createElementNS(NS,'foreignObject');this.element.dataset.layoutContourPreview='';this.element.setAttribute('pointer-events','none');
     this.canvas=document.createElement('canvas');this.canvas.style.cssText='width:100%;height:100%;display:block';this.element.append(this.canvas);
     this.context=this.canvas.getContext('2d');this.initialized=false;
+    this.remaining=new Map();this.tierWaiters=[];this.demandZoom=map.width/svg.viewBox.baseVal.width;
     this.ready=this.initialize(svg,defer);
   }
+  isReady(view){
+    const z=this.map.width/view.w;
+    return this.catalogued&&![...this.remaining].some(([minimum,count])=>minimum<=z&&count>0);
+  }
+  readyFor(view){
+    this.demandZoom=this.map.width/view.w;
+    if(this.failure)return Promise.reject(this.failure);
+    if(this.isReady(view))return Promise.resolve();
+    return new Promise((resolve,reject)=>this.tierWaiters.push({view:{...view},resolve,reject}));
+  }
+  publish(){
+    for(const waiter of [...this.tierWaiters])if(this.isReady(waiter.view)){this.tierWaiters.splice(this.tierWaiters.indexOf(waiter),1);waiter.resolve();}
+  }
   async initialize(svg,defer){
-    if(!this.context){this.initialized=true;return;}
-    let deadline=performance.now()+8;
-    for(const layer of [...svg.children].filter(e=>e.matches('.contours'))){
-      if(layer.querySelector('[data-layout-id],text,[transform]')||layer.hasAttribute('transform')||[layer,...layer.querySelectorAll('g')].some(e=>getComputedStyle(e).transform!=='none'))continue;
-      const paths=[...layer.querySelectorAll('path')];
-      if(paths.some(p=>getComputedStyle(p).fill!=='none'||getComputedStyle(p).transform!=='none'))continue;
-      // Firefox reports empty bounds for paths under display:none detail groups.
-      const groups=[layer,...layer.querySelectorAll('g')];
-      const items=[];
-      for(const e of paths){
-        const d=e.getAttribute('d'),runs=contourRuns(d)?.map(points=>{
-          let x=Infinity,y=Infinity,right=-Infinity,bottom=-Infinity;
-          for(let i=0;i<points.length;i+=2){x=Math.min(x,points[i]);y=Math.min(y,points[i+1]);right=Math.max(right,points[i]);bottom=Math.max(bottom,points[i+1]);}
-          const chunks=contourChunks(points).map(({start,end,bounds})=>({start,end,bounds}));
-          const original=new Path2D();original.moveTo(points[0],points[1]);for(let i=2;i<points.length;i+=2)original.lineTo(points[i],points[i+1]);
-          return {bounds:{x,y,width:right-x,height:bottom-y},points,chunks,original};
-        });
-        let bounds;
-        if(runs){const x=Math.min(...runs.map(r=>r.bounds.x)),y=Math.min(...runs.map(r=>r.bounds.y));bounds={x,y,width:Math.max(...runs.map(r=>r.bounds.x+r.bounds.width))-x,height:Math.max(...runs.map(r=>r.bounds.y+r.bounds.height))-y};}
-        else{
-          const styles=groups.map(e=>e.getAttribute('style'));groups.forEach(e=>e.style.setProperty('display','inline','important'));
-          try{bounds=e.getBBox();}finally{groups.forEach((e,i)=>styles[i]===null?e.removeAttribute('style'):e.setAttribute('style',styles[i]));}
+    if(!this.context){this.catalogued=true;this.initialized=true;this.publish();return;}
+    let deadline=performance.now()+8,order=0;const pending=[];
+    try{
+      for(const layer of [...svg.children].filter(e=>e.matches('.contours'))){
+        if(layer.querySelector('[data-layout-id],text,[transform]')||layer.hasAttribute('transform')||[layer,...layer.querySelectorAll('g')].some(e=>getComputedStyle(e).transform!=='none'))continue;
+        const paths=[...layer.querySelectorAll('path')];
+        if(paths.some(p=>getComputedStyle(p).fill!=='none'||getComputedStyle(p).transform!=='none'))continue;
+        const groups=[layer,...layer.querySelectorAll('g')];this.layers.push(layer);
+        for(const e of paths){const minZoom=e.closest('.g-finest')?4.5:e.closest('.g-fine')?2:0;
+          pending.push({e,groups,minZoom,order:order++});this.remaining.set(minZoom,(this.remaining.get(minZoom)||0)+1);
         }
-        items.push({e,runs,path:runs?null:new Path2D(d),bounds,minZoom:e.closest('.g-finest')?4.5:e.closest('.g-fine')?2:0});
-        if(defer&&performance.now()>=deadline){await new Promise(resolve=>setTimeout(resolve,0));deadline=performance.now()+8;}
       }
-      this.layers.push(layer);this.items.push(...items);
+      this.catalogued=true;this.publish();
+      while(pending.length){
+        // Source paint order is independent from preparation order. Required
+        // tiers go first; all remaining geometry continues cooperatively.
+        pending.sort((a,b)=>Number(a.minZoom>this.demandZoom)-Number(b.minZoom>this.demandZoom)||a.minZoom-b.minZoom||a.order-b.order);
+        const entry=pending.shift(),item=await this.preparePath(entry);item.style=this.styleFor(item.e);
+        this.items.push(item);this.items.sort((a,b)=>a.order-b.order);this.cached=null;
+        this.remaining.set(entry.minZoom,this.remaining.get(entry.minZoom)-1);this.publish();
+        if(defer&&(performance.now()>=deadline||this.remaining.get(entry.minZoom)===0)){await new Promise(resolve=>setTimeout(resolve,0));deadline=performance.now()+8;}
+      }
+      this.initialized=true;
+    }catch(error){this.failure=error;for(const waiter of this.tierWaiters.splice(0))waiter.reject(error);throw error;}
+  }
+  preparePath({e,groups,minZoom,order}){
+    const d=e.getAttribute('d'),runs=contourRuns(d)?.map(points=>{
+      let x=Infinity,y=Infinity,right=-Infinity,bottom=-Infinity;
+      for(let i=0;i<points.length;i+=2){x=Math.min(x,points[i]);y=Math.min(y,points[i+1]);right=Math.max(right,points[i]);bottom=Math.max(bottom,points[i+1]);}
+      const chunks=contourChunks(points).map(({start,end,bounds})=>({start,end,bounds}));
+      const original=new Path2D();original.moveTo(points[0],points[1]);for(let i=2;i<points.length;i+=2)original.lineTo(points[i],points[i+1]);
+      return {bounds:{x,y,width:right-x,height:bottom-y},points,chunks,original};
+    });
+    let bounds;
+    if(runs){const x=Math.min(...runs.map(r=>r.bounds.x)),y=Math.min(...runs.map(r=>r.bounds.y));bounds={x,y,width:Math.max(...runs.map(r=>r.bounds.x+r.bounds.width))-x,height:Math.max(...runs.map(r=>r.bounds.y+r.bounds.height))-y};}
+    else{
+      const styles=groups.map(e=>e.getAttribute('style'));groups.forEach(e=>e.style.setProperty('display','inline','important'));
+      try{bounds=e.getBBox();}finally{groups.forEach((e,i)=>styles[i]===null?e.removeAttribute('style'):e.setAttribute('style',styles[i]));}
     }
-    this.refreshStyles();this.initialized=true;
+    return {e,runs,path:runs?null:new Path2D(d),bounds,minZoom,order};
+  }
+  styleFor(element){
+    const z=this.map.width/this.svg.viewBox.baseVal.width,s=getComputedStyle(element);let opacity=Number(s.opacity);
+    for(let e=element.parentElement;e&&e!==this.svg;e=e.parentElement)opacity*=Number(getComputedStyle(e).opacity);
+    return {color:s.stroke,width:parseFloat(s.strokeWidth)*z,opacity:opacity*Number(s.strokeOpacity),cap:s.strokeLinecap,join:s.strokeLinejoin,miter:Number(s.strokeMiterlimit),dash:s.strokeDasharray==='none'?[]:s.strokeDasharray.split(/[ ,]+/).map(v=>parseFloat(v)*z),dashOffset:parseFloat(s.strokeDashoffset)*z};
   }
   refreshStyles(){
     this.cached=null;
-    const z=this.map.width/this.svg.viewBox.baseVal.width;
-    for(const item of this.items){
-      const s=getComputedStyle(item.e);let opacity=Number(s.opacity);
-      for(let e=item.e.parentElement;e&&e!==this.svg;e=e.parentElement)opacity*=Number(getComputedStyle(e).opacity);
-      item.style={color:s.stroke,width:parseFloat(s.strokeWidth)*z,opacity:opacity*Number(s.strokeOpacity),cap:s.strokeLinecap,join:s.strokeLinejoin,miter:Number(s.strokeMiterlimit),dash:s.strokeDasharray==='none'?[]:s.strokeDasharray.split(/[ ,]+/).map(v=>parseFloat(v)*z),dashOffset:parseFloat(s.strokeDashoffset)*z};
-    }
+    for(const item of this.items)item.style=this.styleFor(item.e);
   }
   render(view,viewport,maxBytes,{hidden=this.svg.classList.contains('no-contours')}={}){
     if(!this.context||!this.layers.length)return;

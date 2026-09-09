@@ -91,6 +91,13 @@ from a checked source item. Keep it updated as requests and evidence arrive.
   no-map reproduction confirms it. Harness now returns the held pointer to the
   visible map and verifies actual release; 21 focused cases pass. Preserve failed
   originals and rerun affected seeds with the corrected harness.
+- [x] Prepare currently visible contour tiers before hidden detail; retain source
+  drawing order, upload each WebGL tier once, and account for all background work
+  in idle. Held-fine tests prove actual coarse pixels, complete deep/hash cameras,
+  theme/layer changes and late Canvas fallback; 30 core plus 75 startup/lifecycle
+  browser checks pass. First visit to pending detail can retain the previous frame.
+  Nine-load candidate-only Canvas medians are 564/589/520 ms for early input;
+  original main 3× target remains unmet. Rebuilt-map validation remains pending.
 - [ ] Meet unchanged warm 8 ms CPU /33 ms frame gates and separate original 3×
   initial camera-response target. Latest warm preflight 20.2 ms CPU p95 fails;
   investigate immutable area geometry/indexing (`review_startup`) and initial

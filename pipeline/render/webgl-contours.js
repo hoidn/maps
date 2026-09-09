@@ -46,7 +46,7 @@ void main(){float a=texture(mask,uv).r*ink.a;color=vec4(ink.rgb*a,a);}`;
 const intersects=(b,v,p)=>b.x+b.width+p>=v.x&&b.x-p<=v.x+v.w&&b.y+b.height+p>=v.y&&b.y-p<=v.y+v.h;
 export class WebGLContours{
  constructor(canvas,contours,onLoss){
-  this.canvas=canvas;this.contours=contours;this.groups=[];this.uploads=0;this.segments=0;this.bufferBytes=0;this.drawCalls=0;
+  this.canvas=canvas;this.contours=contours;this.groups=[];this.uploads=0;this.segments=0;this.bufferBytes=0;this.drawCalls=0;this.uploaded=new Set();this.readyZoom=-1;
   const gl=this.gl=canvas.getContext('webgl2',{alpha:true,antialias:false,depth:false,stencil:false,premultipliedAlpha:true});
   if(!gl)throw new Error('WebGL2 unavailable');
   this.lost=e=>{e.preventDefault();onLoss(new Error('WebGL context lost'));};canvas.addEventListener('webglcontextlost',this.lost);
@@ -59,18 +59,26 @@ export class WebGLContours{
  }
  program(vs,fs){const gl=this.gl,shaders=[];let program;try{for(const [type,source] of [[gl.VERTEX_SHADER,vs],[gl.FRAGMENT_SHADER,fs]]){const shader=gl.createShader(type);shaders.push(shader);gl.shaderSource(shader,source);gl.compileShader(shader);if(!gl.getShaderParameter(shader,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(shader));}program=gl.createProgram();shaders.forEach(s=>gl.attachShader(program,s));gl.linkProgram(program);if(!gl.getProgramParameter(program,gl.LINK_STATUS))throw new Error(gl.getProgramInfoLog(program));return {program,uniforms:Object.fromEntries(['camera','viewport','radius','mask','ink'].map(n=>[n,gl.getUniformLocation(program,n)]))};}catch(error){if(program)gl.deleteProgram(program);throw error;}finally{shaders.forEach(s=>gl.deleteShader(s));}}
  refreshStyles(){for(const group of this.groups)group.style=group.items[0].style;}
- async prepare(){
+ isReadyFor(z){return !this.destroyed&&(z>=4.5?4.5:z>=2?2:0)<=this.readyZoom;}
+ prepare(maxZoom=Infinity){
+  const run=()=>this.prepareItems(maxZoom);
+  return this.preparation=(this.preparation||Promise.resolve()).then(run);
+ }
+ async prepareItems(maxZoom){
   const gl=this.gl,groups=new Map();if(this.destroyed)throw new Error('WebGL renderer disposed');let deadline=performance.now()+8;
   for(const item of this.contours.items){
+   if(item.minZoom>maxZoom||this.uploaded.has(item))continue;
    const s=item.style;if(!item.runs||s.dash.length||s.join!=='round'||!['butt','round'].includes(s.cap))throw new Error('WebGL prototype requires solid round-joined contour polylines');
    const key=JSON.stringify([item.minZoom,s]);if(!groups.has(key))groups.set(key,{style:s,minZoom:item.minZoom,items:[],count:0});const group=groups.get(key);group.items.push(item);for(const run of item.runs)group.count+=Math.max(0,run.points.length/2-1);
   }
   for(const group of groups.values()){
    const data=new Float32Array(group.count*6);let index=0;group.chunks=[];
    for(const item of group.items)for(const run of item.runs){const p=run.points,offset=index/6;for(let i=0;i<p.length-2;i+=2){data.set([p[i],p[i+1],p[i+2],p[i+3],i===0&&group.style.cap==='butt'?1:0,i===p.length-4&&group.style.cap==='butt'?1:0],index);index+=6;}for(const chunk of run.chunks)group.chunks.push({bounds:chunk.bounds,start:offset+chunk.start/2,end:offset+chunk.end/2-1});if(performance.now()>=deadline){await new Promise(r=>setTimeout(r,0));deadline=performance.now()+8;if(this.destroyed)throw new Error('WebGL renderer disposed');}}
-   group.buffer=gl.createBuffer();this.groups.push(group);gl.bindBuffer(gl.ARRAY_BUFFER,group.buffer);gl.bufferData(gl.ARRAY_BUFFER,data,gl.STATIC_DRAW);this.uploads++;this.segments+=group.count;this.bufferBytes+=data.byteLength;
+   group.style=group.items[0].style;group.buffer=gl.createBuffer();this.groups.push(group);gl.bindBuffer(gl.ARRAY_BUFFER,group.buffer);gl.bufferData(gl.ARRAY_BUFFER,data,gl.STATIC_DRAW);this.uploads++;this.segments+=group.count;this.bufferBytes+=data.byteLength;for(const item of group.items)this.uploaded.add(item);
   }
   if(gl.getError()!==gl.NO_ERROR)throw new Error('WebGL contour upload failed');
+  this.groups.sort((a,b)=>(a.items[0].order??this.contours.items.indexOf(a.items[0]))-(b.items[0].order??this.contours.items.indexOf(b.items[0])));
+  this.readyZoom=Math.max(this.readyZoom,maxZoom>=4.5?4.5:maxZoom>=2?2:0);
  }
  color(style){const ctx=this.colorContext;ctx.clearRect(0,0,1,1);ctx.fillStyle=style.color;ctx.fillRect(0,0,1,1);const c=ctx.getImageData(0,0,1,1).data;return [c[0]/255,c[1]/255,c[2]/255,c[3]/255*style.opacity];}
  render(view,world,z,visible=true){

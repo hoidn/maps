@@ -410,3 +410,71 @@ end-to-end latency. The remaining algorithm directions are:
 
 Measure these directions against equal useful content and the existing placement
 quality checks. Their potential gains are neither established nor multiplicative.
+
+### Visible contour tier implementation (source validated; candidate-only timing)
+
+The current generated Grand Canyon source contains 491 contour paths with 36.63 MB
+of path strings and 4.542 million numeric coordinates. Fine and finest tiers each
+contain about 14.65 MB; together they account for 80% of contour path text while
+remaining hidden at overview. The former constructor visited finest, then fine,
+then coarse in source drawing order. It parsed every coordinate, calculated
+bounds/chunks, constructed every native path, and uploaded every WebGL tier
+before the persistent camera could paint.
+
+Preparation now prioritizes required tiers and publishes complete tiers while
+continuing remaining work cooperatively. Drawing retains the original source
+order. Canvas scene/image preparation has an independent barrier; WebGL uploads
+only new tier items and retains their buffers. Actual camera draw stamps advance
+only when all visible tiers are ready. Complete inventory and idle retain their
+separate barrier, including hidden background geometry. Existing SVG preview
+behavior continues to await the complete contour source before detaching it.
+
+Correctness evidence: 30 core contour/WebGL cases and 75 startup/theme/lifecycle
+cases passed across Chromium, Firefox and WebKit. Tests hold fine decoding while
+checking real coarse pixels and GPU groups; require all three colored tiers after
+an immediate deep zoom; prohibit an incomplete initial deep camera; verify late
+unsupported WebGL contours fall back to Canvas; and change layer/theme during
+held preparation without losing late-tier ink or resolving idle early. Existing
+font cancellation, worker fallback, scene-source retention and theme resource
+failures remain covered. Three contour geometry/renderer-order unit tests pass.
+
+Tradeoff: a first zoom into a pending tier retains the previous complete persistent
+frame until that tier finishes. Background preparation removes that wait for
+subsequent camera movement. Source correctness does not establish a measured 3× result. The separate
+10× end-to-end label-placement objective is not satisfied by moving contour
+work earlier or later.
+
+A subsequent quiet, headed Metal Canvas diagnostic ran nine loads (three
+repetitions at each input phase) against the same frozen HTML content used above,
+with the already validated tier bundle substituted. Original content SHA
+`a52064dcad978fe1184baa17fa9baccda3db0f4ae50b28281f917c47c4f06473`
+was unchanged. Read-only diagnostic HTML SHA
+`d254659411d78582af17a3f9583c62e9e708d328ef523fc7eb46b43885758f58`
+contains 52,977,644 bytes; bundle SHA
+`07f7e49fc663d695267ef4409ca2c3704656590776a8f34b8bf3cc90306c8452`
+precedes the unvalidated round-failure prototype. Raw rows and environment/GPU
+metadata are in `artifacts/startup/task13/startup-visible-tiers-canvas`.
+
+| Input phase | Correct camera response median | DOMContentLoaded from navigation | First batch from navigation | First useful threshold from navigation | Eventual completion |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 25 ms | 563.6 ms | 621.3 ms | 1,169.9 ms | 1,636.4 ms | 3,776.4 ms |
+| 100 ms | 589.3 ms | 661.6 ms | 1,348.5 ms | 1,812.7 ms | 3,878.8 ms |
+| 250 ms | 520.0 ms | 603.2 ms | 1,330.4 ms | 1,779.2 ms | 3,861.4 ms |
+
+All nine loads had zero page errors/backend fallbacks and reached 308 final
+placements. The seed attempted eight names but painted seven names and eleven
+markers under the validated marker-before-name ordering; it correctly did not
+claim the eight-name usefulness threshold. The primary round painted thirty
+names and crossed that threshold later. No collision rule was loosened to force
+an eighth seed name.
+
+Camera response is below the preceding candidate-only medians of 931.8/917.1/
+779.0 ms, but these separately timed bundles also include validated round,
+font-hierarchy and marker changes. This is not an isolated causal measurement
+of contour scheduling. Relative to the earlier main medians of 1,032/965/806 ms,
+these results are only about 1.55–1.83×: **the original 3× target remains unmet**.
+The inline SVG and manifest still parse before DOMContentLoaded; this change
+removes none of that document parsing. Its measured 0.60–0.66-second
+DOMContentLoaded medians are not a theoretical floor or a renderer-only timing.
+A smaller/precompiled scene artifact or off-main contour preparation remains a
+further architectural possibility requiring separate correctness and measurement.

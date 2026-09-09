@@ -109,7 +109,11 @@ from a checked source item. Keep it updated as requests and evidence arrive.
 - [ ] Investigate apparent double trail strokes near the Bright Angel switchbacks.
   Trace physical trail, road/status and protected-boundary sources before deciding
   whether geometry is redundant or distinct meaning needs clearer symbology.
-  Apply any fix by semantics/source identity/geometry evidence across all regions.
+  PAD-US fee/easement edges follow the trail; source geometry proves these are
+  distinct land-interest records. Shared category styling now uses thin neutral
+  ownership/easement lines and reserves purple dash-dot for explicit protected
+  designations; the generated legend describes each active category. No geometry
+  deletion or access inference. Focused source tests pass; real-map review pending.
 - [ ] Complete final visual review: whole views plus full-resolution dense/curved
   crops, repeated names, marker association, text density, proximity, clipping,
   symbol-only services and key consistency. Cover Grand Canyon and Sequoia.
@@ -585,6 +589,41 @@ and Sequoia dense view 1.33×. Placement counts are unchanged in all four views;
 CSS px. These are prototype measurements, not a 10× pass or release evidence.
 The earlier lazy-wrap prototype was rejected because overview became slower.
 
+### Native label measurement and analytic placement prototype
+
+Status: authorized independent prototype; **not adopted into candidates or the
+measurement/paint contract**. The preceding arc, domain and worker changes do not
+meet the user's 10× complete-placement target. Work stays under ignored
+`artifacts/cartography/native-label-prototype/` until the following evidence
+supports adoption.
+
+1. Cache browser Canvas font/run ink metrics separately from camera geometry.
+   Use complete shaped runs on sufficiently straight source intervals; investigate
+   indexed analytic glyph placement for curved intervals with explicit continuity
+   and uprightness checks. Preserve full names and word boundaries. Unsupported
+   typography/geometry uses the established adapter rather than discarding text.
+2. Keep candidate construction, selection and painting consistent: the actual
+   Canvas commands must have independently checked painted footprints, protected
+   trail clearance, close feature association and layer/font/theme behavior.
+   Do not substitute approximate solver boxes as evidence of painted geometry.
+3. Compare Grand Canyon and Sequoia at overview and dense zoom, with unchanged
+   eligible source content and comparable useful coverage. Include preparation,
+   candidate construction, serialization, solving and complete useful output in
+   the 10× claim; early partial paint and isolated worker/glyph timing do not count.
+4. Verify actual pixels and full words in Chromium, Firefox and WebKit; inspect
+   curved joins, long names, repeated labels, font changes, pure pans, interrupted
+   zoom, hidden/revealed controls and renderer/worker fallback. Existing static
+   exhaustive behavior remains available.
+5. Adopt only after those checks, deliberately update the owning measurement/paint
+   contract and consumers, regenerate both regions, and rerun visual/fuzz/release
+   validation. Existing current-source checkpoints may be built and reviewed while
+   this independent prototype continues.
+
+The mathematical path-placement starting point is the W3C
+[SVG 2 text layout algorithm](https://www.w3.org/TR/SVG2/text.html#TextLayoutAlgorithm);
+its separation of shaping and path positioning is an architectural reference,
+not evidence that a new implementation matches every browser's glyph placement.
+
 ## Completion criteria for the useful first release
 
 - Larger, measured text; known named hydro fixtures actually labeled; no placeholder
@@ -705,3 +744,14 @@ or a deliberate source-anchor decision; no broad distance exception was added.
 Focused verification: 14 entity/display tests, 33 cartographic scene tests and
 one catalog test pass. These source changes still require fresh candidates and
 visual checks of the reported cases; they are not a release or performance pass.
+
+
+Latest current-source checkpoint: the cached build completed all six static audits.
+The headed warm interaction benchmark measured 9.4 ms CPU transaction p95
+(limit 8 ms), 17.7 ms frame p95 (limit 33 ms), and 610.4 ms settled latency.
+It fails the CPU release limit and does not authorize promotion. Draw-local paint
+state caching has exact reference-pixel parity in six browser/DPR cases and
+157 passing Node tests; its performance has not yet been measured in that build.
+Native text measurement has 90 direct full-name/pixel cases across three engines,
+but complete preparation/solving remains only 1.2–1.5× faster than current
+production in four diagnostic views. It remains an unadopted prototype.

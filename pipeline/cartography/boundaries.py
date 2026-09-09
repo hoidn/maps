@@ -7,7 +7,7 @@ All source boundaries remain intact; this module selects paint, not geometry.
 
 _STYLES = {
  'designation': ('Protected-area designation', '--boundary-ink', .75, (8,3,2,3), .7),
- 'ownership': ('Fee ownership boundary', '--ownership-ink', .45, (8,4), .5),
+ 'ownership': ('Land ownership boundary', '--ownership-ink', .45, (8,4), .5),
  'easement': ('Easement boundary', '--easement-ink', .4, (1,3), .5),
  'unknown': ('Boundary · type unspecified', '--boundary-unknown-ink', .45, (3,3), .5),
 }

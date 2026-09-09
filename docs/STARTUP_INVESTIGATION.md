@@ -524,3 +524,79 @@ Fine-contour names first enter in the detail round, so they cannot benefit from
 an earlier-round failure cache. The tenfold complete-placement target remains
 open; the next independent prototype must remove browser text-path measurement
 rather than repeatedly optimize numerical search around it.
+
+### Lossless packed-contour prototype (not production)
+
+An ignored prototype replaces the 491 large contour `d` attributes with small
+SVG path shells and per-tier, gzip-compressed, base64-encoded delta-int32 data.
+The encoder verifies exact lexical reconstruction of every authored three-decimal
+coordinate; it does not simplify or requantize geometry. An embedded worker
+reconstructs Float64 runs and chunk bounds. Required tiers begin decoding before
+font initialization completes. IDs, classes, tier membership and source painting
+order remain unchanged. Native textPath measurement restores its referenced path
+first, and the native SVG backend/fallback restores the full source inventory.
+Frozen static artifacts and their JavaScript-disabled contract are untouched.
+
+The equal-content comparison used immutable, separately compiled inputs:
+
+- Uncompressed control: 52,978,480 bytes; SHA256
+  `6997399ad06fac0c99500751c0319ff31acbe9388ec8441ed8874a4a0c1059b9`.
+- Packed prototype: 26,492,044 bytes; SHA256
+  `e80a353165c78ceb368829fbd19443c095f851482daec1e0fb3de107a5dadee7`.
+
+Both use the same map content and compiled dependencies, with runtime/renderer
+snapshot `f7a132d` and only the packed variant's decoding/hydration hooks. The
+36.63 MB contour attribute text becomes 10.12 MB of encoded payload. Generator
+integration has not been implemented. Prototype scripts, input provenance and
+reports live in `artifacts/startup/task13/packed-prototype`.
+
+Functional checks passed for SVG, Canvas and WebGL in Chromium, Firefox and
+WebKit. All nine cases reconstructed the exact combined source-string hash and
+retained 491 positive-length native paths after direct or forced SVG fallback.
+Canvas contour RGBA hashes match the control exactly at 1×, 2× and 5×. A deep
+initial 5× view with Worker construction disabled used the in-page decoder,
+completed the full inventory, and published no observed incomplete camera frame.
+These checks are separate from a full cartographic release gate.
+
+A quiet headed Chromium comparison used Metal on Apple M3, a 1440×1000 viewport,
+three interleaved repetitions per input phase and the existing completed matching
+draw plus next-rAF proxy. All eighteen loads finished with zero page errors or
+backend fallbacks and exactly 308 final placements. Medians in milliseconds:
+
+| Input phase | Control response | Packed response | Matched gain | Control navigation → frame | Packed navigation → frame |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 25 ms | 714.4 | 475.3 | 1.50× | 1,415.0 | 914.4 |
+| 100 ms | 696.1 | 535.6 | 1.30× | 1,424.2 | 1,065.7 |
+| 250 ms | 657.8 | 472.5 | 1.39× | 1,580.6 | 1,219.2 |
+
+DOMContentLoaded medians fell from 675.6/628.1/672.8 to 414.1/430.1/495.6 ms.
+Queue medians fell from 14.4/63.5/33.8 to 4.1/45.7/17.2 ms; handler-to-frame
+medians were 699.9/632.6/615.5 versus 473.0/489.9/455.3 ms. First useful labels
+moved from 1,932.0/1,869.2/2,042.1 to 1,494.3/1,544.2/1,709.5 ms after navigation.
+Eventual completion was 4,503.0/3,948.5/4,567.4 versus
+3,689.8/3,792.7/4,049.7 ms. The first seed still painted seven names; the primary
+round crossed the eight-name usefulness threshold. This does not establish the
+separate 10× end-to-end label-placement objective.
+
+Relative to the earlier main response medians, the packed prototype is about
+2.17×/1.80×/1.71× faster: **the original 3× target remains unmet**. The original
+main has substantially less content, whereas the interleaved control/packed
+comparison has equal content. Do not multiply this matched gain by earlier
+separately timed candidate gains. Three repetitions and one hardware/browser
+profile do not establish a universal bound; WebGL startup timing remains untested.
+
+The next bottleneck is not established by file size. In the packed runs,
+controller availability had a 376 ms median, fonts 467 ms, renderer construction
+474 ms, and current-view renderer readiness 976 ms. The first synchronous render
+segment still took 75–98 ms. Paired renderer-ready to first-label-ready gaps had a
+3 ms median, so these milestones still occur together in practice. Isolate scene
+preparation and native Path2D construction from initial label measurement before
+choosing the next architectural change. A precompiled base scene and further
+separation of geometry initialization from fonts/measurement are candidates,
+not measured gains.
+
+Packing is a justified size and responsiveness direction, but production adoption
+still needs durable general generator encoding, asynchronous worker-failure
+recovery, an explicit compression API fallback, corruption/lifecycle tests,
+Sequoia checks, memory accounting and the full release gate. The ignored prototype
+has not been promoted and is not a substitute for those checks.

@@ -90,5 +90,12 @@ def transport_legend(context):
  out.append('<span class="lg-title">Land cover</span>')
  for category,label in COVER_KEY:
   out.append(f'<span class="lg-item"><i class="cover-swatch" style="--cover-light:{COVER[category]};--cover-dark:{COVER_DARK[category]}"></i>{label}</span>')
- out.append(f'<span class="lg-title">Terrain and water</span><span class="lg-item">Contours: {coarse} ft; {medium} ft and {fine} ft appear with detail. Blue: mapped water; dashed blue: explicitly intermittent. Fill: water area. Purple dash-dot: protected area.</span>')
+ boundary_styles=context['report'].get('boundaryStyles',[])
+ if boundary_styles:
+  out.append('<span class="lg-title">Land boundaries</span>')
+  for st in boundary_styles:
+   dash=','.join(map(str,st['dash']));label=escape(st['label'])
+   out.append(f'<span class="lg-item"><svg data-boundary-key="{st["key"]}" viewBox="0 0 64 14" width="64" height="14" role="img" aria-label="{label}"><path d="M2,7 H62" fill="none" stroke="var({st["color"]})" stroke-width="{st["width"]}" stroke-dasharray="{dash}" opacity="{st["opacity"]}"/></svg>{label}</span>')
+  out.append('<span class="lg-item">Land boundaries do not indicate trail access.</span>')
+ out.append(f'<span class="lg-title">Terrain and water</span><span class="lg-item">Contours: {coarse} ft; {medium} ft and {fine} ft appear with detail. Blue: mapped water; dashed blue: explicitly intermittent. Fill: water area.</span>')
  return ''.join(out)

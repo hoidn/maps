@@ -55,4 +55,20 @@ class CompleteSymbolLegendTests(unittest.TestCase):
      actual=namespace[func](kind) if func=='_sym' else namespace[func](kind,0,0)
      self.assertEqual(actual,symbols.symbol_svg(kind))
 
+class BoundaryLegendTests(unittest.TestCase):
+ def test_every_emitted_boundary_category_has_an_exact_paint_sample(self):
+  from cartography.boundaries import boundary_style
+  spec=MapSpec.from_dict({'id':'portable','title':'Portable','bbox':[0,0,.1,.1]})
+  styles=[boundary_style({'properties':{'Category':c}}) for c in ['Designation','Fee','Easement','Other']]
+  root=ET.fromstring('<div>'+transport_legend({'spec':spec,'report':{'styles':[],'boundaryStyles':styles}})+'</div>')
+  samples={e.get('data-boundary-key'):e for e in root.findall('.//svg[@data-boundary-key]')}
+  self.assertEqual(set(samples),{s['key'] for s in styles})
+  for st in styles:
+   path=samples[st['key']].find('path')
+   self.assertEqual(path.get('stroke'),'var('+st['color']+')')
+   self.assertEqual(float(path.get('stroke-width')),st['width'])
+   self.assertEqual(path.get('stroke-dasharray'),','.join(map(str,st['dash'])))
+   self.assertEqual(float(path.get('opacity')),st['opacity'])
+  self.assertIn('do not indicate trail access',''.join(root.itertext()))
+
 if __name__=='__main__':unittest.main()

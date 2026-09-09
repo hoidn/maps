@@ -619,7 +619,7 @@ page = f'''<meta charset="utf-8">
   <select id="goto" aria-label="Go to a place"><option value="">Go to…</option>{"".join(f'<option value="{x},{y}">{esc(t)}</option>' for t, k, x, y in sorted(PLACES))}</select>
   <details class="layers"><summary>Layers</summary><div class="box">
     <label><input type="checkbox" data-layer="no-landcover" checked> Land cover</label>
-    <label><input type="checkbox" data-layer="no-boundaries" checked> Protected areas</label>
+    <label><input type="checkbox" data-layer="no-boundaries" checked> Land boundaries</label>
     <label><input type="checkbox" data-layer="no-grid"> Coordinate grid</label>
     <label><input type="checkbox" data-layer="no-relief" checked> Shaded relief</label>
     <label><input type="checkbox" data-layer="no-contours" checked> Contours</label>

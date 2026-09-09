@@ -220,6 +220,7 @@ export class LayoutController {
       // Keep the camera write atomic and defer its layout to normal browser paint.
       const dormant=!settled&&this.previous?.placements.length===0&&!!this.lastViewport;
       const {m,s,z}=this.camera(!dormant),viewport=dormant?this.lastViewport:rectangle(this.svg.getBoundingClientRect()),obstacles=dormant?[]:this.controls(),queryObstacles=dormant?undefined:this.trailQuery(m,s,z);
+      if(!settled)this.preview?.render(this.view,viewport);
       if(this.previewDirty){this.previewDirty=false;this.preview?.invalidate();}
       const cameraDone=performance.now();let prepared;
       if(dormant)prepared=this.manifest.annotations.map(a=>({...a,required:false,candidates:[],eligibleReason:this.layers[a.layer]?'budget-deferred':'layer-off'}));

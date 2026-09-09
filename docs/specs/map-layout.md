@@ -163,6 +163,12 @@ waterway centerlines, roads, trail dash patterns and hit targets retain their ov
 screen dimensions at a fixed viewport size. Protected trail queries use the
 same inverse-zoom factor; cached base widths are recovered by multiplying the
 current SVG stroke width by zoom. Static line styling is unchanged. The cached
-background preview remains a temporary raster during motion; settled views use
-the original SVG. Filled river-bank polygons retain geographic dimensions and
+relief preview remains a temporary raster during motion. Contour paths are
+parsed once and redrawn on a bounded canvas at the current camera scale, stroke
+width, theme, and detail level. They are never enlarged from an overview bitmap.
+The original contour SVG is restored for settled views. Roads, waterways,
+water-area polygons and trails remain live SVG throughout gestures. Relief and
+contour preview pixel buffers share the 24MiB budget. Unsupported transformed
+or annotated contour groups stay live instead of being rasterized.
+Filled river-bank polygons retain geographic dimensions and
 widen naturally with zoom; their width is not controlled by `--s`.

@@ -1,21 +1,23 @@
+import {ContourPreview} from './contour-preview.js';
 const NS='http://www.w3.org/2000/svg';
-const BACKGROUND='.terrain,.contours,.hydro,.roads,[data-layout-background]';
-const VECTOR='[data-layout-id],.trails,.fixed-ui,text,[data-layout-obstacle="trail"]';
+const BACKGROUND='.terrain,[data-layout-background]';
+const VECTOR='[data-layout-id],.trails,.contours,.hydro,.roads,.fixed-ui,text,[data-layout-obstacle="trail"]';
 const backgroundOnly=e=>e.matches(BACKGROUND)&&!e.matches(VECTOR)&&!e.querySelector(VECTOR);
-/** One bounded background bitmap for gestures. Protected trails, all annotations,
- * hit targets and fixed UI stay in the original SVG. Source nodes are retained
+/** Relief uses a bounded bitmap; contours are drawn at the current zoom on canvas.
+ * Roads, waterways, trails, annotations, hit targets and fixed UI remain live SVG.
+ * Source nodes are retained
  * behind placeholders and restored synchronously before every settled pass. */
 export class MotionPreview {
   constructor(svg,{width,height,maxBytes=24*1024*1024}){
     this.svg=svg;this.width=width;this.height=height;this.maxBytes=maxBytes;
-    this.generation=0;this.active=false;this.detached=[];
+    this.generation=0;this.active=false;this.detached=[];this.contours=new ContourPreview(svg,{width,height});
     this.themeObserver=new MutationObserver(()=>this.invalidate());
     this.themeObserver.observe(document.documentElement,{attributes:true,attributeFilter:['data-theme','class','style']});
     this.media=matchMedia('(prefers-color-scheme: dark)');this.themeChanged=()=>this.invalidate();this.media.addEventListener('change',this.themeChanged);
     this.pageHide=()=>this.destroy();window.addEventListener('pagehide',this.pageHide,{once:true});
     this.ready=this.build();
   }
-  invalidate(){this.restore();this.generation++;this.release();this.ready=this.build();return this.ready;}
+  invalidate(){this.restore();this.contours.refreshStyles();this.generation++;this.release();this.ready=this.build();return this.ready;}
   release(){this.generation++;this.image?.remove();this.image=null;if(this.url)URL.revokeObjectURL(this.url);this.url=null;this.rgbaBytes=0;}
   async build(){
     const generation=++this.generation,started=performance.now();let sourceURL,bitmapURL;
@@ -29,7 +31,7 @@ export class MotionPreview {
       clone.setAttribute('data-theme',document.documentElement.getAttribute('data-theme')||'');
       clone.setAttribute('width',this.width);clone.setAttribute('height',this.height);clone.setAttribute('viewBox',`0 0 ${this.width} ${this.height}`);
       clone.style.display='block';clone.style.visibility='visible';clone.style.maxWidth='none';
-      const scale=Math.min(2,Math.sqrt(this.maxBytes/(4*this.width*this.height)));
+      const scale=Math.min(2,Math.sqrt((this.maxBytes*2/3)/(4*this.width*this.height)));
       const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.floor(this.width*scale));canvas.height=Math.max(1,Math.floor(this.height*scale));
       sourceURL=URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(clone)],{type:'image/svg+xml'}));
       const decoded=new Image();decoded.src=sourceURL;await decoded.decode();
@@ -40,17 +42,19 @@ export class MotionPreview {
       bitmapURL=URL.createObjectURL(blob);const bitmap=new Image();bitmap.src=bitmapURL;await bitmap.decode();
       if(generation!==this.generation)return;
       const image=document.createElementNS(NS,'image');image.dataset.layoutPreview='';image.setAttribute('href',bitmapURL);image.setAttribute('width',this.width);image.setAttribute('height',this.height);image.setAttribute('pointer-events','none');
-      this.image=image;this.url=bitmapURL;bitmapURL=null;this.rgbaBytes=canvas.width*canvas.height*4;this.buildMs=performance.now()-started;this.error=null;
+      this.image=image;this.url=bitmapURL;bitmapURL=null;this.backgroundBytes=canvas.width*canvas.height*4;this.rgbaBytes=this.backgroundBytes+this.contours.rgbaBytes;this.buildMs=performance.now()-started;this.error=null;
     }catch(error){if(generation===this.generation)this.error=error.message;}
     finally{if(sourceURL)URL.revokeObjectURL(sourceURL);if(bitmapURL)URL.revokeObjectURL(bitmapURL);}
   }
   show(){
     if(this.active||!this.image)return;
-    for(const node of [...this.svg.children].filter(backgroundOnly)){
+    for(const node of [...this.svg.children].filter(e=>backgroundOnly(e)||this.contours.layers.includes(e))){
       const marker=document.createComment('motion background');node.replaceWith(marker);this.detached.push({node,marker});
     }
-    this.svg.insertBefore(this.image,this.svg.firstChild);this.active=true;
+    this.svg.insertBefore(this.image,this.svg.firstChild);
+    if(this.contours.layers.length)this.image.after(this.contours.element);this.active=true;
   }
-  restore(){if(!this.active)return;this.image?.remove();for(const {node,marker} of this.detached)marker.replaceWith(node);this.detached=[];this.active=false;}
+  render(view,viewport){if(!this.active)return;this.contours.render(view,viewport,this.maxBytes/3);this.rgbaBytes=(this.backgroundBytes||0)+this.contours.rgbaBytes;}
+  restore(){if(!this.active)return;this.image?.remove();this.contours.remove();for(const {node,marker} of this.detached)marker.replaceWith(node);this.detached=[];this.active=false;}
   destroy(){this.restore();this.generation++;this.release();this.themeObserver.disconnect();this.media.removeEventListener('change',this.themeChanged);window.removeEventListener('pagehide',this.pageHide);}
 }

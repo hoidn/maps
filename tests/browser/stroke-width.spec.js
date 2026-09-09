@@ -18,3 +18,41 @@ test('line paint and protected trail footprints retain screen width through maxi
  });
  for(const row of samples){for(const width of row.widths)expect(width,JSON.stringify(row)).toBeCloseTo(2.6,3);expect(row.obstacle).toBeCloseTo(2.6,3);}
 });
+
+test('drag preview preserves rendered contour width and live road and waterway widths',async({page})=>{
+ let html=await fixtureHTML();
+ const paths=['contours','hydro','roads'].map((cls,i)=>`<g class="${cls}"><path id="drag-width-${i}" d="M90,100 L150,100" fill="none" stroke="black" style="stroke-width:calc(2px * var(--s))"/></g>`).join('');
+ html=html.replace('</svg>',paths+'</svg>');await page.setContent(html);
+ await page.addScriptTag({content:await fs.readFile('pipeline/labels/dist/browser.js','utf8')});
+ const rows=await page.evaluate(async()=>{
+  const l=mapLayout;await l.ready;await l.preview.ready;const rows=[];
+  for(const z of [1,4.5,14]){
+   l.requestView({x:90,y:90,w:500/z,h:400/z});await l.whenSettled();
+   const before=[0,1,2].map(i=>{const e=document.getElementById('drag-width-'+i);return parseFloat(getComputedStyle(e).strokeWidth)*e.getScreenCTM().a});
+   l.view={...l.view,x:l.view.x+1};l.render(false);
+   const during=[0,1,2].map(i=>{const e=document.getElementById('drag-width-'+i);return e?parseFloat(getComputedStyle(e).strokeWidth)*e.getScreenCTM().a:null});
+   const canvas=l.preview.contours?.canvas;
+   if(canvas&&canvas.isConnected){const x=Math.round((100-l.view.x)/l.view.w*canvas.width),pixels=canvas.getContext('2d').getImageData(x,0,1,canvas.height).data;let coverage=0;for(let i=3;i<pixels.length;i+=4)coverage+=pixels[i]/255;during[0]=coverage/(canvas.width/canvas.getBoundingClientRect().width);}
+   rows.push({z,before,during,active:l.preview.active});l.render(true);
+  }return rows;
+ });
+ for(const row of rows){expect(row.active).toBe(true);for(let i=0;i<3;i++){expect(row.during[i],JSON.stringify(row)).not.toBeNull();expect(Math.abs(row.during[i]-row.before[i])).toBeLessThan(.12);}}
+});
+
+test('contour gesture rendering follows zoom detail, theme and layer changes',async({page})=>{
+ const paths='<g class="contours"><path d="M95,100 L120,100"/><g class="g-fine"><path d="M95,104 L120,104"/></g><g class="g-finest"><path d="M95,108 L120,108"/></g></g>';
+ await page.setContent((await fixtureHTML()).replace('</svg>',paths+'</svg>'));
+ await page.addStyleTag({content:'.g-fine,.g-finest{display:none}.z2 .g-fine,.z5 .g-finest{display:inline}:root{--preview-line:rgb(255,0,0)}:root[data-theme="dark"]{--preview-line:rgb(0,0,255)}.contours path{fill:none;stroke:var(--preview-line);stroke-width:calc(2px * var(--s))}'});
+ await page.addScriptTag({content:await fs.readFile('pipeline/labels/dist/browser.js','utf8')});
+ const result=await page.evaluate(async()=>{
+  const l=mapLayout;await l.ready;await l.preview.ready;
+  const samples=[];
+  function pixels(){const c=l.preview.contours.canvas;return [100,104,108].map(y=>[...c.getContext('2d').getImageData(Math.floor((100-l.view.x)/l.view.w*c.width),Math.floor((y-l.view.y)/l.view.h*c.height),1,1).data]);}
+  for(const z of [1,2,4.5,14]){l.requestView({x:90,y:90,w:500/z,h:400/z});await l.whenSettled();l.render(false);samples.push({z,pixels:pixels()});l.render(true);}
+  document.documentElement.dataset.theme='dark';await new Promise(requestAnimationFrame);await l.preview.ready;l.render(false);const dark=pixels();l.render(true);
+  l.setLayer('contours',false);await l.whenSettled();await l.preview.ready;l.render(false);const off=pixels();l.render(true);
+  return {samples,dark,off};
+ });
+ for(const {z,pixels} of result.samples)for(let i=0;i<3;i++)expect(pixels[i][3]>0).toBe(z>=[0,2,4.5][i]);
+ expect(result.dark[0][2]).toBe(255);expect(result.dark[0][0]).toBe(0);expect(result.off.every(p=>p[3]===0)).toBe(true);
+});

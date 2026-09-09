@@ -85,28 +85,28 @@ test('the lazy trail query projects only nearby segment bounds from a shared cel
 });
 
 test('motion preview is bounded, preserves vector annotations, and restores source layers',async({page})=>{
- const html=(await fixtureHTML()).replace('<defs>','<g class="roads"><path id="preview-road" d="M0,10 L400,10" stroke="black"/></g><defs>');
+ const html=(await fixtureHTML()).replace('<defs>','<g class="terrain"><rect id="preview-terrain" width="500" height="400" fill="gray"/></g><defs>');
  await page.setContent(html);await page.addScriptTag({content:await fs.readFile('pipeline/labels/dist/browser.js','utf8')});
  await page.evaluate(()=>window.mapLayout.ready);
  await page.evaluate(()=>window.mapLayout.preview.ready);
- const during=await page.evaluate(async()=>{const l=window.mapLayout;l.requestView({...l.view,w:400,h:320});await new Promise(requestAnimationFrame);return {active:l.preview.active,bytes:l.preview.rgbaBytes,road:!!document.getElementById('preview-road'),vectors:document.querySelectorAll('[data-layout-id]').length,image:!!document.querySelector('[data-layout-preview]')};});
- expect(during.active).toBe(true);expect(during.bytes).toBeLessThanOrEqual(24*1024*1024);expect(during.road).toBe(false);expect(during.vectors).toBeGreaterThan(0);expect(during.image).toBe(true);
+ const during=await page.evaluate(async()=>{const l=window.mapLayout;l.requestView({...l.view,w:400,h:320});await new Promise(requestAnimationFrame);return {active:l.preview.active,bytes:l.preview.rgbaBytes,terrain:!!document.getElementById('preview-terrain'),vectors:document.querySelectorAll('[data-layout-id]').length,image:!!document.querySelector('[data-layout-preview]')};});
+ expect(during.active).toBe(true);expect(during.bytes).toBeLessThanOrEqual(24*1024*1024);expect(during.terrain).toBe(false);expect(during.vectors).toBeGreaterThan(0);expect(during.image).toBe(true);
  await page.evaluate(()=>window.mapLayout.whenSettled());
- expect(await page.evaluate(()=>({active:window.mapLayout.preview.active,road:!!document.getElementById('preview-road')}))).toEqual({active:false,road:true});
+ expect(await page.evaluate(()=>({active:window.mapLayout.preview.active,terrain:!!document.getElementById('preview-terrain')}))).toEqual({active:false,terrain:true});
 });
 
 test('preview invalidation discards stale async work and failure restores the vector background',async({page})=>{
- const html=(await fixtureHTML()).replace('<defs>','<g class="roads"><path id="preview-road" d="M0,10 L400,10" stroke="black"/></g><defs>');
+ const html=(await fixtureHTML()).replace('<defs>','<g class="terrain"><rect id="preview-terrain" width="500" height="400" fill="gray"/></g><defs>');
  await page.setContent(html);await page.addScriptTag({content:await fs.readFile('pipeline/labels/dist/browser.js','utf8')});await page.evaluate(()=>window.mapLayout.ready);
  const result=await page.evaluate(async()=>{
   const l=window.mapLayout,p=l.preview;await p.ready;p.show();
   const stale=p.invalidate();p.destroy();await stale;
-  const cancelled={active:p.active,url:p.url,road:!!document.getElementById('preview-road')};
+  const cancelled={active:p.active,url:p.url,terrain:!!document.getElementById('preview-terrain')};
   const decode=Image.prototype.decode;Image.prototype.decode=()=>Promise.reject(new Error('decode fixture failure'));
   await p.invalidate();Image.prototype.decode=decode;p.show();
-  return {cancelled,failed:!!p.error,active:p.active,road:!!document.getElementById('preview-road')};
+  return {cancelled,failed:!!p.error,active:p.active,terrain:!!document.getElementById('preview-terrain')};
  });
- expect(result).toEqual({cancelled:{active:false,url:null,road:true},failed:true,active:false,road:true});
+ expect(result).toEqual({cancelled:{active:false,url:null,terrain:true},failed:true,active:false,terrain:true});
 });
 
 test('settled point metric caches match the actual current screen scale',async({page})=>{
@@ -116,11 +116,11 @@ test('settled point metric caches match the actual current screen scale',async({
 });
 
 test('preview pixels track theme and layer changes without rasterizing labels',async({page})=>{
- const html=(await fixtureHTML()).replace('<defs>','<g class="hydro"><rect x="0" y="0" width="500" height="400" fill="var(--preview-paint)"/></g><defs>');
- await page.setContent(html);await page.addStyleTag({content:':root{--preview-paint:rgb(255,0,0)}:root[data-theme="dark"]{--preview-paint:rgb(0,0,255)}.no-water .hydro{display:none}'});await page.addScriptTag({content:await fs.readFile('pipeline/labels/dist/browser.js','utf8')});await page.evaluate(()=>window.mapLayout.ready);
+ const html=(await fixtureHTML()).replace('<defs>','<g class="terrain"><rect x="0" y="0" width="500" height="400" fill="var(--preview-paint)"/></g><defs>');
+ await page.setContent(html);await page.addStyleTag({content:':root{--preview-paint:rgb(255,0,0)}:root[data-theme="dark"]{--preview-paint:rgb(0,0,255)}.no-relief .terrain{display:none}'});await page.addScriptTag({content:await fs.readFile('pipeline/labels/dist/browser.js','utf8')});await page.evaluate(()=>window.mapLayout.ready);
  const colors=await page.evaluate(async()=>{
   const l=window.mapLayout;async function pixel(){await l.preview.ready;const image=new Image();image.src=l.preview.url;await image.decode();const canvas=document.createElement('canvas');canvas.width=canvas.height=1;canvas.getContext('2d').drawImage(image,0,0,1,1);return [...canvas.getContext('2d').getImageData(0,0,1,1).data];}
-  const light=await pixel();document.documentElement.dataset.theme='dark';await new Promise(requestAnimationFrame);const dark=await pixel();l.setLayer('water',false);await l.whenSettled();const off=await pixel();return {light,dark,off};
+  const light=await pixel();document.documentElement.dataset.theme='dark';await new Promise(requestAnimationFrame);const dark=await pixel();l.setLayer('relief',false);await l.whenSettled();const off=await pixel();return {light,dark,off};
  });
  expect(colors.light).toEqual([255,0,0,255]);expect(colors.dark).toEqual([0,0,255,255]);expect(colors.off[3]).toBe(0);
 });
@@ -145,6 +145,6 @@ test('budget-deferred lines never enter the normalization and measurement batch'
 
 test('a mixed background group keeps its vector annotation in the live SVG',async({page})=>{
  await mountFixture(page);
- const connected=await page.evaluate(async()=>{const l=window.mapLayout;await l.preview.ready;document.querySelector('.labels').classList.add('roads');await l.preview.invalidate();l.preview.show();return document.getElementById('label-0')?.isConnected===true;});
+ const connected=await page.evaluate(async()=>{const l=window.mapLayout;await l.preview.ready;document.querySelector('.labels').classList.add('terrain');await l.preview.invalidate();l.preview.show();return document.getElementById('label-0')?.isConnected===true;});
  expect(connected).toBe(true);
 });

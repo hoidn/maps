@@ -56,6 +56,27 @@ The final command revalidates immutable candidate snapshots before replacing eit
 second file rolls the first back. This is local promotion only; hosted pages are not published.
 Do not replace `output/` with manual copies that bypass the checks.
 
+Browser modes are explicit and default to headless. For performance on a local GPU,
+run `node scripts/benchmark-layout.mjs --input pipeline/grand_canyon_trails_interactive.html
+--report artifacts/layout/performance-headed --headed` (as one shell command).
+`--headless` overrides `HEADED=1`; otherwise that environment variable also selects
+headed performance runs. The baseline, when supplied, uses the same launch mode.
+Reports retain the requested mode, launch options, browser version, CPU/OS and actual
+Chromium GPU renderer/device/feature evidence. `environment.json` is written before
+map navigation, so an interrupted benchmark still retains its launch environment. A headed window alone does not prove
+hardware acceleration: check the reported renderer. SwiftShader results describe
+software rendering and must not be compared as if they were Apple Metal timings.
+
+The full gate accepts `npm run verify:maps -- --performance-headed` (and the same
+option for `promote:maps`). `--performance-headless` explicitly selects a headless browser; its GPU evidence
+still determines whether it uses hardware or software rendering. Correctness scenes
+remain headless unless `--scenes-headed` is supplied; `--scenes-headless` restores the
+default. These scene options preserve all 36 profiles, states and checks, and record
+the actual mode/GPU in the report. Direct `scripts/release-scenes.mjs` invocations
+use `--headed` or `--headless`; `HEADED` does not change scene mode. Frozen static
+checks remain headless with JavaScript disabled. Switching launch mode does not
+relax the 8 ms/33 ms performance limits or establish that any release gate passed.
+
 ## What the gates establish
 
 - Every rendered map label and symbol has manifest ownership. Unknown annotations fail.

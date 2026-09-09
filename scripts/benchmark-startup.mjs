@@ -1,3 +1,4 @@
+import {parseHeadless,collectGraphics,describeBrowserProfile} from './browser-profile.mjs';
 // Immutable inputs, interleaved runs. A completed matching draw + next rAF is an
 // honest presentation proxy, not GPU completion or hardware scanout timing.
 import {chromium,firefox,webkit} from '@playwright/test';
@@ -16,8 +17,8 @@ const sources=await Promise.all(files.map(async file=>{const bytes=await readFil
 const server=createServer((req,res)=>{const source=sources[Number(new URL(req.url,'http://localhost').pathname.slice(1))];if(!source){res.writeHead(404).end();return;}res.setHeader('content-type','text/html; charset=utf-8');res.end(source.bytes);});
 await mkdir(reportDir,{recursive:true});await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
 await writeFile(`${reportDir}/inputs.json`,JSON.stringify(sources.map(({bytes,...s})=>({...s,bytes:bytes.length})),null,2)+'\n');
-const browser=await engines[engine].launch({headless:process.env.HEADED!=='1'}),host={platform:platform(),arch:arch(),cpu:cpus()[0]?.model,node:process.version};
-try{for(const run of runs){
+const headless=parseHeadless(args),browser=await engines[engine].launch({headless}),host={platform:platform(),arch:arch(),cpu:cpus()[0]?.model,node:process.version};
+try{const graphics=await collectGraphics(browser,engine);for(const run of runs){
  const source=sources.find(s=>s.file===run.file),page=await browser.newPage({viewport:{width:1440,height:1000},deviceScaleFactor:1}),errors=[];
  page.on('pageerror',error=>errors.push(error.message));
  await page.addInitScript({content:startupProbeSource({offset:run.offset})});
@@ -33,7 +34,7 @@ try{for(const run of runs){
   await page.evaluate(async()=>{await mapLayout.ready;await mapLayout.whenSettled();await mapLayout.renderer?.ready;});
   final=await page.evaluate(()=>({fullyLabeled:performance.now(),status:mapLayout.status,view:mapLayout.view,actualBackend:mapLayout.renderer?.active?mapLayout.renderer.backend:'svg',fallback:mapLayout.renderer?.fallbackReason||mapLayout.rendererError||null,outcomes:mapLayout.result?.outcomes,placements:mapLayout.result?.placements.map(p=>p.id),samples:mapLayout.samples,probe:startupProbe,navigation:performance.getEntriesByType('navigation')[0]?.toJSON(),paint:performance.getEntriesByType('paint').map(e=>e.toJSON()),fonts:[...document.fonts].map(f=>({family:f.family,status:f.status})),images:[...document.images].map(i=>({complete:i.complete,width:i.naturalWidth}))}));
  }catch(error){failure=error.message;errors.push(failure);}
- const row={...run,sha256:source.sha256,bytes:source.bytes.length,engine,version:browser.version(),host,headed:process.env.HEADED==='1',backend,profiled:Boolean(profile),latency:initial?.painted-initial?.due,queueDelay:initial?.dispatched-initial?.due,handlerToPaint:initial?.painted-initial?.dispatched,initial,final,errors};
+ const row={...run,sha256:source.sha256,bytes:source.bytes.length,engine,version:browser.version(),host,headed:!headless,profile:describeBrowserProfile({headless,graphics}),backend,profiled:Boolean(profile),latency:initial?.painted-initial?.due,queueDelay:initial?.dispatched-initial?.due,handlerToPaint:initial?.painted-initial?.dispatched,initial,final,errors};
  results.push(row);await writeFile(`${reportDir}/${engine}-measure.json`,JSON.stringify(results,null,2)+'\n');
  console.log(JSON.stringify({file:run.file,repeat:run.repeat,offset:run.offset,actual:final?.actualBackend,latency:row.latency,queueDelay:row.queueDelay,interactive:final?.probe.interactive,fullyLabeled:final?.fullyLabeled,errors}));
  await page.close();if(failure)process.exitCode=1;

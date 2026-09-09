@@ -225,8 +225,16 @@ regressions cover the subsequent font lifecycle, audit readiness and wrapped
 baseline fixes; those counts are not added to the earlier broad suite as though
 they were unique tests.
 
-The full promotion gate was stopped after its first narrow Chromium profile
-reported a native trail-pin check failure. Its other geometry, typography and
-coverage checks passed. Diagnosis and the remaining release profiles are pending;
-no delivered output has been replaced. The separate production 3× startup target
-also remains unproven.
+The first full promotion attempt was stopped after a narrow Chromium trail-pin
+check failed. Its arbitrary restored view was at 42.59 m/px, above every sampled
+trail's display threshold; picking correctly rejected the hidden paths. The audit
+now establishes a source-derived eligible detail view before its native click and
+visible-details assertion. Fifteen cross-engine regressions and the unchanged
+Grand Canyon replay pass. Geometry, typography and coverage had passed that first
+profile; the remaining release profiles still need a complete run.
+
+A headless SwiftShader performance preflight was stopped without a timing result.
+The existing hardware comparison uses headed Chromium on Apple Metal; software
+WebGL is a distinct profile. Timing reports must record the actual adapter and
+launch mode, while preserving the 8 ms/33 ms camera limits. No delivered output has
+been replaced. The separate production 3× startup target remains unproven.

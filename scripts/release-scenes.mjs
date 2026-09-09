@@ -1,3 +1,4 @@
+import {parseHeadless,collectGraphics} from './browser-profile.mjs';
 import {loadAuditFonts} from './audit-fonts.js';
 import {readFile,writeFile,mkdir} from 'node:fs/promises';
 import {resolve,join} from 'node:path';
@@ -80,7 +81,7 @@ async function setView(page,view){await page.evaluate(async view=>{const m=JSON.
  * 250 reproducible random states distributed across profiles, named scenes and tier boundaries.
  * Reduced options are explicitly marked releaseComplete:false and never constitute
  * evidence that the full release matrix passed. Artifact bytes are served unchanged. */
-export async function runReleaseScenes({input,reportDir,browsers=['chromium','firefox','webkit'],viewports=defaultViewports,dprs=[1,2],themes=['light','dark'],sampleCount=250,frameCount=120,seed=0xC0FFEE,states,interactions=true,policy,sceneConfig=config,onProgress}={}) {
+export async function runReleaseScenes({input,reportDir,browsers=['chromium','firefox','webkit'],viewports=defaultViewports,dprs=[1,2],themes=['light','dark'],sampleCount=250,frameCount=120,seed=0xC0FFEE,states,interactions=true,policy,sceneConfig=config,onProgress,headless=true}={}) {
   const bytes=await readFile(resolve(input)),artifactSha256=hash(bytes),policyBytes=policy?Buffer.from(JSON.stringify(policy)):await readFile(new URL('../pipeline/labels/policy.json',import.meta.url));policy=JSON.parse(policyBytes);
   await mkdir(reportDir,{recursive:true});
   const server=createServer((req,res)=>{if(new URL(req.url,'http://localhost').pathname!=='/'){res.writeHead(404);res.end();return;}res.setHeader('Content-Type','text/html');res.end(bytes);});
@@ -93,8 +94,9 @@ export async function runReleaseScenes({input,reportDir,browsers=['chromium','fi
     if(compact.fontStatus!=='loaded'||compact.fontFailures.length)counts.incomplete++;
     return result;
   }
-  try{for(const browserName of browsers){const browser=await playwright[browserName].launch();try{for(const viewport of viewports)for(const dpr of dprs)for(const theme of themes){
-    const id=`${browserName}-${viewport.width}-dpr${dpr}-${theme}`,profile={id,browser:browserName,browserVersion:browser.version(),viewport,dpr,theme,samples:[],interactions:[]},page=await browser.newPage({viewport,deviceScaleFactor:dpr,colorScheme:theme});counts.profiles++;profiles.push(profile);onProgress?.({profile:id,status:'start'});
+  try{for(const browserName of browsers){const browser=await playwright[browserName].launch({headless});
+    try{const graphics=await collectGraphics(browser,browserName);for(const viewport of viewports)for(const dpr of dprs)for(const theme of themes){
+    const id=`${browserName}-${viewport.width}-dpr${dpr}-${theme}`,profile={id,browser:browserName,browserVersion:browser.version(),headless,graphics,viewport,dpr,theme,samples:[],interactions:[]},page=await browser.newPage({viewport,deviceScaleFactor:dpr,colorScheme:theme});counts.profiles++;profiles.push(profile);onProgress?.({profile:id,status:'start'});
     try{
       const errors=[];profile.networkFailures=[];page.on('pageerror',e=>errors.push(e.message));
       page.on('requestfailed',r=>profile.networkFailures.push({url:r.url(),resourceType:r.resourceType(),error:r.failure()?.errorText}));
@@ -147,10 +149,10 @@ export async function runReleaseScenes({input,reportDir,browsers=['chromium','fi
   const releaseComplete=!states&&sampleCount>=250&&frameCount>=100&&interactions&&['chromium','firefox','webkit'].every(b=>browsers.includes(b))&&defaultViewports.every(v=>viewports.some(p=>p.width===v.width&&p.height===v.height))&&[1,2].every(d=>dprs.includes(d))&&['light','dark'].every(t=>themes.includes(t));
   const coverageFrozen=sceneConfig.coverageReview==='frozen';
   const status=Object.entries(counts).some(([k,v])=>!['profiles','states','frames','incomplete'].includes(k)&&v)?'findings':counts.incomplete||releaseComplete&&!coverageFrozen?'incomplete':'pass';
-  const report={schemaVersion:1,status,releaseComplete,coverageFrozen,artifactSha256,policySha256:hash(policyBytes),sceneConfigSha256:hash(JSON.stringify(sceneConfig)),counts,seed,sampleCount,frameCount,profiles,limitations:['Pointer pinch/drag frame scenarios are synthetic; OS pointer capture is bypassed only during those samples. Native wheel and controls are separately exercised. Real touch-device testing remains outside this automated gate. Per-frame independent geometry audits add CPU cost; frame timings from this harness are not performance benchmarks.']};
+  const report={schemaVersion:1,status,headless,releaseComplete,coverageFrozen,artifactSha256,policySha256:hash(policyBytes),sceneConfigSha256:hash(JSON.stringify(sceneConfig)),counts,seed,sampleCount,frameCount,profiles,limitations:['Pointer pinch/drag frame scenarios are synthetic; OS pointer capture is bypassed only during those samples. Native wheel and controls are separately exercised. Real touch-device testing remains outside this automated gate. Per-frame independent geometry audits add CPU cost; frame timings from this harness are not performance benchmarks.']};
   await writeFile(join(reportDir,'release-scenes.json'),JSON.stringify(report,null,2));
   const escape=s=>String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('"','&quot;');
   await writeFile(join(reportDir,'release-scenes.html'),`<!doctype html><meta charset="utf-8"><title>Release map scenes</title><h1>${status}</h1><pre>${escape(JSON.stringify({artifactSha256,releaseComplete,coverageFrozen,counts},null,2))}</pre>${profiles.map(p=>`<h2>${escape(p.id)}</h2>${p.samples.filter(s=>s.screenshot).map((s,i)=>`<h3>${i+1}. ${escape(s.id)}</h3><img width="640" src="${s.screenshot}">`).join('')}`).join('')}`);
   return report;
 }
-if(process.argv[1]&&import.meta.url===pathToFileURL(resolve(process.argv[1])).href){const args=process.argv.slice(2),get=k=>args[args.indexOf(k)+1];try{if(!args.includes('--input')||!args.includes('--report'))throw new Error('Usage: --input MAP.html --report DIR [--smoke]');const report=await runReleaseScenes({input:get('--input'),reportDir:get('--report'),...(args.includes('--smoke')?{browsers:['chromium'],viewports:[defaultViewports[2]],dprs:[1],themes:['light'],sampleCount:5,frameCount:0,interactions:false}:{}),onProgress:p=>console.log(JSON.stringify(p))});console.log(JSON.stringify({status:report.status,counts:report.counts,releaseComplete:report.releaseComplete,artifactSha256:report.artifactSha256}));process.exitCode=report.status==='pass'?0:1;}catch(error){console.error(error);process.exitCode=1;}}
+if(process.argv[1]&&import.meta.url===pathToFileURL(resolve(process.argv[1])).href){const args=process.argv.slice(2),get=k=>args[args.indexOf(k)+1];try{if(!args.includes('--input')||!args.includes('--report'))throw new Error('Usage: --input MAP.html --report DIR [--smoke] [--headed|--headless]');const report=await runReleaseScenes({input:get('--input'),reportDir:get('--report'),headless:parseHeadless(args,{}),...(args.includes('--smoke')?{browsers:['chromium'],viewports:[defaultViewports[2]],dprs:[1],themes:['light'],sampleCount:5,frameCount:0,interactions:false}:{}),onProgress:p=>console.log(JSON.stringify(p))});console.log(JSON.stringify({status:report.status,counts:report.counts,releaseComplete:report.releaseComplete,artifactSha256:report.artifactSha256}));process.exitCode=report.status==='pass'?0:1;}catch(error){console.error(error);process.exitCode=1;}}

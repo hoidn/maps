@@ -1,3 +1,4 @@
+import {parseHeadless} from './browser-profile.mjs';
 import {readFile,writeFile,mkdir,rename,rm} from 'node:fs/promises';
 import {resolve,dirname,join} from 'node:path';
 import {pathToFileURL} from 'node:url';
@@ -24,7 +25,9 @@ export async function promotePair({sources,destinations,verify,beforeReplace=asy
   return {status:'pass',hashes,report};
  }finally{await Promise.all(staged.map(p=>rm(p,{force:true})));}
 }
-export async function verifyMaps({sources,reportDir,onProgress}){
+export const parsePerformanceHeadless=(args=[],env=process.env)=>parseHeadless(args,env,{prefix:'performance-'});
+export const parseScenesHeadless=(args=[])=>parseHeadless(args,{}, {prefix:'scenes-'});
+export async function verifyMaps({sources,reportDir,onProgress,performanceHeadless=true,scenesHeadless=true}){
  const {runAudit}=await import('./audit-map.mjs');
  const {runReleaseScenes}=await import('./release-scenes.mjs');
  const {benchmarkLayout}=await import('./benchmark-layout.mjs');
@@ -36,14 +39,14 @@ export async function verifyMaps({sources,reportDir,onProgress}){
   const report=await runAudit({input:sources[0],mode:'managed',reportDir:join(reportDir,'static-'+browserName+'-'+theme),browserName,theme,javaScriptEnabled:false,viewport:{width:1440,height:1400}});
   checkHash(report,0);reports.push(report);if(report.status!=='pass')throw new Error('Frozen static audit failed: '+browserName+' '+theme+' '+JSON.stringify(report.counts));
  }
- const scenes=await runReleaseScenes({input:sources[1],reportDir:join(reportDir,'scenes'),onProgress:event=>onProgress?.({stage:'interactive',...event})});checkHash(scenes,1);reports.push(scenes);
+ const scenes=await runReleaseScenes({input:sources[1],reportDir:join(reportDir,'scenes'),headless:scenesHeadless,onProgress:event=>onProgress?.({stage:'interactive',...event})});checkHash(scenes,1);reports.push(scenes);
  if(scenes.status!=='pass'||!scenes.releaseComplete||!scenes.coverageFrozen)throw new Error('Interactive release scenes failed or coverage review incomplete');
  onProgress?.({stage:'performance',status:'start'});
- const performance=await benchmarkLayout({input:sources[1],reportDir:join(reportDir,'performance')});checkHash(performance,1);reports.push(performance);
+ const performance=await benchmarkLayout({input:sources[1],reportDir:join(reportDir,'performance'),headless:performanceHeadless});checkHash(performance,1);reports.push(performance);
  if(performance.status!=='pass')throw new Error('Performance criteria unmet; see '+join(reportDir,'performance'));
  const finalHashes=await Promise.all(sources.map(async p=>hash(await readFile(p))));
  if(finalHashes.some((h,i)=>h!==initialHashes[i]))throw new Error('Candidate changed during verification');
- const report={status:'pass',artifactHashes:initialHashes,reports};
+ const report={status:'pass',artifactHashes:initialHashes,browserModes:{static:'headless',scenes:scenesHeadless?'headless':'headed',performance:performanceHeadless?'headless':'headed'},reports};
  await writeFile(join(reportDir,'release.json'),JSON.stringify(report,null,2)+'\n');return report;
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(resolve(process.argv[1])).href){
@@ -51,7 +54,8 @@ if(process.argv[1]&&import.meta.url===pathToFileURL(resolve(process.argv[1])).hr
  const onProgress=event=>console.error(JSON.stringify(event));
  const sources=[value('--static','pipeline/grand_canyon_trails_final.html'),value('--interactive','pipeline/grand_canyon_trails_interactive.html')],reportDir=resolve(value('--report','artifacts/layout/release'));
  try{
-  const report=args.includes('--promote')?await promotePair({sources,destinations:['output/grand_canyon_trail_sheet_static.html','output/grand_canyon_trail_explorer_interactive.html'],verify:paths=>verifyMaps({sources:paths,reportDir,onProgress})}):await verifyMaps({sources,reportDir,onProgress});
+  const performanceHeadless=parsePerformanceHeadless(args),scenesHeadless=parseScenesHeadless(args);
+  const report=args.includes('--promote')?await promotePair({sources,destinations:['output/grand_canyon_trail_sheet_static.html','output/grand_canyon_trail_explorer_interactive.html'],verify:paths=>verifyMaps({sources:paths,reportDir,onProgress,performanceHeadless,scenesHeadless})}):await verifyMaps({sources,reportDir,onProgress,performanceHeadless,scenesHeadless});
   console.log(JSON.stringify({status:report.status,hashes:report.hashes??report.artifactHashes,reportDir}));
  }catch(error){console.error(error.message);process.exitCode=1;}
 }

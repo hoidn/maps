@@ -328,6 +328,13 @@ modify relevant fixture builders and `docs/ADAPTING.md`, `docs/DESIGN.md`,
    browser/version, artifact hashes and replay commands. Minimize any failing
    sequence into a regression before accepting the release. This is additional
    evidence, not a substitute for the existing deterministic release scenes.
+   Harness v2 adds a recorded interruption burst: change theme, font size, layer
+   and viewport while a native map pointer is held, then verify eventual recovery.
+   A separate scroll-away/back action invalidates preparation before changing its
+   screen frame. Pure-pan checks compare application, text HTML and camera-normalized
+   footprints for shared visible labels (0.05 CSS px tolerance); clipped labels may
+   disappear. Record shared counts and actual scroll movement so unexercised cases
+   remain explicit. These additions need fresh exact-candidate matrix evidence.
 6. Run sequential renderer/startup benchmarks using immutable before/after files,
    same hardware/browser/viewport, at least three repetitions. Preserve raw results.
    Aim for no >10% regression in median/p95 gesture CPU or early-input latency;

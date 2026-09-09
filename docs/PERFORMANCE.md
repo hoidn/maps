@@ -61,8 +61,9 @@ worker alone: the reported startup timings measure the combined changes.
 The worker source is bundled into the HTML and started through a Blob URL, so no
 additional hosted asset is required. Worker construction or execution failure
 falls back to the same solver on the main thread; that preserves labels but loses
-the worker's responsiveness benefit. The worker is terminated after startup.
-Subsequent settled passes and static finalization remain synchronous.
+the worker's responsiveness benefit. In that startup-only version, the worker was terminated after startup and
+subsequent settled passes remained synchronous. The integration described below
+keeps the worker for later interactive solves; static placement stays synchronous.
 
 Implementation: [controller](../pipeline/labels/runtime.js),
 [worker client](../pipeline/labels/initial-placement-client.js),
@@ -364,7 +365,40 @@ and wrapping. These are sampled checks, not the complete release gate.
 Audited candidate SHA-256:
 `e38754423ff36958a9e5bb625d25eae8acfd9ee5c37dfab5595597164bed4687`.
 
-Integration is intentionally deferred to the parallel gesture-responsiveness
-session at the user's request. This worktree retains the measured candidate and
-regressions; the main checkout has additional in-progress asynchronous-settling
-work. No `output/` deliverable was promoted by this pass.
+### Integration with asynchronous settling
+
+The later integration combines this work with the parallel session's persistent
+placement worker, cancellable jobs and cooperative fallback. New input cancels
+obsolete interactive settling; DOM measurement yields between batches and uses
+hidden clones so accepted visible labels need not disappear during preparation.
+The numerical solver remains synchronous inside the worker and for static maps.
+The no-worker path uses the same solver with cooperative, cancellable slices.
+
+Integration regression cases caught and corrected stale inverse font scaling
+after resize, clone/original typography mismatch after zoom, stale wrapping when
+an ordinary candidate wins, and control changes during preparation. The camera
+and control snapshot now precedes the first preparation yield. Rejected current
+jobs also invalidate potentially inconsistent measurements: moving the map by
+30 CSS pixels during a yield previously left retry footprints 30 pixels away
+from painted text. Cancelled older jobs cannot clear a newer job's caches.
+
+Pointer and wheel tracking lives in the controller. The builder retains pointer
+cancellation/lost-capture/blur cleanup for its own drag state. The merged path
+also reuses camera and parent-transform math during translation and batches DOM
+writes before geometry reads. These integrations have their own validation;
+the 5–9× slow-drag measurements above describe the scheduling-only candidate,
+not a fresh performance claim for the combined implementation.
+
+A static-finalizer workflow check reported one Firefox/light overlap. The same
+check failed identically on the pre-integration `8735b1a` branch, so it remains a
+known static-export limitation, not evidence of a new integration regression.
+No `output/` deliverable is promoted by this merge.
+
+
+Combined implementation validation: 72 Node tests and 157 focused browser tests
+passed across Chromium, Firefox and WebKit (two existing skips). Independent
+Chromium map audits passed at zoom 1, 1.27 and 6; held-pan and settled-frame
+geometry checks passed at zoom 2, 6 and 14. These sampled checks do not replace
+the complete release gate. The rebuilt integrated candidate SHA-256 is
+`257d5da3c7cb22003a58c3c9a52a987259f4a6873f2cc6b880842c7455c8c28b`.
+Reports remain under ignored `artifacts/integration/` in the integration worktree.

@@ -19,7 +19,7 @@ const project=(m,[x,y])=>[m.a*x+m.c*y+m.e,m.b*x+m.d*y+m.f];
 export class LayoutController {
   constructor(svg,manifest,policy) {
     this.svg=svg;this.manifest=validateManifest(manifest);this.policy=policy;
-    this.mode=manifest.map.mode;this.view={x:0,y:0,w:manifest.map.width,h:manifest.map.height};
+    this.mode=manifest.map.mode;this.gestures=new Set();this.revision=0;this.view={x:0,y:0,w:manifest.map.width,h:manifest.map.height};
     this.layers={places:true,peaks:true,names:true,contours:true,water:true,relief:true};
     this.elements=new Map();this.cache=new MetricCache();this.previous=null;this.waiters=[];this.timings=[];this.status='loading';
     this.byId=new Map(manifest.annotations.map(a=>[a.id,a]));this.visibleIds=new Set();this.lineCache=new Map();this.samples=[];
@@ -31,7 +31,7 @@ export class LayoutController {
     this.strokeScopes=[...new Set([...svg.querySelectorAll('.trails,.hits,.contours,.hydro,.roads,[data-layout-obstacle="trail"]')].map(topScope))];
     const details=document.createElement('div');details.dataset.layoutDetails='';details.setAttribute('role','status');details.style.cssText='padding:8px 12px;min-height:20px;font:13px var(--sans,sans-serif)';
     svg.parentElement.after(details);this.details=details;
-    this.pointers=new Set();this.wheelQuietUntil=0;
+    this.pointers=new Set();
     if(this.mode==='interactive')this.trackGestures();
     this.createDirectory();this.ready=this.initialize();
   }
@@ -39,14 +39,14 @@ export class LayoutController {
     // A pause between pointer events is still part of the same drag. Wheel
     // gestures have no release event, so give their next input a short window.
     this.svg.addEventListener('pointerdown',event=>{
-      this.pointers.add(event.pointerId);if(this.settlePending)this.scheduleSettled();
+      this.pointers.add(event.pointerId);this.beginGesture('pointer');
     },true);
     const release=event=>{
-      if(this.pointers.delete(event.pointerId)&&!this.pointers.size&&this.settlePending)this.scheduleSettled();
+      if(this.pointers.delete(event.pointerId)&&!this.pointers.size)this.endGesture('pointer');
     };
     for(const type of ['pointerup','pointercancel','lostpointercapture'])window.addEventListener(type,release,true);
-    window.addEventListener('blur',()=>{if(this.pointers.size){this.pointers.clear();if(this.settlePending)this.scheduleSettled();}});
-    this.svg.addEventListener('wheel',()=>{this.wheelQuietUntil=performance.now()+120;this.scheduleSettled();},{capture:true,passive:true});
+    window.addEventListener('blur',()=>{if(this.pointers.size){this.pointers.clear();this.endGesture('pointer');}});
+    this.svg.addEventListener('wheel',()=>{this.wheelGesture();},{capture:true,passive:true});
   }
   createDirectory(){
     let select=document.getElementById('goto');
@@ -65,12 +65,13 @@ export class LayoutController {
         this.preview=new MotionPreview(this.svg,this.manifest.map);
         this.preview.ready.catch(()=>{}); // The initial transaction reports preparation failures.
         try{let committed=false;while(!committed){this.status='ready';committed=await this.render(true);if(this.status==='error')throw new Error(this.error);}}
-        finally{this.initialPlacer.close();this.starting=false;}
+        finally{this.starting=false;}
+        window.addEventListener('pagehide',()=>this.initialPlacer.close(),{once:true});
       }else{this.status='ready';this.render(true);}
       this.observer=new ResizeObserver(()=>{
         if(this.status!=='ready')return;
         const r=this.svg.getBoundingClientRect(),resized=!this.lastViewport||r.width!==this.lastViewport.width||r.height!==this.lastViewport.height;
-        if(resized){this.cache.invalidate();this.lineCache.clear();this.previous=null;}
+        if(resized){this.invalidateLayout();this.cache.invalidate();this.lineCache.clear();this.previous=null;}
         this.render(false);this.scheduleSettled();
       });
       this.observer.observe(this.svg);
@@ -93,6 +94,7 @@ export class LayoutController {
     } catch(error){this.status='error';this.error=error.message;this.details.textContent='Map labels unavailable: '+error.message;throw error;}
   }
   fontsChanged(){
+    this.invalidateLayout();
     this.preview?.restore();
     this.panLayout=null;
     const generation=this.fontGeneration=(this.fontGeneration??0)+1;this.status='loading';
@@ -102,14 +104,14 @@ export class LayoutController {
     for(const e of this.elements.values()){e.style.visibility='hidden';e.style.display='none';}this.visibleIds.clear();
     this.fontReady=document.fonts.ready.then(()=>ensureFonts(this.policy.fontFamilies)).then(()=>{
       if(generation!==this.fontGeneration)return;
-      this.status='ready';this.render(true);this.resolveWaiters();
+      this.status='ready';return this.render(true).then(()=>this.resolveWaiters());
     }).catch(error=>{
       if(generation!==this.fontGeneration)return;
       this.status='error';this.error=error.message;this.details.textContent='Map labels unavailable: '+error.message;this.resolveWaiters();
     });
   }
-  requestView(view){this.view={...view};this.onCameraChange?.(this.view);this.schedule();}
-  setLayer(layer,visible){if(!(layer in this.layers))throw new Error('Unknown layer');if(this.layers[layer]!==visible)this.panLayout=null;this.layers[layer]=visible;this.preview?.restore();this.preview?.release();this.previewDirty=true;this.schedule();}
+  requestView(view){this.revision++;this.cancelSettling();if(view.w!==this.view.w||view.h!==this.view.h)this.panLayout=null;this.view={...view};this.onCameraChange?.(this.view);this.schedule();}
+  setLayer(layer,visible){if(!(layer in this.layers))throw new Error('Unknown layer');this.invalidateLayout();this.layers[layer]=visible;this.preview?.restore();this.preview?.release();this.previewDirty=true;this.schedule();}
   select(id){const f=this.manifest.features.find(f=>f.id===id);if(!f)throw new Error('Unknown feature');this.details.textContent=f.name;this.selected=id;
     if(this.mode==='interactive'){const w=this.manifest.map.width/4.5,h=this.manifest.map.height/4.5;this.requestView({x:Math.max(0,Math.min(this.manifest.map.width-w,f.anchor[0]-w/2)),y:Math.max(0,Math.min(this.manifest.map.height-h,f.anchor[1]-h/2)),w,h});}
   }
@@ -123,43 +125,65 @@ export class LayoutController {
     if(!this.frame)this.frame=requestAnimationFrame(()=>{this.frame=null;this.render(false);});
     this.scheduleSettled();
   }
-  scheduleSettled(){
+  cancelSettling(){
+    const job=this.settleJob;if(!job)return;
+    job.cancelled=true;job.cleanup?.();this.settleJob=null;this.initialPlacer?.cancel();
+  }
+  invalidateLayout(){this.revision++;this.panLayout=null;this.cancelSettling();}
+  beginGesture(kind){
+    if(this.settleJob)this.settlePending=true;
+    this.gestures.add(kind);this.cancelSettling();
+    clearTimeout(this.settleTimer);cancelAnimationFrame(this.quietFrame);
+    this.settleTimer=null;this.quietFrame=null;this.settleGeneration=(this.settleGeneration??0)+1;
+  }
+  endGesture(kind){
+    if(this.gestures.delete(kind)&&!this.gestures.size){
+      if(this.settlePending)this.scheduleSettled(0);else this.resolveWaiters();
+    }
+  }
+  wheelGesture(){this.beginGesture('wheel');clearTimeout(this.wheelTimer);this.wheelTimer=setTimeout(()=>{this.wheelTimer=null;this.endGesture('wheel');},120);}
+  scheduleSettled(delay=80){
     const generation=this.settleGeneration=(this.settleGeneration??0)+1;
     clearTimeout(this.settleTimer);cancelAnimationFrame(this.quietFrame);
     this.settleTimer=null;this.quietFrame=null;this.settlePending=true;
-    if(this.pointers.size)return;
+    if(this.gestures.size)return;
     this.settleTimer=setTimeout(()=>{
-      // Heavy SVG paint can outlast the idle delay. Require two paint boundaries
-      // with no newer input, rather than starting full work between gesture frames.
       this.quietFrame=requestAnimationFrame(()=>{
-        if(generation!==this.settleGeneration)return;
-        this.quietFrame=requestAnimationFrame(()=>{
-          if(generation!==this.settleGeneration)return;
-          this.settleTimer=null;this.quietFrame=null;this.settlePending=false;this.render(true);this.resolveWaiters();
+        if(generation!==this.settleGeneration||this.gestures.size)return;
+        this.quietFrame=requestAnimationFrame(async()=>{
+          if(generation!==this.settleGeneration||this.gestures.size)return;
+          this.settleTimer=null;this.quietFrame=null;
+          const committed=await this.render(true);
+          if(generation!==this.settleGeneration||this.gestures.size)return;
+          if(committed===false&&this.status==='ready')this.scheduleSettled();
+          else{this.settlePending=false;this.resolveWaiters();}
         });
       });
-    },Math.max(0,this.wheelQuietUntil-performance.now()));
+    },delay);
   }
-  whenSettled(){return this.ready.then(()=>this.fontReady).then(()=>this.frame||this.settlePending?new Promise(resolve=>this.waiters.push(resolve)):this.getReport());}
-  resolveWaiters(){for(const resolve of this.waiters.splice(0))resolve(this.getReport());}
+  whenSettled(){return this.ready.then(()=>this.fontReady).then(()=>this.frame||this.settlePending||this.settleJob||this.gestures.size?new Promise(resolve=>this.waiters.push(resolve)):this.getReport());}
+  resolveWaiters(){if(this.frame||this.settlePending||this.settleJob||this.gestures.size)return;for(const resolve of this.waiters.splice(0))resolve(this.getReport());}
   getReport(){return {status:this.status,error:this.error,view:{...this.view},diagnostics:this.result?.diagnostics,outcomes:this.result?.outcomes||[],missingRequired:this.result?.missingRequired||[],placements:this.result?.placements||[],timings:this.timings.slice(-200),samples:this.samples.slice(-200),transactionKind:this.transactionKind};}
   camera(readAfter=true){
     const v=this.view,W=this.manifest.map.width;
     // Read the old, internally consistent camera before writing either scale.
     // A layout read between viewBox and --k makes Firefox shape text at a
     // transient zoom, so nominally constant screen fonts acquire different metrics.
-    const before=this.svg.getScreenCTM(),old=this.svg.viewBox.baseVal;
+    const before=this.svg.getScreenCTM(),old=this.svg.viewBox.baseVal,oldX=old.x,oldY=old.y;
+    const translating=this.cameraView&&this.cameraView.w===v.w&&this.cameraView.h===v.h;
     const width=this.svg.clientWidth,height=this.svg.clientHeight;
     const oldFit=Math.min(width/old.width,height/old.height),newFit=Math.min(width/v.w,height/v.h);
     const s=Math.hypot(before.a,before.b)*newFit/oldFit,z=W/v.w;
     this.svg.setAttribute('viewBox',`${v.x} ${v.y} ${v.w} ${v.h}`);
-    this.fontScaleValue=this.mode==='interactive'?String(1/s):'1';
-    for(const scope of this.fontScopes)scope.style.setProperty('--k',this.fontScaleValue);
-    for(const scope of this.strokeScopes)scope.style.setProperty('--s',String(1/z));
+    this.fontScaleValue=this.mode==='interactive'?(translating&&Math.abs(Number(this.fontScaleValue)-1/s)<1e-12?this.fontScaleValue:String(1/s)):'1';
+    for(const scope of this.fontScopes)if(scope.style.getPropertyValue('--k')!==this.fontScaleValue)scope.style.setProperty('--k',this.fontScaleValue);
+    for(const scope of this.strokeScopes)if(scope.style.getPropertyValue('--s')!==String(1/z))scope.style.setProperty('--s',String(1/z));
     this.svg.classList.toggle('zoomed',z>1.02);this.svg.classList.toggle('z2',z>=2);this.svg.classList.toggle('z5',z>=4.5);
     for(const [layer,on] of Object.entries(this.layers))this.svg.classList.toggle('no-'+layer,!on);
     const badge=document.getElementById('zlabel');if(badge)badge.textContent=z.toFixed(1)+'× · contours '+(z>=4.5?'50':z>=2?'100':'250')+' ft';
-    const m=readAfter?this.svg.getScreenCTM():null;return {m,s:m?Math.hypot(m.a,m.b):s,z};
+    const current=this.svg.viewBox.baseVal;
+    const m=translating?new DOMMatrix([before.a,before.b,before.c,before.d,before.e-before.a*(current.x-oldX)-before.c*(current.y-oldY),before.f-before.b*(current.x-oldX)-before.d*(current.y-oldY)]):readAfter?this.svg.getScreenCTM():null;
+    this.cameraView={...v};return {m,s:m?Math.hypot(m.a,m.b):s,z};
   }
   normalize(a,e,s){
     if(this.mode!=='interactive')return;
@@ -239,38 +263,56 @@ export class LayoutController {
       return item;
     });
   }
-  commit(result,m,s){
+  commit(result,m,s,normalizeText=false){
     const next=new Set(result.placements.map(p=>p.id));
     for(const [id,e] of this.elements)if(!next.has(id)&&e.style.display!=='none'){e.style.visibility='hidden';e.style.display='none';}
     const retained=new Map();
     for(const placement of result.placements){
       const e=this.elements.get(placement.id),a=this.byId.get(placement.id),text=e.querySelector('text');
-      e.style.display='inline';
+      if(e.style.display!=='inline')e.style.display='inline';
+      if(text&&!placement.application){const html=placement.textHTML??a.originalTextHTML;if(text.innerHTML!==html)text.innerHTML=html;}
+      if(normalizeText)this.normalize(a,e,s);
       const application=placement.application,transform=application?.transform??`translate(${placement.dx/s} ${placement.dy/s})`;
       if(application){
         if(e.getAttribute('transform')!==transform||application.startOffset!==undefined&&text.querySelector('textPath')?.getAttribute('startOffset')!==String(application.startOffset))applyLineCandidate(e,placement);
       }else if(e.getAttribute('transform')!==transform)e.setAttribute('transform',transform);
       if(placement.textHTML&&text.innerHTML!==placement.textHTML)text.innerHTML=placement.textHTML;
-      e.style.visibility='visible';
+      if(e.style.visibility!=='visible')e.style.visibility='visible';
     }
     const parents=new Map();
     for(const placement of result.placements){
       const e=this.elements.get(placement.id),a=this.byId.get(placement.id),parent=e.parentElement;
-      if(placement.application&&!parents.has(parent))parents.set(parent,parent.getScreenCTM());
+      if(placement.application&&!parents.has(parent)){
+        const old=this.retained?.get(a.id)?.parentMatrix,delta=this.commitMatrix&&['a','b','c','d'].every(k=>Math.abs(m[k]-this.commitMatrix[k])<1e-9);
+        parents.set(parent,old&&delta?new DOMMatrix([old.a,old.b,old.c,old.d,old.e+m.e-this.commitMatrix.e,old.f+m.f-this.commitMatrix.f]):parent.getScreenCTM());
+      }
       retained.set(a.id,{anchor:project(m,a.anchor),parentMatrix:placement.application?parents.get(parent):null});
     }
-    this.visibleIds=next;this.retained=retained;this.previous=result;
+    this.visibleIds=next;this.retained=retained;this.previous=result;this.commitMatrix=m;
   }
-  render(includeCurves){
+  async render(includeCurves){
     if(this.status!=='ready'||this.rendering)return;
     this.rendering=true;const started=performance.now(),settled=includeCurves||this.mode==='static';
     this.transactionKind=settled?'settled':'fast';
+    const asyncSettled=settled&&this.mode==='interactive'&&!this.starting;
+    let job;if(asyncSettled){this.cancelSettling();job={revision:this.revision};this.settleJob=job;}
+    const current=()=>!job||!job.cancelled&&job.revision===this.revision;
+    const validSnapshot=()=>{
+      if(!current())return false;
+      if(job.snapshot===this.startupSnapshot())return true;
+      // Live DOM measurements can cross a scroll/control change between slices.
+      // Only the current job may discard these caches; an obsolete job must not
+      // invalidate measurements belonging to a newer camera transaction.
+      this.cache.invalidate();this.lineCache.clear();return false;
+    };
+    const pause=async()=>{this.rendering=false;await new Promise(resolve=>setTimeout(resolve,0));if(!current())throw new DOMException('Placement cancelled','AbortError');this.rendering=true;};
     try {
       if(settled)this.preview?.restore();else this.preview?.show(this.panLayout?.placements);
       // With no retained labels, no painted annotation needs geometry validation.
       // Keep the camera write atomic and defer its layout to normal browser paint.
       const dormant=!settled&&this.previous?.placements.length===0&&!!this.lastViewport&&!this.panLayout?.placements.size;
       const {m,s,z}=this.camera(!dormant),viewport=dormant?this.lastViewport:rectangle(this.svg.getBoundingClientRect()),obstacles=dormant?[]:this.controls();
+      if(job)job.snapshot=this.startupSnapshot();
       const key=m?this.panKey(m,viewport):null,fixed=m?this.fixedPlacements(m,key):null;
       // Pure translation preserves prior trail clearance. Only the viewport,
       // fixed controls and the retained-label visibility need checking again.
@@ -289,9 +331,24 @@ export class LayoutController {
         // scaling. Keep only metrics measured at this exact screen scale.
         const metricScaleKey=s+':'+this.fontScaleValue;
         if(this.metricScaleKey!==metricScaleKey){this.cache.invalidate();this.metricScaleKey=metricScaleKey;}
-        // Reset/normalize in one write batch before measuring any annotation.
-        // This avoids forcing style/layout once for every ordinary point label.
+        const measuring=new Map();
+        const measurementElement=a=>{
+          if(!asyncSettled)return this.elements.get(a.id);
+          if(measuring.has(a.id))return measuring.get(a.id);
+          const original=this.elements.get(a.id),e=original.cloneNode(true);e.removeAttribute('id');e.removeAttribute('data-layout-id');e.dataset.layoutMeasurement='';
+          for(const child of e.querySelectorAll('[id]'))child.removeAttribute('id');
+          e.style.visibility='hidden';e.style.display='inline';e.setAttribute('transform','');
+          const text=e.querySelector('text');if(text)text.innerHTML=a.originalTextHTML;
+          original.parentElement.append(e);this.normalize(a,e,s);measuring.set(a.id,e);return e;
+        };
+        if(job)job.cleanup=()=>{for(const e of measuring.values())e.remove();measuring.clear();};
+        let deadline=performance.now()+8;
         for(const a of this.manifest.annotations){
+          if(asyncSettled){
+            if(!this.eligible(a,project(m,a.anchor),viewport,z)&&!fixed?.has(a.id)&&a.kind!=='line-label'&&!this.cache.entries.has(a.id))measurementElement(a);
+            if(performance.now()>=deadline){await pause();deadline=performance.now()+8;}
+            continue;
+          }
           const e=this.elements.get(a.id),text=e.querySelector('text');e.style.visibility='hidden';
           if(fixed?.has(a.id))continue;
           const deferredLine=a.kind==='line-label'&&(a.geometryId||a.geometryIds?.length);
@@ -305,8 +362,11 @@ export class LayoutController {
         const candidateDeadline=this.mode==='interactive'?performance.now()+(this.policy.interactiveCandidateBudgetMs??24):Infinity;
         const ordered=[...this.manifest.annotations].sort((a,b)=>(b.priority??0)-(a.priority??0)||a.id.localeCompare(b.id));
         for(const a of ordered){
-          const e=this.elements.get(a.id),anchor=project(m,a.anchor),item={...a,anchor,candidates:[],required:this.mode==='static'&&a.requiredProfiles.includes('static-default')};
+          if(asyncSettled&&performance.now()>=deadline){await pause();deadline=performance.now()+8;}
+          let e=measuring.get(a.id)||this.elements.get(a.id);
+          const anchor=project(m,a.anchor),item={...a,anchor,candidates:[],required:this.mode==='static'&&a.requiredProfiles.includes('static-default')};
           if(a.kind==='symbol'){item.anchorTrailRadius=6;item.anchorTrailFootprint=true;}
+          if(a.kind==='line-label')item.repeatDistance=this.policy.repeatDistance;
           item.eligibleReason=this.eligible(a,anchor,viewport,z);
           if(item.eligibleReason){prepared.push(item);continue;}
           if(fixed?.has(a.id)){
@@ -323,6 +383,7 @@ export class LayoutController {
               if(cached)try{item.candidates=cached.candidates.map(c=>reprojectLineCandidate(c,cached.parentMatrix,parentMatrix));}catch{this.lineCache.delete(a.id);}
               if(!this.lineCache.has(a.id)&&performance.now()>=candidateDeadline){item.eligibleReason='budget-deferred';prepared.push(item);continue;}
               if(!this.lineCache.has(a.id)){
+                e=measurementElement(a);
                 const text=e.querySelector('text');e.style.display='inline';e.setAttribute('transform','');
                 if(text&&text.innerHTML!==a.originalTextHTML)text.innerHTML=a.originalTextHTML;
                 this.normalize(a,e,s);
@@ -333,7 +394,7 @@ export class LayoutController {
               item.repeatDistance=this.policy.repeatDistance;
             }else{
               let cached=this.cache.entries.get(a.id);
-              if(!cached){cached={anchor,scale:s,metric:measureElement(e),pointVariants:a.variants?.length?measurePointVariants(e,a):[]};this.cache.entries.set(a.id,cached);}
+              if(!cached){e=measurementElement(a);cached={anchor,scale:s,metric:measureElement(e),pointVariants:a.variants?.length?measurePointVariants(e,a):[]};this.cache.entries.set(a.id,cached);}
               const dx=anchor[0]-cached.anchor[0],dy=anchor[1]-cached.anchor[1],metric=moveShape(cached.metric,dx,dy);
               if(a.kind==='region-label')item.candidates=regionCandidates(item,metric,this.policy);
               else {
@@ -350,13 +411,16 @@ export class LayoutController {
           prepared.push(item);
         }
       }
+      job?.cleanup();
+      if(job&&!validSnapshot())return false;
       this.prepared=prepared;this.lastObstacles=obstacles;
       const preparedDone=performance.now();
       const repeatReservations=settled&&fixed?[...fixed].map(([id,p])=>({id,featureId:this.byId.get(id).featureId,distance:this.byId.get(id).kind==='line-label'?this.policy.repeatDistance:0,shape:p.footprint})):[];
       const args={annotations:prepared,obstacles,queryObstacles,repeatReservations,viewport,previous:this.previous,policy:{...this.policy,exhaustiveDiagnostics:this.mode!=='interactive',repairMaxNeighbors:this.mode==='interactive'?0:2,requiredGroups:this.mode==='static'?this.policy.requiredRoutes:[]}};
       const finish=result=>{
-        this.result=result;
-        const solvedDone=performance.now();this.commit(this.result,m,s);
+        if(settled)this.preview?.restore();
+        this.transactionKind=settled?'settled':'fast';this.result=result;
+        const solvedDone=performance.now();this.commit(this.result,m,s,settled);
         if(settled)this.rememberPlacements(result,m,key);
         this.phases={camera:cameraDone-started,prepare:preparedDone-cameraDone,solve:solvedDone-preparedDone,commit:performance.now()-solvedDone};
         const elapsed=performance.now()-started;this.timings.push(elapsed);this.samples.push({kind:this.transactionKind,total:elapsed,...this.phases,placements:this.result.placements.length,candidates:prepared.reduce((n,a)=>n+a.candidates.length,0)});
@@ -365,6 +429,15 @@ export class LayoutController {
         this.svg.dataset.layoutState=this.result.missingRequired.length?'missing-required':'ready';
         return true;
       };
+      if(asyncSettled){
+        const matrix=m=>Object.fromEntries(['a','b','c','d','e','f'].map(k=>[k,m[k]]));
+        const {queryObstacles:unused,...payload}=args;payload.annotations=prepared.map(({fallbackCandidates,...a})=>a);
+        payload.trail={segments:this.trailSegments,matrix:matrix(m),inverse:matrix(m.inverse()),strokeScale:1/z,scale:s,maxWidth:this.maxTrailWidth};
+        this.rendering=false;
+        const result=await this.initialPlacer.solve(payload);
+        if(!validSnapshot())return false;
+        return finish(result);
+      }
       if(settled&&this.starting){
         const faces=[...document.fonts].map(face=>[face,face.status]);
         const snapshot=this.startupSnapshot(),matrix=m=>Object.fromEntries(['a','b','c','d','e','f'].map(k=>[k,m[k]]));
@@ -385,7 +458,7 @@ export class LayoutController {
         });
       }
       return finish(solveLayout(args));
-    }catch(error){for(const e of this.elements.values())e.style.visibility='hidden';this.visibleIds.clear();this.status='error';this.error=error.message;this.details.textContent='Map labels unavailable: '+error.message;}
-    finally{this.rendering=false;}
+    }catch(error){if(error.name==='AbortError')return false;for(const e of this.elements.values())e.style.visibility='hidden';this.visibleIds.clear();this.status='error';this.error=error.message;this.details.textContent='Map labels unavailable: '+error.message;}
+    finally{job?.cleanup();if(this.settleJob===job)this.settleJob=null;this.rendering=false;}
   }
 }

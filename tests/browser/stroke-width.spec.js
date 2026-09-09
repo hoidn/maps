@@ -34,7 +34,7 @@ test('drag preview preserves rendered contour width and live road and waterway w
    const during=[0,1,2].map(i=>{const e=document.getElementById('drag-width-'+i);return e?parseFloat(getComputedStyle(e).strokeWidth)*e.getScreenCTM().a:null});
    const canvas=l.preview.contours?.canvas;
    if(canvas&&canvas.isConnected){const x=Math.round((100-l.preview.contours.cached.x)/l.preview.contours.cached.w*canvas.width),pixels=canvas.getContext('2d').getImageData(x,0,1,canvas.height).data;let coverage=0;for(let i=3;i<pixels.length;i+=4)coverage+=pixels[i]/255;during[0]=coverage/(canvas.width/canvas.getBoundingClientRect().width);}
-   rows.push({z,before,during,active:l.preview.active});l.render(true);
+   rows.push({z,before,during,active:l.preview.active});await l.render(true);
   }return rows;
  });
  for(const row of rows){expect(row.active).toBe(true);for(let i=0;i<3;i++){expect(row.during[i],JSON.stringify(row)).not.toBeNull();expect(Math.abs(row.during[i]-row.before[i])).toBeLessThan(.12);}}
@@ -49,9 +49,9 @@ test('contour gesture rendering follows zoom detail, theme and layer changes',as
   const l=mapLayout;await l.ready;await l.preview.ready;
   const samples=[];
   function pixels(){const c=l.preview.contours.canvas,{x,y:y0,w,h}=l.preview.contours.cached;return [100,104,108].map(y=>[...c.getContext('2d').getImageData(Math.floor((100-x)/w*c.width),Math.floor((y-y0)/h*c.height),1,1).data]);}
-  for(const z of [1,2,4.5,14]){l.requestView({x:90,y:90,w:500/z,h:400/z});await l.whenSettled();l.render(false);samples.push({z,pixels:pixels()});l.render(true);}
-  document.documentElement.dataset.theme='dark';await new Promise(requestAnimationFrame);await l.preview.ready;l.render(false);const dark=pixels();l.render(true);
-  l.setLayer('contours',false);await l.whenSettled();await l.preview.ready;l.render(false);const off=pixels();l.render(true);
+  for(const z of [1,2,4.5,14]){l.requestView({x:90,y:90,w:500/z,h:400/z});await l.whenSettled();l.render(false);samples.push({z,pixels:pixels()});await l.render(true);}
+  document.documentElement.dataset.theme='dark';await new Promise(requestAnimationFrame);await l.preview.ready;l.render(false);const dark=pixels();await l.render(true);
+  l.setLayer('contours',false);await l.whenSettled();await l.preview.ready;l.render(false);const off=pixels();await l.render(true);
   return {samples,dark,off};
  });
  for(const {z,pixels} of result.samples)for(let i=0;i<3;i++)expect(pixels[i][3]>0).toBe(z>=[0,2,4.5][i]);

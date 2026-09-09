@@ -58,8 +58,8 @@ test('returning from a transient zoom restores the fixed placement before pannin
 
 test('changing annotation layers invalidates the old placement reservations',async({page})=>{
  await mount(page);
- const result=await page.evaluate(async()=>{const l=mapLayout;let calls=0;const normalize=l.normalize.bind(l);l.normalize=(...args)=>{calls++;return normalize(...args);};l.setLayer('names',false);await l.whenSettled();return {calls,curve:l.visibleIds.has('curve')};});
- expect(result.calls).toBeGreaterThan(0);expect(result.curve).toBe(false);
+ const result=await page.evaluate(async()=>{const l=mapLayout;l.setLayer('names',false);const invalidated=l.panLayout===null;await l.whenSettled();return {invalidated,curve:l.visibleIds.has('curve'),reserved:l.panLayout.placements.has('curve')};});
+ expect(result).toEqual({invalidated:true,curve:false,reserved:false});
 });
 
 test('a held pointer keeps slow pan steps on the fast path until release',async({page})=>{

@@ -18,11 +18,11 @@ const center=s=>[s.bounds.x+s.bounds.width/2,s.bounds.y+s.bounds.height/2];
  * A true-anchor symbol footprint may cover a trail; displaced candidates retain strict checks.
  * A symbol with anchorTrailRadius=6 permits only trail centerline portions inside
  * its true-anchor disk. Explicit allowedObstacleIds never exempt protected trails. */
-export function solveLayout({annotations,obstacles=[],viewport,previous,policy={},queryObstacles,repeatReservations=[]}) {
+function* layoutSteps({annotations,obstacles=[],viewport,previous,policy={},queryObstacles,repeatReservations=[]}) {
   const placementDiagnostics=policy.exhaustiveDiagnostics===false&&policy.repairMaxNeighbors===0,attemptFailures=new Map();
   const clearance=policy.clearance??2,padding=policy.edgePadding??4;
   const frame={x:viewport.x??0,y:viewport.y??0,width:viewport.width,height:viewport.height};validRect(frame);
-  const ordered=annotations.map(a=>({...a,candidates:[...(a.candidates??[])]})).sort((a,b)=>Number(!!b.required)-Number(!!a.required)||(b.priority??0)-(a.priority??0)||stable(a.id,b.id));
+  const ordered=annotations.map(a=>({...a,candidates:[...(a.candidates??[])]})).sort((a,b)=>Number(!!b.pinned)-Number(!!a.pinned)||Number(!!b.required)-Number(!!a.required)||(b.priority??0)-(a.priority??0)||stable(a.id,b.id));
   const byId=new Map(ordered.map(a=>[a.id,a]));if(byId.size!==ordered.length)throw new Error('Duplicate annotation ID');
   const featureGroups=new Map(),repeatDistances=new Map();
   const reservedFeatures=new Map();
@@ -94,22 +94,22 @@ export function solveLayout({annotations,obstacles=[],viewport,previous,policy={
     if(visit(0)){rebuild();return true;}
     accepted.clear();for(const [id,v] of snapshot)accepted.set(id,v);rebuild();return false;
   }
-  function place(a){if(a.eligibleReason||accepted.has(a.id))return;const recorded=[];if(placementDiagnostics)attemptFailures.set(a.id,recorded);for(const c of candidates(a)){const b=blockers(a,c);if(placementDiagnostics)recorded.push(b);if(!b.hard.length&&!b.labels.length&&!b.repeat.length){accept(a,c);break;}}
+  function* place(a){if(a.eligibleReason||accepted.has(a.id))return;const recorded=[];if(placementDiagnostics)attemptFailures.set(a.id,recorded);for(const c of candidates(a)){yield;const b=blockers(a,c);if(placementDiagnostics)recorded.push(b);if(!b.hard.length&&!b.labels.length&&!b.repeat.length){accept(a,c);break;}}
     if(a.fallbackCandidates&&(!accepted.has(a.id)||a.kind==='point-label'&&a.anchor&&anchorDistance(accepted.get(a.id).shape.bounds,a.anchor)>(policy.pointPreferredDistance??12))){
       const extra=a.fallbackCandidates();a.fallbackCandidates=null;
-      for(const c of extra){a.candidates.push(c);const current=accepted.get(a.id);if(current&&proximity(a,c)>=proximity(a,current))continue;
+      for(const c of extra){yield;a.candidates.push(c);const current=accepted.get(a.id);if(current&&proximity(a,c)>=proximity(a,current))continue;
         const b=blockers(a,c);if(placementDiagnostics)recorded.push(b);if(!b.hard.length&&!b.labels.length&&!b.repeat.length){accept(a,c);if(a.kind!=='point-label'||anchorDistance(c.shape.bounds,a.anchor)<=(policy.pointPreferredDistance??12))break;}}
     }
     if(!accepted.has(a.id)&&(policy.repairMaxNeighbors??2)>0)for(const c of candidates(a)){const b=blockers(a,c);if(b.labels.length&&repair(a,c,b))break;}
   }
   // Reserve just one successfully placed representative of each required group.
-  for(const a of ordered.filter(a=>a.required))place(a);
+  for(const a of ordered.filter(a=>a.required))yield* place(a);
   for(const group of [...new Set(policy.requiredGroups??[])].sort(stable)){
     const members=ordered.filter(a=>a.requiredGroup===group);
     if(members.some(a=>accepted.has(a.id)))continue;
-    for(const a of members){place(a);if(accepted.has(a.id))break;}
+    for(const a of members){yield* place(a);if(accepted.has(a.id))break;}
   }
-  for(const a of ordered)place(a);
+  for(const a of ordered)yield* place(a);
   const outcomes=ordered.map(a=>{
     if(accepted.has(a.id))return {id:a.id,reason:'placed',blockerIds:[]};
     if(a.eligibleReason)return {id:a.id,reason:a.eligibleReason,blockerIds:[]};
@@ -120,4 +120,16 @@ export function solveLayout({annotations,obstacles=[],viewport,previous,policy={
   const missingRequired=ordered.filter(a=>a.required&&!accepted.has(a.id)).map(a=>a.id);
   for(const group of [...new Set(policy.requiredGroups??[])].sort(stable))if(!ordered.some(a=>a.requiredGroup===group&&accepted.has(a.id)))missingRequired.push('route:'+group);
   return {diagnostics:placementDiagnostics?'placement-time':'final',placements:ordered.filter(a=>accepted.has(a.id)).map(a=>{const c=accepted.get(a.id);const {shape,...rest}=c;return {...rest,id:a.id,candidateId:c.id,footprint:shape,dx:c.dx??0,dy:c.dy??0};}),outcomes,missingRequired};
+}
+
+/** Synchronous adapter for static layout and worker execution. */
+export function solveLayout(args){const steps=layoutSteps(args);let result;do{result=steps.next();}while(!result.done);return result.value;}
+/** Main-thread fallback stays cancellable when a browser blocks workers. */
+export async function solveLayoutAsync(args,{signal,budgetMs=8}={}){
+  const steps=layoutSteps(args);let deadline=performance.now()+budgetMs;
+  for(;;){
+    if(signal?.aborted)throw new DOMException('Placement cancelled','AbortError');
+    const result=steps.next();if(result.done)return result.value;
+    if(performance.now()>=deadline){await new Promise(resolve=>setTimeout(resolve,0));deadline=performance.now()+budgetMs;}
+  }
 }

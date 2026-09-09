@@ -117,10 +117,15 @@ that solve and contour preparation are pending, camera/layer input can update th
 map with annotations hidden. A result is committed only if the camera, viewport,
 controls and loaded font identities/status still match; otherwise it is recomputed.
 `ready` resolves after a current initial placement and preview preparation complete.
-Worker construction/execution failure falls back to the same numerical solver;
-that fallback preserves labels but does not promise the worker's responsiveness.
-The initial worker is terminated after startup. Later settled passes and static
-finalization retain their synchronous placement behavior.
+The embedded worker also handles subsequent interactive settled solves. New
+camera input cancels obsolete preparation and worker work. DOM-dependent
+preparation yields between batches, measures hidden clones, and checks a snapshot
+captured before yielding against the state at commit. Committed labels receive
+the measured typography and selected text variant together with placement.
+Worker construction/execution failure uses the same numerical solver in
+cancellable cooperative slices on the main thread. These slices do not establish
+a hard latency bound. Static finalization retains synchronous placement.
+The worker is released on page hide.
 
 Interactive pointer drags defer scheduled settled layout until all accepted
 pointers are released, cancelled or lose capture (window blur also releases the

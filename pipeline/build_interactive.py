@@ -832,7 +832,8 @@ JS = r'''
       readout.innerHTML='<small>Cursor</small><br>'+lat.toFixed(4)+'° N &nbsp;'+(-lon).toFixed(4)+'° W &nbsp;·&nbsp; <b>'+elevAt(m.x,m.y).toLocaleString()+' ft</b>'; }
   });
   function up(e){ ptrs.delete(e.pointerId); if(ptrs.size<2) pinch=null; if(ptrs.size===0){ last=null; svg.classList.remove('dragging'); } }
-  svg.addEventListener('pointerup', up); svg.addEventListener('pointercancel', up);
+  svg.addEventListener('pointerup', up); svg.addEventListener('pointercancel', up); svg.addEventListener('lostpointercapture', up);
+  window.addEventListener('blur', function(){ ptrs.clear(); last=null; pinch=null; svg.classList.remove('dragging'); });
   svg.addEventListener('mouseleave', function(){ readout.innerHTML='<small>Cursor</small><br>move over the map for elevation'; });
   // layers
   document.querySelectorAll('.layers input').forEach(function(cb){ cb.addEventListener('change', function(){ window.mapLayout.setLayer(cb.dataset.layer.replace('no-',''),cb.checked); }); });

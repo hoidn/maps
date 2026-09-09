@@ -139,7 +139,7 @@ test('an empty retained set updates the camera without querying unused collision
 
 test('budget-deferred lines never enter the normalization and measurement batch',async({page})=>{
  await mountFixture(page);
- const result=await page.evaluate(async()=>{const l=window.mapLayout;await l.whenSettled();l.policy.interactiveCandidateBudgetMs=0;l.panLayout=null;l.cache.invalidate();l.lineCache.clear();let lineCalls=0;const normalize=l.normalize.bind(l);l.normalize=(a,...args)=>{if(a.kind==='line-label')lineCalls++;return normalize(a,...args);};l.render(true);return {lineCalls,reason:l.result.outcomes.find(o=>o.id==='curve').reason};});
+ const result=await page.evaluate(async()=>{const l=window.mapLayout;await l.whenSettled();l.policy.interactiveCandidateBudgetMs=0;l.invalidateLayout();l.cache.invalidate();l.lineCache.clear();let lineCalls=0;const normalize=l.normalize.bind(l);l.normalize=(a,...args)=>{if(a.kind==='line-label')lineCalls++;return normalize(a,...args);};await l.render(true);return {lineCalls,reason:l.result.outcomes.find(o=>o.id==='curve').reason};});
  expect(result).toEqual({lineCalls:0,reason:'budget-deferred'});
 });
 

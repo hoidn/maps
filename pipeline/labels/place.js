@@ -9,9 +9,13 @@ const center=s=>[s.bounds.x+s.bounds.width/2,s.bounds.y+s.bounds.height/2];
  * Optional queryObstacles(expandedBounds) is a deterministic provider of additional
  * CSS-space obstacles. Hard checks are cached within one solve; inputs and provider
  * results must remain immutable/deterministic for that solve. The provider must conservatively return every nearby painted segment.
+ * Opt-in exhaustiveDiagnostics:false with repairMaxNeighbors:0 reports blockers
+ * observed at placement time. Accepted placements only grow in that mode, so those
+ * blocker IDs remain valid but can omit later blockers. All other modes report final blockers.
  * A symbol with anchorTrailRadius=6 permits only trail centerline portions inside
  * its true-anchor disk. Explicit allowedObstacleIds never exempt protected trails. */
 export function solveLayout({annotations,obstacles=[],viewport,previous,policy={},queryObstacles}) {
+  const placementDiagnostics=policy.exhaustiveDiagnostics===false&&policy.repairMaxNeighbors===0,attemptFailures=new Map();
   const clearance=policy.clearance??2,padding=policy.edgePadding??4;
   const frame={x:viewport.x??0,y:viewport.y??0,width:viewport.width,height:viewport.height};validRect(frame);
   const ordered=[...annotations].sort((a,b)=>Number(!!b.required)-Number(!!a.required)||(b.priority??0)-(a.priority??0)||stable(a.id,b.id));
@@ -59,7 +63,7 @@ export function solveLayout({annotations,obstacles=[],viewport,previous,policy={
     if(visit(0)){rebuild();return true;}
     accepted.clear();for(const [id,v] of snapshot)accepted.set(id,v);rebuild();return false;
   }
-  function place(a){if(a.eligibleReason||accepted.has(a.id))return;for(const c of candidates(a)){const b=blockers(a,c);if(!b.hard.length&&!b.labels.length&&!b.repeat.length){accept(a,c);break;}}
+  function place(a){if(a.eligibleReason||accepted.has(a.id))return;const recorded=[];if(placementDiagnostics)attemptFailures.set(a.id,recorded);for(const c of candidates(a)){const b=blockers(a,c);if(placementDiagnostics)recorded.push(b);if(!b.hard.length&&!b.labels.length&&!b.repeat.length){accept(a,c);break;}}
     if(!accepted.has(a.id)&&(policy.repairMaxNeighbors??2)>0)for(const c of candidates(a)){const b=blockers(a,c);if(b.labels.length&&repair(a,c,b))break;}
   }
   // Reserve just one successfully placed representative of each required group.
@@ -73,11 +77,11 @@ export function solveLayout({annotations,obstacles=[],viewport,previous,policy={
   const outcomes=ordered.map(a=>{
     if(accepted.has(a.id))return {id:a.id,reason:'placed',blockerIds:[]};
     if(a.eligibleReason)return {id:a.id,reason:a.eligibleReason,blockerIds:[]};
-    const failures=candidates(a).map(c=>blockers(a,c)),ids=[...new Set(failures.flatMap(b=>[...b.hard,...b.labels,...b.repeat]))].sort(stable);
+    const failures=placementDiagnostics?attemptFailures.get(a.id)??[]:candidates(a).map(c=>blockers(a,c)),ids=[...new Set(failures.flatMap(b=>[...b.hard,...b.labels,...b.repeat]))].sort(stable);
     const reason=failures.length&&failures.every(b=>b.hard.includes('invalid-geometry'))?'invalid-geometry':a.required?'no-valid-candidate':failures.some(b=>b.repeat.length&&!b.hard.length&&!b.labels.length)?'repeat-spacing':failures.some(b=>b.labels.length&&!b.hard.length)?'collision':'no-valid-candidate';
     return {id:a.id,reason,blockerIds:ids};
   });
   const missingRequired=ordered.filter(a=>a.required&&!accepted.has(a.id)).map(a=>a.id);
   for(const group of [...new Set(policy.requiredGroups??[])].sort(stable))if(!ordered.some(a=>a.requiredGroup===group&&accepted.has(a.id)))missingRequired.push('route:'+group);
-  return {placements:ordered.filter(a=>accepted.has(a.id)).map(a=>{const c=accepted.get(a.id);const {shape,...rest}=c;return {...rest,id:a.id,candidateId:c.id,footprint:shape,dx:c.dx??0,dy:c.dy??0};}),outcomes,missingRequired};
+  return {diagnostics:placementDiagnostics?'placement-time':'final',placements:ordered.filter(a=>accepted.has(a.id)).map(a=>{const c=accepted.get(a.id);const {shape,...rest}=c;return {...rest,id:a.id,candidateId:c.id,footprint:shape,dx:c.dx??0,dy:c.dy??0};}),outcomes,missingRequired};
 }

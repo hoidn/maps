@@ -5,6 +5,31 @@ const matrixString=m=>`matrix(${m.a} ${m.b} ${m.c} ${m.d} ${m.e} ${m.f})`;
 const project=(m,p)=>[m.a*p.x+m.c*p.y+m.e,m.b*p.x+m.d*p.y+m.f];
 const restore=(e,name,value)=>value===null?e.removeAttribute(name):e.setAttribute(name,value);
 
+const pathGeometry=new WeakMap();
+const numberPattern=/[-+]?(?:\d*\.\d+|\d+\.?\d*)(?:[eE][-+]?\d+)?/g;
+// The builders author absolute, single-subpath polylines. Reading those vertices
+// is exact and linear; getPointAtLength would rescan the same long path for every
+// sample and every repeated annotation. General SVG curves retain the DOM fallback.
+function geometry(path,matrix,pathScale){
+  const d=path.getAttribute('d')||'';let cached=pathGeometry.get(path);
+  if(!cached||cached.d!==d){
+    const commands=d.replace(numberPattern,'').replace(/[\s,]/g,'');
+    let points=null,length;
+    if(/^ML*$/.test(commands)){
+      const values=(d.match(numberPattern)||[]).map(Number);
+      if(values.length>=4&&values.length%2===0){
+        points=[];length=0;
+        for(let i=0;i<values.length;i+=2){const p={x:values[i],y:values[i+1]};if(points.length)length+=Math.hypot(p.x-points.at(-1).x,p.y-points.at(-1).y);points.push(p);}
+      }
+    }
+    cached={d,points,length:length??path.getTotalLength()};pathGeometry.set(path,cached);
+  }
+  if(cached.points)return {length:cached.length,points:cached.points.map(p=>project(matrix,p))};
+  const count=Math.max(1,Math.min(4096,Math.ceil(cached.length*pathScale/4))),points=[];
+  for(let i=0;i<=count;i++)points.push(project(matrix,path.getPointAtLength(cached.length*i/count)));
+  return {length:cached.length,points};
+}
+
 /** Apply before showing the annotation. Transform is absolute in wrapper-parent SVG
  * coordinates, already accounting for screen scale and existing nested rotation.
  * Pure camera pan preserves this transform; reprojectLineCandidate shifts cached
@@ -38,15 +63,14 @@ export function buildLineCandidates({annotation,element,policy={}}) {
   }
   const textAngle=Math.atan2(tm.b,tm.a)*180/Math.PI;
   const ids=tp?[annotation.geometryId??(tp.getAttribute('href')||'').slice(1)]:(annotation.geometryIds??[]);
-  const output=[];
+  const output=[];const straightMetric=tp?null:measureElement(element);
   // Conjugation maps a screen-space movement to the wrapper's parent coordinates.
   const transformFor=screen=>matrixString(parentMatrix.inverse().multiply(screen).multiply(parentMatrix).multiply(base));
   try {
     for(const id of ids){
       const path=element.ownerDocument.getElementById(id);if(!path?.getTotalLength)continue;
-      const length=path.getTotalLength(),pm=path.getScreenCTM(),pathScale=Math.hypot(pm.a,pm.b);
-      const count=Math.max(1,Math.min(4096,Math.ceil(length*pathScale/4))),points=[];
-      for(let i=0;i<=count;i++)points.push(project(pm,path.getPointAtLength(length*i/count)));
+      const pm=path.getScreenCTM(),pathScale=Math.hypot(pm.a,pm.b);
+      const {length,points}=geometry(path,pm,pathScale);
       const style=getComputedStyle(text),fontPixels=parseFloat(style.fontSize)*scale,halo=style.stroke==='none'?0:parseFloat(style.strokeWidth)*scale/2;
       // Glyph rectangles at diagonal angles need more room than baseline distance.
       // Keep association close to the real path and let hard obstacles reject any
@@ -63,7 +87,7 @@ export function buildLineCandidates({annotation,element,policy={}}) {
             const startOffset=String((window.start+shift)/pathScale);
             application={transform:transformFor(new DOMMatrix().translate(delta.dx,delta.dy)),startOffset};
           }else{
-            const metric=measureElement(element),cx=metric.bounds.x+metric.bounds.width/2,cy=metric.bounds.y+metric.bounds.height/2;
+            const metric=straightMetric,cx=metric.bounds.x+metric.bounds.width/2,cy=metric.bounds.y+metric.bounds.height/2;
             const screen=new DOMMatrix().translate(window.anchor[0]+delta.dx,window.anchor[1]+delta.dy).rotate(window.angle-textAngle).translate(-cx,-cy);
             application={transform:transformFor(screen)};
           }

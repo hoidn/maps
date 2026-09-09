@@ -1,3 +1,4 @@
+import {contourRuns,contourChunks} from './contour-geometry.js';
 const NS='http://www.w3.org/2000/svg';
 /** Reuse parsed contour paths, but draw strokes at the current camera scale.
  * Only plain, untransformed contour groups are eligible; other SVG stays live. */
@@ -14,13 +15,23 @@ export class ContourPreview {
       // Firefox reports empty bounds for paths under display:none detail groups.
       const groups=[layer,...layer.querySelectorAll('g')],styles=groups.map(e=>e.getAttribute('style'));
       groups.forEach(e=>e.style.setProperty('display','inline','important'));
-      const items=paths.map(e=>({e,path:new Path2D(e.getAttribute('d')),bounds:e.getBBox(),minZoom:e.closest('.g-finest')?4.5:e.closest('.g-fine')?2:0}));
+      const items=paths.map(e=>{
+        const d=e.getAttribute('d'),runs=contourRuns(d)?.map(points=>{
+          let x=Infinity,y=Infinity,right=-Infinity,bottom=-Infinity;
+          for(let i=0;i<points.length;i+=2){x=Math.min(x,points[i]);y=Math.min(y,points[i+1]);right=Math.max(right,points[i]);bottom=Math.max(bottom,points[i+1]);}
+          const chunks=contourChunks(points).map(({start,end,bounds})=>({start,end,bounds}));
+          const original=new Path2D();original.moveTo(points[0],points[1]);for(let i=2;i<points.length;i+=2)original.lineTo(points[i],points[i+1]);
+          return {bounds:{x,y,width:right-x,height:bottom-y},points,chunks,original};
+        });
+        return {e,runs,path:runs?null:new Path2D(d),bounds:e.getBBox(),minZoom:e.closest('.g-finest')?4.5:e.closest('.g-fine')?2:0};
+      });
       groups.forEach((e,i)=>styles[i]===null?e.removeAttribute('style'):e.setAttribute('style',styles[i]));
       this.layers.push(layer);this.items.push(...items);
     }
     this.refreshStyles();
   }
   refreshStyles(){
+    this.cached=null;
     const z=this.map.width/this.svg.viewBox.baseVal.width;
     for(const item of this.items){
       const s=getComputedStyle(item.e);let opacity=Number(s.opacity);
@@ -30,23 +41,54 @@ export class ContourPreview {
   }
   render(view,viewport,maxBytes){
     if(!this.context||!this.layers.length)return;
-    const ratio=Math.min(devicePixelRatio||1,Math.sqrt(maxBytes/(4*viewport.width*viewport.height)));
-    const width=Math.max(1,Math.floor(viewport.width*ratio)),height=Math.max(1,Math.floor(viewport.height*ratio));
+    const fit=Math.min(viewport.width/view.w,viewport.height/view.h),visibleW=viewport.width/fit,visibleH=viewport.height/fit,
+      visibleX=view.x-(visibleW-view.w)/2,visibleY=view.y-(visibleH-view.h)/2,z=this.map.width/view.w,
+      hidden=this.svg.classList.contains('no-contours'),dpr=devicePixelRatio||1,cached=this.cached;
+    if(cached&&cached.fit===fit&&cached.z===z&&cached.dpr===dpr&&cached.maxBytes===maxBytes&&cached.hidden===hidden&&
+      visibleX>=cached.x&&visibleY>=cached.y&&visibleX+visibleW<=cached.x+cached.w&&visibleY+visibleH<=cached.y+cached.h)return;
+    // Keep a 64 CSS-pixel margin on each side. Pans within it only change the
+    // SVG camera; the contour buffer keeps its exact scale and world position.
+    // Zoom frames cannot reuse this margin, so draw only their visible viewport.
+    const margin=cached&&cached.z!==z?0:64/fit,w=visibleW+2*margin,h=visibleH+2*margin,x=visibleX-margin,y=visibleY-margin;
+    const ratio=Math.min(dpr,Math.sqrt(maxBytes/(4*w*h*fit*fit)));
+    const width=Math.max(1,Math.floor(w*fit*ratio)),height=Math.max(1,Math.floor(h*fit*ratio));
     if(this.canvas.width!==width||this.canvas.height!==height){this.canvas.width=width;this.canvas.height=height;}
-    this.rgbaBytes=width*height*4;
-    const fit=Math.min(viewport.width/view.w,viewport.height/view.h),w=viewport.width/fit,h=viewport.height/fit,x=view.x-(w-view.w)/2,y=view.y-(h-view.h)/2;
+    this.rgbaBytes=width*height*4;this.cached={x,y,w,h,fit,z,dpr,maxBytes,hidden};
     for(const [key,value] of Object.entries({x,y,width:w,height:h}))this.element.setAttribute(key,value);
     const ctx=this.context;ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,width,height);
-    if(this.svg.classList.contains('no-contours'))return;
-    const sx=width/w,sy=height/h,z=this.map.width/view.w;
+    if(hidden)return;
+    const sx=width/w,sy=height/h;
     ctx.setTransform(sx,0,0,sy,-x*sx,-y*sy);
     for(const item of this.items){
       if(z<item.minZoom)continue;
-      const b=item.bounds,s=item.style,pad=s.width/z/2;
+      const b=item.bounds,s=item.style,pad=s.width/z/2*Math.max(1,s.join==='miter'?s.miter:1);
       if(s.color==='none'||!(s.width>0)||!(s.opacity>0))continue;
       if(b.x+b.width+pad<x||b.x-pad>x+w||b.y+b.height+pad<y||b.y-pad>y+h)continue;
       ctx.strokeStyle=s.color;ctx.lineWidth=s.width/z;ctx.globalAlpha=s.opacity;ctx.lineCap=s.cap;ctx.lineJoin=s.join;ctx.miterLimit=s.miter;ctx.setLineDash(s.dash.map(n=>n/z));ctx.lineDashOffset=s.dashOffset/z;
-      ctx.stroke(item.path);
+      if(!item.runs){ctx.stroke(item.path);continue;}
+      // Keep subpaths in one stroke, preserving their original alpha compositing.
+      const visible=new Path2D();
+      for(const run of item.runs){
+        const b=run.bounds;
+        if(b.x+b.width+pad<x||b.x-pad>x+w||b.y+b.height+pad<y||b.y-pad>y+h)continue;
+        if(s.dash.length||s.cap!=='butt'){visible.addPath(run.original);continue;}
+        if(b.x>=x&&b.y>=y&&b.x+b.width<=x+w&&b.y+b.height<=y+h){visible.addPath(run.original);continue;}
+        const ranges=[];
+        for(const chunk of run.chunks){
+          const b=chunk.bounds;
+          if(b.x+b.width+pad<x||b.x-pad>x+w||b.y+b.height+pad<y||b.y-pad>y+h)continue;
+          const last=ranges.at(-1);
+          if(last&&chunk.start<=last.end)last.end=chunk.end;else ranges.push({start:chunk.start,end:chunk.end});
+        }
+        const key=ranges.map(r=>`${r.start}:${r.end}`).join(',');
+        if(run.visibleKey!==key){
+          const path=new Path2D(),p=run.points;
+          for(const {start,end} of ranges){path.moveTo(p[start],p[start+1]);for(let i=start+2;i<end;i+=2)path.lineTo(p[i],p[i+1]);}
+          run.visibleKey=key;run.visiblePath=path;
+        }
+        visible.addPath(run.visiblePath);
+      }
+      ctx.stroke(visible);
     }
   }
   remove(){this.element.remove();}

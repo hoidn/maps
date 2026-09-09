@@ -165,7 +165,13 @@ same inverse-zoom factor; cached base widths are recovered by multiplying the
 current SVG stroke width by zoom. Static line styling is unchanged. The cached
 relief preview remains a temporary raster during motion. Contour paths are
 parsed once and redrawn on a bounded canvas at the current camera scale, stroke
-width, theme, and detail level. They are never enlarged from an overview bitmap.
+width, theme, and detail level. Generated polylines retain every vertex; cached
+section bounds exclude offscreen segments, and contiguous sections are merged
+before stroking to preserve joins and opacity. A 64 CSS-pixel overscan margin
+lets pans reuse pixels at the same scale; zoom frames omit that margin.
+Zoom, theme, layer, pixel-density,
+or viewport-scale changes invalidate that reuse. They are never enlarged from
+an overview bitmap.
 The original contour SVG is restored for settled views. Roads, waterways,
 water-area polygons and trails remain live SVG throughout gestures. Relief and
 contour preview pixel buffers share the 24MiB budget. Unsupported transformed

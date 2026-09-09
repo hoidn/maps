@@ -172,8 +172,8 @@ export class LayoutController {
       });
     },delay);
   }
-  whenSettled(){return this.ready.then(()=>this.fontReady).then(()=>this.frame||this.settlePending||this.settleJob||this.gestures.size?new Promise(resolve=>this.waiters.push(resolve)):this.getReport());}
-  resolveWaiters(){if(this.frame||this.settlePending||this.settleJob||this.gestures.size)return;for(const resolve of this.waiters.splice(0))resolve(this.getReport());}
+  whenSettled(){return this.ready.then(()=>this.fontReady).then(()=>this.frame||this.settlePending||this.settleJob||this.gestures.size||this.renderer?.refreshPending?new Promise(resolve=>this.waiters.push(resolve)):this.getReport());}
+  resolveWaiters(){if(this.frame||this.settlePending||this.settleJob||this.gestures.size||this.renderer?.refreshPending)return;for(const resolve of this.waiters.splice(0))resolve(this.getReport());}
   getReport(){return {textScale:this.textScale,renderer:{requested:this.renderer?.requestedBackend||'svg',active:this.renderer?.backend||'svg',fallback:this.renderer?.fallbackReason||this.rendererError,rgbaBytes:this.renderer?.rgbaBytes,gpuBufferBytes:this.renderer?.gpu?.bufferBytes},status:this.status,error:this.error,view:{...this.view},diagnostics:this.result?.diagnostics,outcomes:this.result?.outcomes||[],missingRequired:this.result?.missingRequired||[],placements:this.result?.placements||[],timings:this.timings.slice(-200),samples:this.samples.slice(-200),transactionKind:this.transactionKind};}
   camera(readAfter=true){
     if(this.renderer?.active&&this.transactionKind==='fast')return this.renderer.camera(this.view);

@@ -1,4 +1,4 @@
-import {MapScene,captureCommands,paintCommands,viewMatrix,matrixArray} from './scene.js';
+import {MapScene,captureCommands,commandBounds,paintCommands,viewMatrix,matrixArray} from './scene.js';
 import {WebGLContours} from './webgl-contours.js';
 import {moveShape,projectAreaPolygons} from '../labels/geometry.js';
 const ORDER=['boundaries','buildings','contour-labels','hydro','roads','trails','regions','hydro-labels','boundary-labels','peaks','symbols','trail-labels','labels','fixed-ui','coordinate-grid','neatline','other'];
@@ -7,7 +7,7 @@ const center=b=>[b.x+b.width/2,b.y+b.height/2];
  * source; it is not the camera or the hit-test surface during fast frames. */
 export class CanvasMapRenderer{
  constructor(controller,backend='canvas'){
-  this.controller=controller;this.svg=controller.svg;this.backend=backend;this.requestedBackend=backend;this.scene=new MapScene(this.svg,controller.manifest.map);this.labels=new Map();this.painted=[];this.active=false;this.canvases=[];this.generation=0;
+  this.controller=controller;this.svg=controller.svg;this.backend=backend;this.requestedBackend=backend;this.scene=new MapScene(this.svg,controller.manifest.map);this.labels=new Map();this.painted=[];this.active=false;this.canvases=[];this.generation=0;this.refreshGeneration=0;this.refreshPending=0;
   for(const name of ['terrain','contours','foreground']){
    const canvas=document.createElement('canvas');canvas.dataset.mapCanvas=name;canvas.style.cssText='position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1';this.canvases.push(canvas);
   }
@@ -33,15 +33,21 @@ export class CanvasMapRenderer{
   if(this.active){this.svg.dataset.mapRenderer='canvas';if(this.last)this.draw(this.last.result,this.last.m);}
  }
  async refresh(){
-  const generation=++this.generation;
+  // Clearing font-dependent sprites must not cancel pending theme geometry.
+  const generation=++this.refreshGeneration;this.generation++;this.refreshPending++;
   try{
    await this.ready;const scene=new MapScene(this.svg,this.controller.manifest.map);await scene.prepare();
-   if(generation!==this.generation)return;
+   if(generation!==this.refreshGeneration)return;
    this.scene=scene;this.controller.preview.contours.refreshStyles();
    // Theme only changes ink; geometry buffers remain valid and are not uploaded.
    if(this.gpu)this.gpu.refreshStyles();
    this.labels.clear();this.controller.invalidateLayout();this.controller.schedule();
-  }catch(error){if(generation===this.generation)this.fallback(error);}
+  }catch(error){if(generation===this.refreshGeneration)this.fallback(error);}
+  finally{
+   // A refresh can still be decoding resources after the placement queue drains.
+   // Count every generation, including superseded work and failed preparations.
+   this.refreshPending--;this.controller.resolveWaiters();
+  }
  }
  clearLabels(){this.labels.clear();this.generation++;if(this.last)this.draw({placements:[]},this.last.m);}
 
@@ -50,7 +56,7 @@ export class CanvasMapRenderer{
   this.pointerStyle=document.createElement('style');this.pointerStyle.textContent='#mapsvg[data-map-renderer] *{pointer-events:none!important}';this.svg.after(this.pointerStyle,...this.canvases);this.active=true;
  }
  fallback(error){this.error=error?.message||String(error);this.destroy();this.controller.renderer=null;this.controller.invalidateLayout();this.controller.schedule();}
- destroy(){if(this.controller.renderer===this)this.controller.renderer=null;window.removeEventListener('pagehide',this.pageHidden);this.gpu?.destroy();this.active=false;this.generation++;this.canvases.forEach(c=>{c.remove();c.width=c.height=1;});this.labels.clear();this.painted=[];this.pointerStyle?.remove();this.svg.style.opacity=this.originalOpacity||'';delete this.svg.dataset.mapRenderer;this.themeObserver?.disconnect();this.media?.removeEventListener('change',this.themeChanged);}
+ destroy(){if(this.controller.renderer===this)this.controller.renderer=null;window.removeEventListener('pagehide',this.pageHidden);this.gpu?.destroy();this.active=false;this.generation++;this.refreshGeneration++;this.canvases.forEach(c=>{c.remove();c.width=c.height=1;});this.labels.clear();this.painted=[];this.pointerStyle?.remove();this.svg.style.opacity=this.originalOpacity||'';delete this.svg.dataset.mapRenderer;this.themeObserver?.disconnect();this.media?.removeEventListener('change',this.themeChanged);}
  camera(view){
   const r=this.svg.getBoundingClientRect(),m=viewMatrix(view,r),z=this.controller.manifest.map.width/view.w;
   const badge=document.getElementById('zlabel'),text=z.toFixed(1)+'× · contours '+((this.controller.manifest.map.contourIntervalsFeet||[250,100,50])[z>=4.5?2:z>=2?1:0])+' ft';if(badge&&badge.textContent!==text)badge.textContent=text;
@@ -81,7 +87,11 @@ export class CanvasMapRenderer{
    this.labels.set(p.id,record);this.sprite(record);
   }
   // Fixed furniture can have been display:none when a zoomed initial URL loaded.
-  if(l.manifest.map.width/l.view.w<=1.02){for(const item of this.scene.items)if(item.layer==='fixed-ui')item.commands=captureCommands(item.element,this.svg,{world:true});}
+  if(l.manifest.map.width/l.view.w<=1.02){for(const item of this.scene.items)if(item.layer==='fixed-ui'){
+   item.commands=captureCommands(item.element,this.svg,{world:true});
+   // A hidden refresh can leave empty bounds; recaptured ink needs fresh culling bounds too.
+   item.bounds=commandBounds(item.commands);
+  }}
  }
  sprite(record){
   const dpr=Math.min(devicePixelRatio||1,2),b=record.placement.footprint.bounds,pad=2,

@@ -59,7 +59,7 @@ export function paintCommands(ctx,commands,outer=new DOMMatrix(),{strokeFactor=1
   i=end;
  }
 }
-function commandBounds(commands){
+export function commandBounds(commands){
  let x=Infinity,y=Infinity,right=-Infinity,bottom=-Infinity,pad=0;
  for(const c of commands){if(!c.bounds)return null;const b=c.bounds,m=matrix(c.matrix);
   for(const px of [b.x,b.x+b.width])for(const py of [b.y,b.y+b.height]){const p=new DOMPoint(px,py).matrixTransform(m);x=Math.min(x,p.x);y=Math.min(y,p.y);right=Math.max(right,p.x);bottom=Math.max(bottom,p.y);}

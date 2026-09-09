@@ -18,6 +18,7 @@ from path_geometry import detail_path
 from features import feature_roles
 from .transport import transport_style,visible_reference
 from .hydro import hydro_style
+from .boundaries import boundary_style
 from .poi import poi_style,SYMBOL_ONLY_SERVICES
 from .symbols import symbol_svg
 from .entities import match_display_repeats
@@ -110,7 +111,7 @@ def render_scene(features,routes,spec,M,existing=(),distances=()):
  groups={k:[] for k in ('defs','landcover','boundaries','buildings','hydro','roads','trails','hits','hydro-labels','boundary-labels','peaks','trail-labels','symbols','labels')}
  geod=Geod(ellps='WGS84')
  water_mask=unary_union([Polygon(p.exterior) for f in features if f['kind']=='waterbody' for p in parts(map_geometry(f,spec),'Polygon')])
- selected=Counter();omitted=[];styles={};route_by_id={r['id']:r for r in routes}
+ selected=Counter();omitted=[];styles={};boundary_styles={};route_by_id={r['id']:r for r in routes}
  def annotate(f,text,cls,xy,geometry_id=None,max_mpp=None,importance=None,secondary=None):
   if not text or text.strip().lower() in ('?','unknown','unnamed'):return
   x,y=xy
@@ -248,8 +249,11 @@ def render_scene(features,routes,spec,M,existing=(),distances=()):
    if not d:omitted.append({'id':f['id'],'reason':'no-polygon'});continue
    if kind=='waterbody':layer='hydro';style='fill:var(--water-fill);stroke:var(--creek);stroke-width:calc(.35px * var(--s))'
    elif kind=='building':layer='buildings';style='fill:var(--building-fill);stroke:var(--building-edge);stroke-width:calc(.15px * var(--s))'
-   else:layer='boundaries';style='fill:none;stroke:var(--boundary-ink);stroke-width:calc(.95px * var(--s));stroke-linejoin:round;stroke-dasharray:calc(8px * var(--s)),calc(3px * var(--s)),calc(2px * var(--s)),calc(3px * var(--s))'
-   attrs=' data-max-mpp="8"' if kind=='building' else ''
+   else:
+    layer='boundaries';st=boundary_style(f);boundary_styles[st['key']]=st
+    dash=','.join(f'calc({n}px * var(--s))' for n in st['dash'])
+    style=f'fill:none;stroke:var({st["color"]});stroke-width:calc({st["width"]}px * var(--s));stroke-linejoin:round;stroke-dasharray:{dash};opacity:{st["opacity"]}'
+   attrs=' data-max-mpp="8"' if kind=='building' else f' data-boundary-kind="{st["key"]}"' if kind=='boundary' else ''
    groups[layer].append(f'<path class="area-{kind}" d="{d}"{common}{attrs} fill-rule="evenodd" style="{style}"/>')
    if f.get('name') and kind!='building':
     p=g.representative_point();raw=annotate(f,f['name'],'l-hydro' if kind=='waterbody' else 'l-region-s',(p.x,p.y),max_mpp=32 if kind=='waterbody' else 64)
@@ -287,7 +291,7 @@ def render_scene(features,routes,spec,M,existing=(),distances=()):
  display_matches=match_display_repeats(M,features,spec)
  text_selection=apply_text_importance(M,features)
  result={k:('<defs>'+''.join(v)+'</defs>' if k=='defs' else f'<g class="{k}">'+''.join(v)+'</g>') for k,v in groups.items()}
- return result,{'textSelection':text_selection,'displayRepeatMatches':display_matches,'selected':dict(selected),'omitted':omitted,'styles':list(styles.values()),'facilitySymbols':dict(Counter(a['symbolKind'] for a in M.annotations if a['kind']=='symbol')),'distanceLabels':{'generated':distance_count,'omitted':distance_omissions,'method':'Font advance lower bound at native sheet width; supported maximum 14x interactive or 1x static; final browser placement remains authoritative'}}
+ return result,{'textSelection':text_selection,'displayRepeatMatches':display_matches,'selected':dict(selected),'omitted':omitted,'styles':list(styles.values()),'boundaryStyles':[boundary_styles[k] for k in sorted(boundary_styles)],'facilitySymbols':dict(Counter(a['symbolKind'] for a in M.annotations if a['kind']=='symbol')),'distanceLabels':{'generated':distance_count,'omitted':distance_omissions,'method':'Font advance lower bound at native sheet width; supported maximum 14x interactive or 1x static; final browser placement remains authoritative'}}
 
 def augment_svg(svg,M,spec,catalog):
  root=ET.fromstring(svg);replace={'hydro','roads','trails','hits','hydro-labels','trail-labels'};discard=set()

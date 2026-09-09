@@ -411,6 +411,32 @@ end-to-end latency. The remaining algorithm directions are:
 Measure these directions against equal useful content and the existing placement
 quality checks. Their potential gains are neither established nor multiplicative.
 
+The immutable worker dataset/index cache is now installed and passed 18 focused
+browser cases across the three engines, including real worker reuse, cancellation
+and restart, blocked-worker fallback, and independent candidate-footprint checks.
+It sends source-space trail segments only when their immutable array changes or
+the worker restarts; every solve still receives a fresh camera snapshot. Unknown
+dataset references fail explicitly rather than dropping protected trails.
+
+A subsequent quiet six-load diagnostic (`worker-reports.json` in the same artifact
+folder) measured the incremental worker-cache effect. Grand Canyon central 6×
+solve wall time decreased 254 → 190 ms and Sequoia central 6× decreased 160 → 91 ms;
+overview solve time changed 809 → 745 ms and 722 → 705 ms respectively. This does
+not remove the dominant glyph/domain preparation work. Combined complete phases
+were 4,834 → 1,528 ms for Grand Canyon 6× and 505 → 245 ms for Sequoia 6×, retaining
+65 and 23 placements respectively. The first Grand Canyon overview baseline in
+that run was unusually slow (3,779 ms versus 2,294 ms previously), so its ratio
+must not be promoted as an established gain. Repeated, alternated measurements
+are still needed for acceptance; **10× remains unmet**.
+
+The next prototype should exploit the monotonicity of importance rounds: with the
+same camera/font/control snapshot and retained accepted placements, adding lower
+priority labels cannot make a genuinely failed earlier candidate domain feasible.
+Reuse exact earlier failure outcomes and blocker IDs within that round token;
+do not carry them across camera/control/font changes or reuse deferred,
+out-of-view, layer-disabled or invalid-metric cases as proof of infeasibility.
+
+
 ### Visible contour tier implementation (source validated; candidate-only timing)
 
 The current generated Grand Canyon source contains 491 contour paths with 36.63 MB
@@ -478,3 +504,23 @@ removes none of that document parsing. Its measured 0.60–0.66-second
 DOMContentLoaded medians are not a theoretical floor or a renderer-only timing.
 A smaller/precompiled scene artifact or off-main contour preparation remains a
 further architectural possibility requiring separate correctness and measurement.
+
+### Reusing complete failures within one importance-round token
+
+This optimization is installed with four focused solver/cache regressions and
+nine browser cases across Chromium, Firefox and WebKit. It retains exact previous
+outcome and blocker IDs, and retries after controls or fonts change. Required and
+exhaustive/repairable layouts cannot opt into these placement-time conclusions.
+See the [owning controller contract](specs/map-layout.md).
+
+A quiet four-load diagnostic (`round-reports.json`) compared the combined
+index/worker improvements with and without token-local failure reuse. Grand Canyon
+overview solve time decreased 747 → 385 ms; Sequoia overview decreased 693 → 368 ms.
+Complete preparation plus solve changed 1,843 → 1,488 ms and 2,083 → 1,768 ms,
+respectively. It reused 905 and 1,363 earlier failure records and preserved the
+same 257 and 225 final placements. Dense-view completion barely changed:
+Grand Canyon 1,572 → 1,536 ms, Sequoia 224 → 221 ms, at unchanged 65/23 placements.
+Fine-contour names first enter in the detail round, so they cannot benefit from
+an earlier-round failure cache. The tenfold complete-placement target remains
+open; the next independent prototype must remove browser text-path measurement
+rather than repeatedly optimize numerical search around it.

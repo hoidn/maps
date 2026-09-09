@@ -87,7 +87,12 @@ fall back to the complete index for any rectangle outside its cached region.
 The trail adapter caches screen-space segment projections once per camera
 snapshot and grid-cell membership within each local neighborhood. Exact
 stroked-bounds filtering and solver collision tests still run for every candidate;
-these caches do not simplify geometry or carry results across camera changes.
+these caches do not simplify geometry or carry collision results across camera
+changes. The initial-placement worker keeps the immutable source-space trail
+array and index between solves. Its transport sends that array again after a
+source-array replacement or worker restart; every message carries the current
+camera transform and ground scale. Unknown dataset references fail explicitly.
+The cooperative fallback retains the complete source payload.
 
 
 The result records accepted placements, an outcome for every annotation, and
@@ -345,6 +350,16 @@ bypass temporary round filtering during pure panning, so the round sequence does
 not remove or rewrap already placed lower-priority text. The final round considers
 the entire eligible inventory. `whenSettled()` spans all rounds and retries;
 camera, font, gesture, viewport, control or scroll changes discard obsolete work.
+Within one unchanged round token, a completely attempted optional domain that
+failed remains infeasible as accepted reservations only grow. The controller may
+reuse its exact outcome and blocker IDs via prepared `cachedFailure`, guarded by
+`policy.reuseRoundFailures`, `repairMaxNeighbors: 0` and
+`exhaustiveDiagnostics: false`. Required annotations, required groups and exhaustive
+or repairable solves reject this opt-in. Deferred, disabled, outside-view and
+invalid-metric annotations never establish a reusable failure. The cache is local
+to that camera/font/control token and does not survive any invalidation. This
+extends the prepared solver input only; older callers and generated manifests
+need no new fields.
 Timing samples identify the round without excluding preparation, solve or commit
 work. Static placement remains the existing exhaustive single pass. This changes
 progress visibility; it does not establish an end-to-end speedup.

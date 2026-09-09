@@ -1,3 +1,4 @@
+import {RoundFailures} from './round-failures.js';
 import {PLACEMENT_ROUNDS,roundEligibility} from './placement-rounds.js';
 import {initialBatch} from './initial-batch.js';
 import {textEligibility} from './text-importance.js';
@@ -374,7 +375,7 @@ export class LayoutController {
     if(!includeCurves||this.mode!=='interactive'||this.starting)return this.renderPass(includeCurves);
     if(this.status!=='ready'||this.rendering||this.roundJob)return false;
     this.cancelSettling();
-    const token={revision:this.revision,fontGeneration:this.fontGeneration};this.roundJob=token;let completed=false;
+    const token={revision:this.revision,fontGeneration:this.fontGeneration,failures:new RoundFailures()};this.roundJob=token;let completed=false;
     const current=()=>this.roundJob===token&&!token.cancelled&&this.revision===token.revision&&this.fontGeneration===token.fontGeneration&&this.status==='ready'&&!this.gestures.size&&(!token.snapshot||token.snapshot===this.startupSnapshot());
     try{
       for(const [index,round] of PLACEMENT_ROUNDS.entries()){
@@ -460,7 +461,7 @@ export class LayoutController {
         let deadline=performance.now()+8;
         for(const a of this.starting?[]:this.manifest.annotations){
           if(cooperative){
-            if(roundEligibility(a,round,fixed?.has(a.id)))continue;
+            if(roundEligibility(a,round,fixed?.has(a.id))||roundJob?.failures.has(a.id))continue;
             if(!this.eligible(a,project(m,a.anchor),viewport,z)&&!fixed?.has(a.id)&&a.kind!=='line-label'&&!this.cache.entries.has(a.id))measurementElement(a);
             if(performance.now()>=deadline){await pause();deadline=performance.now()+8;}
             continue;
@@ -488,6 +489,7 @@ export class LayoutController {
           if(a.kind==='line-label')item.repeatDistance=this.policy.repeatDistance;
           item.eligibleReason=this.eligible(a,anchor,viewport,z)||roundEligibility(a,round,fixed?.has(a.id));
           if(item.eligibleReason){prepared.push(item);continue;}
+          if(roundJob?.failures.has(a.id)){item.cachedFailure=roundJob.failures.get(a.id);prepared.push(item);continue;}
           item.areaPolygons=projectAreaPolygons(a.areaPolygons,m);
           if(fixed?.has(a.id)){
             const p=fixed.get(a.id);item.candidates=[{...p,id:p.candidateId,shape:p.footprint}];
@@ -542,8 +544,9 @@ export class LayoutController {
       this.prepared=prepared;this.lastObstacles=obstacles;
       const preparedDone=performance.now();
       const repeatReservations=settled&&fixed?[...fixed].map(([id,p])=>({id,featureId:this.byId.get(id).featureId,repeatGroup:this.byId.get(id).repeatGroup,distance:this.byId.get(id).kind==='line-label'?this.policy.repeatDistance:(this.byId.get(id).repeatDistance??0),shape:p.footprint})):[];
-      const args={annotations:prepared,obstacles,queryObstacles,repeatReservations,viewport,previous:this.previous,policy:{...this.policy,exhaustiveDiagnostics:this.mode!=='interactive',repairMaxNeighbors:this.mode==='interactive'?0:2,requiredGroups:this.mode==='static'?(this.manifest.map.requiredRoutes??this.policy.requiredRoutes):[]}};
+      const args={annotations:prepared,obstacles,queryObstacles,repeatReservations,viewport,previous:this.previous,policy:{...this.policy,reuseRoundFailures:!!roundJob,exhaustiveDiagnostics:this.mode!=='interactive',repairMaxNeighbors:this.mode==='interactive'?0:2,requiredGroups:this.mode==='static'?(this.manifest.map.requiredRoutes??this.policy.requiredRoutes):[]}};
       const finish=result=>{
+        if(roundJob)roundJob.failures.capture(prepared,result);
         if(settled)this.preview?.restore();
         this.transactionKind=settled?'settled':'fast';this.result=result;
         const solvedDone=performance.now();this.commit(this.result,m,s,settled);

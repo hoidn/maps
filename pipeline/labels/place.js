@@ -1,3 +1,4 @@
+import {REUSABLE_FAILURES} from './round-failures.js';
 import {annotationOrder} from './annotation-order.js';
 import {contains,expand,shapeIntersects,lineHitsRect,lineOutsideCircle,validRect,anchorDistance,shapeInsidePolygons} from './geometry.js';
 import {SpatialIndex} from './spatial-index.js';
@@ -38,6 +39,10 @@ function* layoutSteps({annotations,obstacles=[],viewport,previous,policy={},quer
   };
   const ordered=annotationOrder(annotations).map(i=>{
     const a=annotations[i];
+    if(a.cachedFailure){
+      const failure=a.cachedFailure;
+      if(!policy.reuseRoundFailures||policy.exhaustiveDiagnostics!==false||policy.repairMaxNeighbors!==0||(policy.requiredGroups??[]).length||a.required||failure.id!==a.id||!REUSABLE_FAILURES.has(failure.reason)||!Array.isArray(failure.blockerIds))throw new Error('Invalid cached round failure');
+    }
     // Only fallback expansion and measurement reserves need private candidates.
     // Ordinary candidates are read-only throughout placement and repair.
     if(a.eligibleReason||Array.isArray(a.candidates)&&!a.fallbackCandidates&&!policy.measurementReserves?.[a.id])return a;
@@ -121,7 +126,7 @@ function* layoutSteps({annotations,obstacles=[],viewport,previous,policy={},quer
     if(visit(0)){rebuild();return true;}
     accepted.clear();for(const [id,v] of snapshot)accepted.set(id,v);rebuild();return false;
   }
-  function* place(a){if(a.eligibleReason||accepted.has(a.id))return;const recorded=[];if(placementDiagnostics)attemptFailures.set(a.id,recorded);for(const c of candidates(a)){yield;const b=blockers(a,c);if(placementDiagnostics)recorded.push(b);if(!b.hard.length&&!b.labels.length&&!b.repeat.length){accept(a,c);break;}}
+  function* place(a){if(a.eligibleReason||a.cachedFailure||accepted.has(a.id))return;const recorded=[];if(placementDiagnostics)attemptFailures.set(a.id,recorded);for(const c of candidates(a)){yield;const b=blockers(a,c);if(placementDiagnostics)recorded.push(b);if(!b.hard.length&&!b.labels.length&&!b.repeat.length){accept(a,c);break;}}
     if(a.fallbackCandidates&&(!accepted.has(a.id)||a.kind==='point-label'&&a.anchor&&anchorDistance(accepted.get(a.id).shape.bounds,a.anchor)>(policy.pointPreferredDistance??12))){
       const extra=a.fallbackCandidates();a.fallbackCandidates=null;
       for(const raw of extra){yield;const c=reserve(a,raw);a.candidates.push(c);const current=accepted.get(a.id);if(current&&proximity(a,c)>=proximity(a,current))continue;
@@ -142,6 +147,7 @@ function* layoutSteps({annotations,obstacles=[],viewport,previous,policy={},quer
   for(const a of ordered)if(!a.eligibleReason)yield* place(a);
   const outcomes=[],placements=[],missingRequired=[];
   for(const a of ordered){
+    if(a.cachedFailure){outcomes.push(a.cachedFailure);continue;}
     const c=accepted.get(a.id);
     if(c){
       outcomes.push({id:a.id,reason:'placed',blockerIds:[]});

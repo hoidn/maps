@@ -17,6 +17,12 @@ class BuilderTests(unittest.TestCase):
                 self.assertGreater(len(manifest['annotations']),100)
                 self.assertNotIn('fonts.googleapis.com',text)
                 svg=ET.fromstring(re.search(r'<svg[^>]*id="mapsvg".*?</svg>',text,re.S)[0])
+                if mode=='interactive':
+                    trails=[e for e in svg.iter() if e.get('data-layout-obstacle')=='trail']
+                    hits=[e for e in svg.iter() if e.get('class')=='hit']
+                    self.assertTrue(trails)
+                    self.assertEqual(sorted(e.get('d') for e in trails), sorted(e.get('d') for e in hits))
+                    self.assertRegex(trails[0].get('d'), r'M-?\d+\.\d{3},-?\d+\.\d{3}')
                 parents={child:parent for parent in svg.iter() for child in parent}
                 for node in svg.iter():
                     is_text=node.tag.endswith('}text')

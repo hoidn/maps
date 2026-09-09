@@ -18,6 +18,11 @@ map_python="${MAP_PYTHON:-python3}"
 cd "$repo_dir"
 node scripts/build-labels.mjs
 cd "$pipeline_dir"
+# Old terrain caches have already discarded vertices. Re-extract from the local
+# DEM once when the interactive geometry format changes; never fetch here.
+if ! "$map_python" -c 'import json; from path_geometry import GEOMETRY_VERSION; raise SystemExit(json.load(open("terrain_hi.json")).get("geometryVersion") != GEOMETRY_VERSION)'; then
+  "$map_python" process_dem_hi.py
+fi
 "$map_python" build_static.py
 "$map_python" build_interactive.py
 cd "$repo_dir"

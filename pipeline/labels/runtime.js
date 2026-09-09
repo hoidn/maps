@@ -123,7 +123,7 @@ export class LayoutController {
     this.svg.setAttribute('viewBox',`${v.x} ${v.y} ${v.w} ${v.h}`);
     this.fontScaleValue=this.mode==='interactive'?String(1/s):'1';
     for(const scope of this.fontScopes)scope.style.setProperty('--k',this.fontScaleValue);
-    for(const scope of this.strokeScopes)scope.style.setProperty('--s',String(z**-.5));
+    for(const scope of this.strokeScopes)scope.style.setProperty('--s',String(1/z));
     this.svg.classList.toggle('zoomed',z>1.02);this.svg.classList.toggle('z2',z>=2);this.svg.classList.toggle('z5',z>=4.5);
     for(const [layer,on] of Object.entries(this.layers))this.svg.classList.toggle('no-'+layer,!on);
     const badge=document.getElementById('zlabel');if(badge)badge.textContent=z.toFixed(1)+'× · contours '+(z>=4.5?'50':z>=2?'100':'250')+' ft';
@@ -153,7 +153,7 @@ export class LayoutController {
       for(const e of this.svg.querySelectorAll('[data-layout-obstacle="trail"]')){
         const d=e.getAttribute('d');if(/[CQAHVSTZcqahvstz]/.test(d))throw new Error('Protected trail must be an absolute polyline');
         const numbers=(d.match(/[-+]?(?:\d*\.\d+|\d+\.?\d*)(?:[eE][-+]?\d+)?/g)||[]).map(Number);
-        const width=parseFloat(getComputedStyle(e).strokeWidth)*(this.mode==='interactive'?Math.sqrt(z):1);
+        const width=parseFloat(getComputedStyle(e).strokeWidth)*(this.mode==='interactive'?z:1);
         if(!Number.isFinite(width))throw new Error('Invalid protected trail stroke');
         this.maxTrailWidth=Math.max(this.maxTrailWidth,width);
         for(let i=2;i<numbers.length;i+=2){
@@ -164,7 +164,7 @@ export class LayoutController {
         }
       }
     }
-    const inverse=m.inverse(),strokeScale=this.mode==='interactive'?1/Math.sqrt(z):1;
+    const inverse=m.inverse(),strokeScale=this.mode==='interactive'?1/z:1;
     const cache=new Map();
     return rect=>{
       const key=[rect.x,rect.y,rect.width,rect.height].join(',');if(cache.has(key))return cache.get(key);

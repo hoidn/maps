@@ -1,3 +1,4 @@
+from path_geometry import detail_points, GEOMETRY_VERSION
 import numpy as np, json, base64, io, time
 from PIL import Image
 from scipy.ndimage import gaussian_filter
@@ -47,10 +48,10 @@ for lv in range(2300, 8600, 50):
     ds = []
     for c in measure.find_contours(Zc, lv):
         if len(c) < 10: continue
-        pts = measure.approximate_polygon(np.column_stack([c[:, 1] * SX, c[:, 0] * SY]), 0.45)
+        pts = detail_points(np.column_stack([c[:, 1] * SX, c[:, 0] * SY]))
         if len(pts) < 4: continue
-        npts += len(pts); ds.append("M" + " ".join(f"{x:.1f},{y:.1f}" for x, y in pts))
+        npts += len(pts); ds.append("M" + " ".join(f"{x:.3f},{y:.3f}" for x, y in pts))
     out[key].append({"lv": lv, "d": ds})
 print("contours done", round(time.time() - t0), "s; points", npts)
 for k in out: print(k, len(out[k]), "levels", sum(len(d) for l in out[k] for d in l["d"]) // 1024, "KB")
-json.dump({"uri_light": uri_light, "uri_dark": uri_dark, "contours": out}, open("terrain_hi.json", "w"))
+json.dump({"geometryVersion": GEOMETRY_VERSION, "uri_light": uri_light, "uri_dark": uri_dark, "contours": out}, open("terrain_hi.json", "w"))

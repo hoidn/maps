@@ -104,3 +104,27 @@ say) rather than the whole frame, the current single-file pipeline handles it: s
 of about 6 × 5 km, request the 1 m data through the same 3DEP ImageServer at 2 m pixels (the
 ImageServer serves the best available resolution, so a small bbox comes back lidar-derived),
 and run `process_dem_hi.py` with a 10 ft ladder. That is a one-hour job with no new code.
+
+## Implemented geometry retention (2026-09-08)
+
+The interactive pipeline now preserves contours and OSM vectors at a 0.025-map-unit
+simplification tolerance, with three-decimal coordinates. This replaces the old
+0.3–0.45-unit simplification and one-decimal output. Fine geometry remains in the
+SVG at every zoom, keeping trail paint, hit targets and collision obstacles
+consistent. Terrain resolution, smoothing and contour intervals are unchanged;
+this restores available vertices without adding lidar data or synthetic curves.
+
+`npm run build:maps` automatically regenerates an old interactive terrain cache
+from the local DEM. See the [terrain format](specs/map-data.md#terrain-json).
+
+The same update keeps line widths and trail dash lengths constant with camera
+zoom. At the checked desktop size a corridor trail measured 2.596 CSS pixels at
+both 1× and 14×. The denser standalone candidate is approximately 35 MB (previously
+9 MB). Python and unit suites passed, as did the three-browser geometry and stroke
+checks. A 20-state Chromium smoke audit found no overlap, clipping, unknown-object
+or typography errors; the existing coverage findings remain. The fresh benchmark
+measured 7.3 ms transaction p95, 19.1 ms frame p95 and 149.5 ms settled latency;
+the 100 ms settled target remains unmet. Reports and the inspected 14× screenshot
+are in `artifacts/layout/zoom-quality-*` and `artifacts/layout/geometry-closeup-final.png`.
+The candidate is `pipeline/grand_canyon_trails_interactive.html`; tracked delivery
+files remain unchanged pending the release gate.

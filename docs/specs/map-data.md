@@ -100,8 +100,20 @@ and `d` contains SVG path strings in the shared map coordinate space.
   `fine` at 2× and `finest` at 4.5× to the base groups; do not duplicate base paths
   in the additional groups.
 
-Builders consume these field names directly. There is currently no schema
-version, shared validator, or embedded frame/provenance metadata.
+Interactive caches also carry `geometryVersion: 1`. The cached build regenerates
+an older interactive terrain cache from `dem_hi.npy` before using it. This marker
+versions geometry processing, not the full terrain schema.
+
+Interactive contours and vector paths retain a maximum simplification tolerance
+of 0.025 map units and three decimal places. At 14× zoom and natural sheet width,
+the simplification plus rounding error is below half a pixel relative to the
+source polyline. This is a rendering bound, not geographic accuracy; DEM sampling
+and contour smoothing still limit the available terrain detail. Fine geometry is
+retained at all zooms so camera changes cannot temporarily mismatch painted trails
+and their collision obstacles. Static geometry remains unchanged.
+
+Builders consume these field names directly. There is no shared validator or
+embedded frame/provenance metadata.
 
 ## Vectors and geographic meaning
 

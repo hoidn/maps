@@ -129,3 +129,13 @@ They do not prove every possible browser, font substitution, zoom trajectory,
 export environment, or real touch device. The operations guide specifies the
 current supported checks and limits. Until the real candidate pair passes them,
 release validation remains pending.
+
+## Interactive line widths
+
+The camera sets the line-scale variable `--s` to `1 / zoom`. Trails, contours,
+waterways, roads, trail dash patterns and hit targets retain their overview
+screen dimensions at a fixed viewport size. Protected trail queries use the
+same inverse-zoom factor; cached base widths are recovered by multiplying the
+current SVG stroke width by zoom. Static line styling is unchanged. The cached
+background preview remains a temporary raster during motion; settled views use
+the original SVG.

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Draws the Grand Canyon trail sheet: hand-designed SVG cartography over USGS 3DEP terrain
 with trail/river geometry from OpenStreetMap."""
+from path_geometry import detail_path, detail_points
 import json, math, html, numpy as np
-from skimage.measure import approximate_polygon
 from label_manifest import Manifest, embedded_fonts, layout_script
 M = Manifest("interactive")
 import osmdata as o
@@ -34,12 +34,8 @@ def clip_runs(coords):
             if cur: cur.append(p); runs.append(cur); cur = []
     if cur: runs.append(cur)
     return runs
-def simplify(pts, tol):
-    arr = np.array(pts, float)
-    if len(arr) > 2: arr = approximate_polygon(arr, tol)
-    return arr
 def d_of(pts, tol=0.3):
-    return "M" + " ".join(f"{x:.1f},{y:.1f}" for x, y in simplify(pts, tol))
+    return detail_path(pts, tol)
 def px_len(run): return sum(math.hypot(run[i+1][0]-run[i][0], run[i+1][1]-run[i][1]) for i in range(len(run)-1))
 def path_el(coords, cls, tol=0.3, attrs=""):
     return "".join(f'<path class="{cls}" d="{d_of(run, tol)}"{attrs}/>' for run in clip_runs(coords) if len(run) >= 2)
@@ -224,13 +220,13 @@ for name, chains in o.streams.items():
             if rl > bestlen: bestlen, best = rl, run
     if best is None: continue
     if is_river:
-        pts = simplify(oriented(best), 0.5); hid += 1
-        hydro_defs.append(f'<path id="h{hid}" d="{"M"+" ".join(f"{x:.1f},{y:.1f}" for x,y in pts)}"/>')
+        pts = detail_points(oriented(best)); hid += 1
+        hydro_defs.append(f'<path id="h{hid}" d="{"M"+" ".join(f"{x:.3f},{y:.3f}" for x,y in pts)}"/>')
         for off in ("14%", "58%", "86%"):
             hydro_labels.append(f'<text class="l-river" dy="-7"><textPath href="#h{hid}" startOffset="{off}" text-anchor="middle">Colorado River</textPath></text>')
     elif bestlen >= 110 and name not in ("Coconino Wash",):
-        pts = simplify(oriented(best), 0.5); hid += 1
-        hydro_defs.append(f'<path id="h{hid}" d="{"M"+" ".join(f"{x:.1f},{y:.1f}" for x,y in pts)}"/>')
+        pts = detail_points(oriented(best)); hid += 1
+        hydro_defs.append(f'<path id="h{hid}" d="{"M"+" ".join(f"{x:.3f},{y:.3f}" for x,y in pts)}"/>')
         hydro_labels.append(f'<text class="l-hydro" dy="-4"><textPath href="#h{hid}" startOffset="50%" text-anchor="middle">{esc(name)}</textPath></text>')
 
 # contours
@@ -248,7 +244,7 @@ def contour_group(levels, cls, lblcls, minlen, maxn, label_levels):
         for ln, d in segs:
             if label_levels(lv["lv"]) and ln >= minlen and n < maxn:
                 pts = oriented(parse_d(d)); cid += 1; n += 1
-                paths.append(f'<path id="c{cid}" class="{cls}" d="{"M"+" ".join(f"{x:.1f},{y:.1f}" for x,y in pts)}"/>')
+                paths.append(f'<path id="c{cid}" class="{cls}" d="{"M"+" ".join(f"{x:.3f},{y:.3f}" for x,y in pts)}"/>')
                 for off in (["30%", "72%"] if ln > 900 else ["50%"]):
                     labels.append(f'<text class="{lblcls}" dy="2.6"><textPath href="#c{cid}" startOffset="{off}" text-anchor="middle">{lv["lv"]:,}</textPath></text>')
             else:
@@ -675,12 +671,12 @@ figure{margin:0}
 .road-fill{fill:none;stroke:var(--road-fill);stroke-linecap:round;stroke-linejoin:round}
 .road-case.road-major{stroke-width:calc(3.4px*var(--s))} .road-fill.road-major{stroke-width:calc(1.6px*var(--s))}
 .road-case.road-minor{stroke-width:calc(2.4px*var(--s))} .road-fill.road-minor{stroke-width:calc(1px*var(--s))}
-.road-track{fill:none;stroke:var(--track);stroke-width:1;stroke-dasharray:4 3;opacity:.8}
+.road-track{fill:none;stroke:var(--track);stroke-width:calc(1px*var(--s));stroke-dasharray:calc(4px*var(--s)) calc(3px*var(--s));opacity:.8}
 .tr{fill:none;stroke-linejoin:round;stroke-linecap:round}
 .tr-corridor{stroke:var(--corridor);stroke-width:calc(2.6px*var(--s))}
 .tr-threshold{stroke:var(--thresh);stroke-width:calc(1.7px*var(--s))}
-.tr-primitive{stroke:var(--thresh);stroke-width:calc(1.3px*var(--s));stroke-dasharray:5 3.5}
-.tr-rim{stroke:var(--rim);stroke-width:calc(1.5px*var(--s));stroke-dasharray:1.5 2.6;stroke-linecap:round}
+.tr-primitive{stroke:var(--thresh);stroke-width:calc(1.3px*var(--s));stroke-dasharray:calc(5px*var(--s)) calc(3.5px*var(--s))}
+.tr-rim{stroke:var(--rim);stroke-width:calc(1.5px*var(--s));stroke-dasharray:calc(1.5px*var(--s)) calc(2.6px*var(--s));stroke-linecap:round}
 .l-trail{font-size:10.5px;font-weight:600;font-style:italic;fill:var(--ink)}
 .l-trail-c{font-size:11px;font-weight:700;font-style:italic;fill:var(--corridor-lbl)}
 .l-trail-cs{font-size:9.5px;font-weight:600;font-style:italic;fill:var(--corridor-lbl)}

@@ -16,6 +16,8 @@ export function solveLayout({annotations,obstacles=[],viewport,previous,policy={
   const frame={x:viewport.x??0,y:viewport.y??0,width:viewport.width,height:viewport.height};validRect(frame);
   const ordered=[...annotations].sort((a,b)=>Number(!!b.required)-Number(!!a.required)||(b.priority??0)-(a.priority??0)||stable(a.id,b.id));
   const byId=new Map(ordered.map(a=>[a.id,a]));if(byId.size!==ordered.length)throw new Error('Duplicate annotation ID');
+  const featureGroups=new Map(),repeatDistances=new Map();
+  for(const a of ordered){const distance=a.repeatDistance??0;repeatDistances.set(a.id,distance);if(!a.featureId)continue;let group=featureGroups.get(a.featureId);if(!group){group={ids:[],maximum:0};featureGroups.set(a.featureId,group);}group.ids.push(a.id);group.maximum=Math.max(group.maximum,distance);}
   const old=new Map((Array.isArray(previous)?previous:previous?.placements??[]).map(p=>[p.id,p.candidateId]));
   const obstacleIndex=new SpatialIndex(),obstacleMap=new Map();
   obstacles.forEach((o,i)=>{const key=String(i);obstacleMap.set(key,o);const b=o.shape?.bounds??{x:Math.min(o.line.a.x,o.line.b.x)-(o.line.width||0)/2,y:Math.min(o.line.a.y,o.line.b.y)-(o.line.width||0)/2,width:Math.abs(o.line.a.x-o.line.b.x)+(o.line.width||0),height:Math.abs(o.line.a.y-o.line.b.y)+(o.line.width||0)};obstacleIndex.insert(key,b);});
@@ -42,7 +44,8 @@ export function solveLayout({annotations,obstacles=[],viewport,previous,policy={
     }
     for(const id of placedIndex.query(expand(c.shape.bounds,clearance))){if(id===a.id)continue;const other=accepted.get(id);if(other&&shapeIntersects(c.shape,other.shape,clearance))labels.push(id);}
     // Repeat distance is a feature-level constraint, not a rectangle approximation.
-    if(a.featureId)for(const [id,other] of accepted){const b=byId.get(id),distance=Math.max(a.repeatDistance??0,b.repeatDistance??0);if(id===a.id||b.featureId!==a.featureId||distance<=0)continue;const p=center(c.shape),q=center(other.shape);if(Math.hypot(p[0]-q[0],p[1]-q[1])<distance)repeat.push(id);}
+    const group=featureGroups.get(a.featureId);
+    if(group?.maximum>0)for(const id of group.ids){if(id===a.id)continue;const other=accepted.get(id);if(!other)continue;const distance=Math.max(repeatDistances.get(a.id),repeatDistances.get(id));if(distance<=0)continue;const p=center(c.shape),q=center(other.shape);if(Math.hypot(p[0]-q[0],p[1]-q[1])<distance)repeat.push(id);}
     return {hard:[...new Set(hard)].sort(stable),labels:[...new Set(labels)].sort(stable),repeat:[...new Set(repeat)].sort(stable)};
   }
   function accept(a,c){accepted.set(a.id,c);indexPlacement(a.id,c);}

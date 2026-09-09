@@ -23,6 +23,12 @@ cd "$pipeline_dir"
 if ! "$map_python" -c 'import json; from path_geometry import GEOMETRY_VERSION; from contour_smoothing import SMOOTHING_VERSION; d=json.load(open("terrain_hi.json")); raise SystemExit(d.get("geometryVersion") != GEOMETRY_VERSION or bool(d.get("smoothing")) and d["smoothing"].get("version") != SMOOTHING_VERSION)'; then
   "$map_python" process_dem_hi.py
 fi
+# Refresh stale shading without re-extracting or re-smoothing contour geometry.
+for suffix in "" "_hi"; do
+  if ! "$map_python" -c 'import json,sys; from hillshade import HILLSHADE_VERSION; raise SystemExit(json.load(open(sys.argv[1])).get("hillshadeVersion") != HILLSHADE_VERSION)' "terrain${suffix}.json"; then
+    "$map_python" "process_dem${suffix}.py" --shading-only
+  fi
+done
 "$map_python" smooth_terrain.py --cache terrain.json --dem dem.npy --register-only
 "$map_python" smooth_terrain.py
 "$map_python" build_static.py

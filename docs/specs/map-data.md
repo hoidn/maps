@@ -91,7 +91,11 @@ source dates or hashes when needed to attribute a result to particular data.
 ## Terrain JSON
 
 Both processors emit an object with `uri_light`, `uri_dark`, and `contours`.
-The URI fields contain base64 JPEG data URIs. Each contour group is a list of
+The URI fields contain base64 JPEG data URIs. `hillshadeVersion: 2` identifies
+compass-correct lighting. A stale shading version triggers an image-only refresh
+that preserves contours, smoothing metadata and registration. Both processors
+use the shared `hillshade.py` calculation: array derivatives are eastward and
+southward, while light azimuth is clockwise from north. Each contour group is a list of
 records shaped as `{"lv": 2500, "d": ["M..."]}`: `lv` is elevation in feet,
 and `d` contains SVG path strings in the shared map coordinate space.
 

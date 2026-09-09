@@ -1,3 +1,5 @@
+from hillshade import multidirectional, refresh_cache, HILLSHADE_VERSION
+import sys
 from path_geometry import contour_points
 import numpy as np, json, base64, io, time
 from PIL import Image
@@ -16,13 +18,7 @@ print("pixel m", dx, dy, "shape", H, W)
 # ---------- hillshade (multi-directional) ----------
 Zs = gaussian_filter(dem_m, 1.0)
 gy, gx = np.gradient(Zs, dy, dx)
-vex = 1.15
-slope = np.arctan(vex*np.hypot(gx,gy))
-aspect = np.arctan2(-gx, gy)
-def shade(az_deg, alt_deg):
-    az=np.radians(az_deg); alt=np.radians(alt_deg)
-    return np.clip(np.sin(alt)*np.cos(slope) + np.cos(alt)*np.sin(slope)*np.cos(az - np.pi/2 - aspect),0,1)
-hs = 0.55*shade(315,45) + 0.2*shade(270,40) + 0.15*shade(0,50) + 0.10*shade(225,35)
+hs = multidirectional(gx, gy)
 hs = hs/np.percentile(hs,99.5); hs=np.clip(hs,0,1)
 print("hillshade done", time.time()-t0)
 
@@ -50,6 +46,9 @@ def render(rampf, lo, hi, name, q):
 uri_light = render(light, 0.62, 1.10, "terrain_light.jpg", 76)
 uri_dark  = render(dark,  0.55, 1.45, "terrain_dark.jpg", 76)
 print("images done", time.time()-t0)
+if '--shading-only' in sys.argv:
+    refresh_cache('terrain.json',uri_light,uri_dark)
+    sys.exit(0)
 
 # ---------- contours ----------
 Zc = gaussian_filter(Z, 1.6)
@@ -73,5 +72,5 @@ for lv in levels:
     out[key].append({"lv":lv, "d":ds})
     print("level", lv, "segs", len(ds), round(time.time()-t0,1))
 print("total points", npts)
-json.dump({"pixelRegistration":"center", "uri_light":uri_light,"uri_dark":uri_dark,"contours":out}, open("terrain.json","w"))
+json.dump({"hillshadeVersion":HILLSHADE_VERSION, "pixelRegistration":"center", "uri_light":uri_light,"uri_dark":uri_dark,"contours":out}, open("terrain.json","w"))
 print("bytes of contour d:", sum(len(d) for k in out for l in out[k] for d in l["d"])//1024, "KB")

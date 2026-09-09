@@ -98,3 +98,24 @@ not silky; going finer than 50 ft would need tiling.
 Contour labels need a path with an `id`. Putting a copy in `<defs>` duplicated every labelled
 segment. The builder now emits labelled segments as their own `<path id>` elements in the
 visible layer and merges the rest into one path per level.
+
+## 14. Hillshade compass conversion rotated the light by 90 degrees
+
+The previous combination of `atan2(-gx, gy)` and
+`cos(azimuth - pi/2 - aspect)` treated the configured 315° northwest light as
+225° southwest light. Array rows increase southward, so this conversion mixed
+compass and array conventions. It could make the relief difficult to interpret.
+
+Both processors now use a shared surface-normal dot product. In east/north/up
+coordinates the normal is `(-gx, +gy, 1)`, with the existing 1.15 vertical
+exaggeration applied to the gradients. Compass azimuth is clockwise from north,
+matching [GDAL's documented convention](https://gdal.org/en/stable/api/python/utilities.html).
+The light vector is `(sin(az)*cos(alt), cos(az)*cos(alt), sin(alt))`.
+
+Tests cover four cardinal-facing planes, a northwest/southeast pair, a flat
+surface and an independent normalized-vector calculation. Both light and dark
+14× renders were inspected. All 29 Python tests passed. Cached shading was rebuilt
+without changing contour hashes, smoothing reports or pixel registration.
+Caches mark `hillshadeVersion: 2`; `--shading-only` refreshes stale images atomically
+without rerunning contour extraction. The tracked `output/` maps remain the older
+edition until the existing release gate is satisfied.

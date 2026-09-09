@@ -1,3 +1,5 @@
+from hillshade import multidirectional, refresh_cache, HILLSHADE_VERSION
+import sys
 from path_geometry import detail_points, contour_points, GEOMETRY_VERSION
 import numpy as np, json, base64, io, time
 from PIL import Image
@@ -14,11 +16,7 @@ print("pixel m", round(dx, 2), round(dy, 2), "shape", H, W)
 
 Zs = gaussian_filter(dem_m, 1.2)
 gy, gx = np.gradient(Zs, dy, dx)
-slope = np.arctan(1.15 * np.hypot(gx, gy)); aspect = np.arctan2(-gx, gy)
-def shade(az, alt):
-    az = np.radians(az); alt = np.radians(alt)
-    return np.clip(np.sin(alt) * np.cos(slope) + np.cos(alt) * np.sin(slope) * np.cos(az - np.pi / 2 - aspect), 0, 1)
-hs = 0.55 * shade(315, 45) + 0.2 * shade(270, 40) + 0.15 * shade(0, 50) + 0.10 * shade(225, 35)
+hs = multidirectional(gx, gy)
 hs = np.clip(hs / np.percentile(hs, 99.5), 0, 1)
 def ramp(stops):
     e = np.array([s[0] for s in stops], float); c = np.array([s[1] for s in stops], float)
@@ -36,6 +34,9 @@ def render(rampf, lo, hi, name, q):
 uri_light = render(light, 0.62, 1.10, "terrain_hi_light.jpg", 72)
 uri_dark = render(dark, 0.55, 1.45, "terrain_hi_dark.jpg", 72)
 print("images done", round(time.time() - t0))
+if '--shading-only' in sys.argv:
+    refresh_cache('terrain_hi.json',uri_light,uri_dark)
+    sys.exit(0)
 
 # three contour ladders: base 250 ft (index 1000), fine = 100-ft levels not on the 250 ladder, finest = 50-ft levels not on the 100 ladder
 Zc = gaussian_filter(Z, 1.4)
@@ -54,4 +55,4 @@ for lv in range(2300, 8600, 50):
     out[key].append({"lv": lv, "d": ds})
 print("contours done", round(time.time() - t0), "s; points", npts)
 for k in out: print(k, len(out[k]), "levels", sum(len(d) for l in out[k] for d in l["d"]) // 1024, "KB")
-json.dump({"geometryVersion": GEOMETRY_VERSION, "pixelRegistration": "center", "uri_light": uri_light, "uri_dark": uri_dark, "contours": out}, open("terrain_hi.json", "w"))
+json.dump({"hillshadeVersion": HILLSHADE_VERSION, "geometryVersion": GEOMETRY_VERSION, "pixelRegistration": "center", "uri_light": uri_light, "uri_dark": uri_dark, "contours": out}, open("terrain_hi.json", "w"))

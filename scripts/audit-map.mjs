@@ -13,6 +13,7 @@ import {
   collectManagedInventory,
   checkManagedInventory,
 } from "../tests/support/managed-map-adapter.js";
+import {collectTypography,checkTypography} from '../tests/support/typography-audit.js';
 export const legacyPolicy = Object.freeze({
   id: "legacy-rendered-audit-v1",
   version: 1,
@@ -188,6 +189,7 @@ export async function runAudit({
         mode === "legacy"
           ? checkInventory(data.inventory, data.viewport)
           : checkManagedInventory(data, auditPolicy);
+      if(mode==='managed')checks.typography=checkTypography(await page.evaluate(collectTypography),auditPolicy);
       const view = { zoom, ...data, ...checks };
       views.push(view);
       const offenders = [
@@ -241,7 +243,7 @@ export async function runAudit({
         "overlaps",
         "clipped",
         "unresolved",
-        ...(mode === "managed" ? ["missingRequired"] : []),
+        ...(mode === "managed" ? ["missingRequired", "typography"] : []),
       ].map((k) => [k, views.reduce((n, v) => n + v[k].length, 0)]),
     );
     const report = {

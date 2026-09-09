@@ -139,14 +139,24 @@ export async function runAudit({
           await window.mapLayout.whenSettled?.();
         }
       }, theme);
-    const fontReady = !javaScriptEnabled
-      ? await page.evaluate(() => document.fonts.status === "loaded")
-      : await page.evaluate(async () =>
-          Promise.race([
-            document.fonts.ready.then(() => true),
-            new Promise((r) => setTimeout(() => r(false), 10000)),
-          ]),
+    let fontReady;
+    if (!javaScriptEnabled) {
+      // Firefox suppresses page Promise jobs with JS disabled; poll from Node.
+      const deadline = Date.now() + 10000;
+      do {
+        fontReady = await page.evaluate(
+          () => document.fonts.status === "loaded",
         );
+        if (fontReady) break;
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      } while (Date.now() < deadline);
+    } else
+      fontReady = await page.evaluate(async () =>
+        Promise.race([
+          document.fonts.ready.then(() => true),
+          new Promise((resolve) => setTimeout(() => resolve(false), 10000)),
+        ]),
+      );
     const views = [];
     for (const zoom of zoomSamples) {
       if (mode === "legacy") await setLegacyZoom(page, zoom);

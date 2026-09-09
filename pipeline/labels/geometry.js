@@ -47,3 +47,9 @@ export function lineOutsideCircle(line,anchor,radius) {
   if(leave<1)parts.push({...line,a:at(leave)});
   return parts;
 }
+
+/** Distance from a geographic anchor to the nearest edge of a label footprint. */
+export function anchorDistance(rect,anchor) {
+  if(!rect||!anchor)return Infinity;
+  return Math.hypot(Math.max(rect.x-anchor[0],0,anchor[0]-rect.x-rect.width),Math.max(rect.y-anchor[1],0,anchor[1]-rect.y-rect.height));
+}

@@ -1,7 +1,7 @@
 import {MotionPreview} from './motion-preview.js';
 import {validateManifest} from './schema.js';
 import {ensureFonts,measureElement,MetricCache} from './measure.js';
-import {moveShape,intersects} from './geometry.js';
+import {moveShape,intersects,anchorDistance} from './geometry.js';
 import {pointCandidates,regionCandidates} from './candidates.js';
 import {measurePointVariants} from './point-variants.js';
 import {solveLayout} from './place.js';
@@ -286,10 +286,11 @@ export class LayoutController {
                 if(a.kind==='symbol'&&facilityCounts.get(a.featureId)>1)item.facilityOffsets=[[16,0],[-16,0],[0,16],[0,-16],[12,12],[-12,12],[12,-12],[-12,-12]];
                 const policy={...this.policy,densePointCandidates:item.required};item.candidates=pointCandidates(item,metric,policy);
                 for(const v of cached.pointVariants||[])item.candidates.push(...pointCandidates(item,moveShape(v.shape,dx,dy),policy).map(c=>({...c,id:v.id+'-'+c.id,textHTML:v.textHTML})));
-                if(a.kind==='point-label'&&!policy.densePointCandidates)item.fallbackCandidates=function*(){
+                if(a.kind==='point-label'&&!policy.densePointCandidates)item.fallbackCandidates=()=>{
                   const dense={...policy,densePointCandidates:true,densePointStep:2};
-                  yield* pointCandidates(item,metric,dense).filter(c=>c.id.startsWith('grid-'));
-                  for(const v of cached.pointVariants||[])yield* pointCandidates(item,moveShape(v.shape,dx,dy),dense).filter(c=>c.id.startsWith('grid-')).map(c=>({...c,id:v.id+'-'+c.id,textHTML:v.textHTML}));
+                  const all=pointCandidates(item,metric,dense).filter(c=>c.id.startsWith('grid-'));
+                  for(const v of cached.pointVariants||[])all.push(...pointCandidates(item,moveShape(v.shape,dx,dy),dense).filter(c=>c.id.startsWith('grid-')).map(c=>({...c,id:v.id+'-'+c.id,textHTML:v.textHTML})));
+                  return all.sort((a,b)=>anchorDistance(a.shape.bounds,item.anchor)-anchorDistance(b.shape.bounds,item.anchor));
                 };
               }
             }

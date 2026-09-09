@@ -3,6 +3,8 @@
   "clearance": 2,
   "edgePadding": 4,
   "maxPointDisplacement": 32,
+  "pointPreferredDistance": 12,
+  "pointDistanceBand": 4,
   "repeatDistance": 180,
   "staticProfile": "static-default",
   "requiredRoutes": ["Bright Angel Trail", "South Kaibab Trail", "North Kaibab Trail"],

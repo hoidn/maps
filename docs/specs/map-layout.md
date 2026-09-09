@@ -77,8 +77,12 @@ exception remains available for displaced facility candidates; only trail
 centerline portions inside that disk are exempt. Generic allowed-obstacle IDs
 do not waive protected trails.
 
-Place names try their usual positions first. If none fits, the solver lazily
-requests a denser set of placements (2px grid interactively) within the same
+Place names rank positions by distance from the anchor to the label footprint,
+in 4px bands (`pointDistanceBand`). Previous placement and authored order break
+ties within a band; they cannot keep a label substantially farther away when a
+closer candidate fits. If none fits, or the first valid placement is farther
+than 12px (`pointPreferredDistance`), the solver lazily requests a denser set of
+placements (2px grid interactively), nearest first across text variants, within the same
 32px distance limit, including declared two- and three-line word-preserving
 wraps. Every fallback undergoes the same collision and frame checks. Point
 names and symbols are not dropped because the curved-label candidate budget

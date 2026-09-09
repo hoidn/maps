@@ -1,4 +1,4 @@
-import {contains,expand,shapeIntersects,lineHitsRect,lineOutsideCircle,validRect} from './geometry.js';
+import {contains,expand,shapeIntersects,lineHitsRect,lineOutsideCircle,validRect,anchorDistance} from './geometry.js';
 import {SpatialIndex} from './spatial-index.js';
 const stable=(a,b)=>a<b?-1:a>b?1:0;
 const validShape=s=>{try{return Array.isArray(s?.parts)&&s.parts.length>0&&s.parts.every(r=>contains(validRect(s.bounds),validRect(r)));}catch{return false;}};
@@ -29,7 +29,8 @@ export function solveLayout({annotations,obstacles=[],viewport,previous,policy={
   obstacles.forEach((o,i)=>{const key=String(i);obstacleMap.set(key,o);const b=o.shape?.bounds??{x:Math.min(o.line.a.x,o.line.b.x)-(o.line.width||0)/2,y:Math.min(o.line.a.y,o.line.b.y)-(o.line.width||0)/2,width:Math.abs(o.line.a.x-o.line.b.x)+(o.line.width||0),height:Math.abs(o.line.a.y-o.line.b.y)+(o.line.width||0)};obstacleIndex.insert(key,b);});
   const accepted=new Map(),hardCache=new Map();let placedIndex=new SpatialIndex();
   const indexPlacement=(id,c)=>placedIndex.insert(id,c.shape.bounds);
-  const candidates=a=>{const cs=[...(a.candidates??[])];const ix=cs.findIndex(c=>c.id===old.get(a.id));if(ix>0)cs.unshift(...cs.splice(ix,1));return cs;};
+  const proximity=(a,c)=>a.kind==='point-label'&&a.anchor?Math.floor((anchorDistance(c.shape?.bounds,a.anchor)+1e-6)/(policy.pointDistanceBand??4)):0;
+  const candidates=a=>{const cs=[...(a.candidates??[])];const ix=cs.findIndex(c=>c.id===old.get(a.id));if(ix>0)cs.unshift(...cs.splice(ix,1));return cs.sort((c,d)=>proximity(a,c)-proximity(a,d));};
   function blockers(a,c) {
     const labels=[],repeat=[];
     let cache=hardCache.get(a.id);if(!cache){cache=new Map();hardCache.set(a.id,cache);}
@@ -73,9 +74,10 @@ export function solveLayout({annotations,obstacles=[],viewport,previous,policy={
     accepted.clear();for(const [id,v] of snapshot)accepted.set(id,v);rebuild();return false;
   }
   function place(a){if(a.eligibleReason||accepted.has(a.id))return;const recorded=[];if(placementDiagnostics)attemptFailures.set(a.id,recorded);for(const c of candidates(a)){const b=blockers(a,c);if(placementDiagnostics)recorded.push(b);if(!b.hard.length&&!b.labels.length&&!b.repeat.length){accept(a,c);break;}}
-    if(!accepted.has(a.id)&&a.fallbackCandidates){
+    if(a.fallbackCandidates&&(!accepted.has(a.id)||a.kind==='point-label'&&a.anchor&&anchorDistance(accepted.get(a.id).shape.bounds,a.anchor)>(policy.pointPreferredDistance??12))){
       const extra=a.fallbackCandidates();a.fallbackCandidates=null;
-      for(const c of extra){a.candidates.push(c);const b=blockers(a,c);if(placementDiagnostics)recorded.push(b);if(!b.hard.length&&!b.labels.length&&!b.repeat.length){accept(a,c);break;}}
+      for(const c of extra){a.candidates.push(c);const current=accepted.get(a.id);if(current&&proximity(a,c)>=proximity(a,current))continue;
+        const b=blockers(a,c);if(placementDiagnostics)recorded.push(b);if(!b.hard.length&&!b.labels.length&&!b.repeat.length){accept(a,c);if(a.kind!=='point-label'||anchorDistance(c.shape.bounds,a.anchor)<=(policy.pointPreferredDistance??12))break;}}
     }
     if(!accepted.has(a.id)&&(policy.repairMaxNeighbors??2)>0)for(const c of candidates(a)){const b=blockers(a,c);if(b.labels.length&&repair(a,c,b))break;}
   }

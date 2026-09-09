@@ -39,3 +39,18 @@ test('river polygons widen geographically and follow water and theme controls',a
  expect(result.missing).toBe(false);expect(result.ratio).toBeCloseTo(8,3);expect(result.sameGeometry).toBe(true);
  expect(result.light).not.toBe(result.dark);expect(result.hidden).toBe(true);expect(result.stroke).toBe('none');
 });
+
+test('place names return close to their anchors instead of retaining distant positions',async({page})=>{
+ test.skip(!fs.existsSync(candidate),'Build cached map candidates first');
+ await page.goto('file://'+candidate);
+ const samples=await page.evaluate(async()=>{
+  await mapLayout.ready;await mapLayout.whenSettled();
+  const f=mapLayout.manifest.features.find(f=>f.name==='Havasupai Gardens'),a=mapLayout.manifest.annotations.find(a=>a.featureId===f.id&&a.kind==='point-label'),out=[];
+  for(const z of [2,3,4.5,8,14,8,3,2]){
+   const w=1300/z,h=1070/z;mapLayout.requestView({x:f.anchor[0]-w/2,y:f.anchor[1]-h/2,w,h});await mapLayout.whenSettled();
+   const e=document.getElementById(a.id),r=e.getBoundingClientRect(),p=new DOMPoint(...f.anchor).matrixTransform(mapLayout.svg.getScreenCTM());
+   out.push({z,visible:getComputedStyle(e).display!=='none'&&getComputedStyle(e).visibility==='visible',gap:Math.hypot(Math.max(r.left-p.x,0,p.x-r.right),Math.max(r.top-p.y,0,p.y-r.bottom))});
+  }return out;
+ });
+ for(const s of samples){expect(s.visible,JSON.stringify(s)).toBe(true);expect(s.gap,JSON.stringify(s)).toBeLessThanOrEqual(16);}
+});

@@ -20,6 +20,7 @@ from .transport import transport_style
 from .hydro import hydro_style
 from .poi import poi_style
 from .symbols import symbol_svg
+from .entities import match_display_repeats
 
 PALETTE={'road':'var(--road-fill)','trail':'var(--trail-ink)','restricted':'var(--restricted-ink)'}
 
@@ -274,8 +275,9 @@ def render_scene(features,routes,spec,M,existing=(),distances=()):
   M.features[a['featureId']]['name']=before_name
   groups['trail-labels'].append(raw);distance_count+=1
  apply_point_importance(M,spec)
+ display_matches=match_display_repeats(M,features,spec)
  result={k:('<defs>'+''.join(v)+'</defs>' if k=='defs' else f'<g class="{k}">'+''.join(v)+'</g>') for k,v in groups.items()}
- return result,{'selected':dict(selected),'omitted':omitted,'styles':list(styles.values()),'facilitySymbols':dict(Counter(a['symbolKind'] for a in M.annotations if a['kind']=='symbol')),'distanceLabels':{'generated':distance_count,'omitted':distance_omissions,'method':'Font advance lower bound at native sheet width; supported maximum 14x interactive or 1x static; final browser placement remains authoritative'}}
+ return result,{'displayRepeatMatches':display_matches,'selected':dict(selected),'omitted':omitted,'styles':list(styles.values()),'facilitySymbols':dict(Counter(a['symbolKind'] for a in M.annotations if a['kind']=='symbol')),'distanceLabels':{'generated':distance_count,'omitted':distance_omissions,'method':'Font advance lower bound at native sheet width; supported maximum 14x interactive or 1x static; final browser placement remains authoritative'}}
 
 def augment_svg(svg,M,spec,catalog):
  root=ET.fromstring(svg);replace={'hydro','roads','trails','hits','hydro-labels','trail-labels'};discard=set()

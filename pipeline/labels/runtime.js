@@ -1,3 +1,5 @@
+import {PackedContourStore} from './packed-contour-store.js';
+import packedContourWorker from './dist/packed-contour-worker.txt';
 import {RoundFailures} from './round-failures.js';
 import {PLACEMENT_ROUNDS,roundEligibility} from './placement-rounds.js';
 import {initialBatch} from './initial-batch.js';
@@ -42,6 +44,8 @@ export class LayoutController {
     if(this.mode==='interactive')this.trackGestures();
     this.createDirectory();
     const textControl=document.getElementById('text-size');if(textControl){textControl.value=String(this.textScale);textControl.addEventListener('change',()=>this.setTextScale(Number(textControl.value)));}
+    this.pageHidden=event=>{if(event.persisted)return;this.unloaded=true;this.packedContours?.close();this.initialPlacer?.close();this.renderer?.destroy();this.cancelSettling();clearTimeout(this.settleTimer);cancelAnimationFrame(this.quietFrame);cancelAnimationFrame(this.frame);cancelAnimationFrame(this.fontWatch);this.frame=null;this.settlePending=false;this.observer?.disconnect();window.removeEventListener('pagehide',this.pageHidden);};
+    window.addEventListener('pagehide',this.pageHidden);
     this.ready=this.initialize();
   }
   trackGestures(){
@@ -68,20 +72,22 @@ export class LayoutController {
   }
   async initialize(){
     try {
+      if(this.mode==='interactive'){this.packedContours=PackedContourStore.from(this.svg,this.manifest.map,packedContourWorker);this.packedContours?.prefetch(this.view);}
       await ensureFonts(this.policy.fontFamilies);
+      if(this.unloaded)throw new DOMException('Map unloaded','AbortError');
       if(this.mode==='interactive'){
         this.starting=true;this.initialPlacer=new InitialPlacementClient();
-        this.preview=new MotionPreview(this.svg,this.manifest.map);
         const backend=new URLSearchParams(location.search).get('renderer')||this.svg.dataset.renderer||'svg';
-        if(['canvas','webgl'].includes(backend))try{this.renderer=new CanvasMapRenderer(this,backend);}catch(error){this.rendererError=error.message;}
+        if(!['canvas','webgl'].includes(backend))await this.packedContours?.hydrateAll();
+        this.preview=new MotionPreview(this.svg,{...this.manifest.map,packedContours:this.packedContours});
+        if(['canvas','webgl'].includes(backend))try{this.renderer=new CanvasMapRenderer(this,backend);}catch(error){this.rendererError=error.message;await this.packedContours?.hydrateAll();}
         const renderer=this.renderer;
         renderer?.ready.then(()=>{
           if(this.renderer===renderer){this.startupRendererReady=renderer;if(this.starting)this.schedule();}
         },()=>{}); // The initial transaction reports renderer preparation failure.
         this.preview.ready.catch(()=>{}); // The initial transaction reports preparation failures.
-        try{let committed=false;while(!committed){this.status='ready';committed=await this.render(true);if(this.status==='error')throw new Error(this.error);if(!committed){this.cache.invalidate();this.lineCache.clear();await ensureFonts(this.policy.fontFamilies);}}}
+        try{let committed=false;while(!committed){if(this.unloaded)throw new DOMException('Map unloaded','AbortError');this.status='ready';committed=await this.render(true);if(this.status==='error')throw new Error(this.error);if(!committed){this.cache.invalidate();this.lineCache.clear();await ensureFonts(this.policy.fontFamilies);}}}
         finally{this.starting=false;}
-        window.addEventListener('pagehide',()=>this.initialPlacer.close(),{once:true});
       }else{this.status='ready';this.render(true);}
       this.observer=new ResizeObserver(()=>{
         if(this.status!=='ready')return;
@@ -156,6 +162,7 @@ export class LayoutController {
     }else{this.preview?.show();this.camera(false);this.preview?.render(this.view,this.svg.getBoundingClientRect());}
   }
   schedule(){
+    if(this.unloaded)return;
     if(this.status==='loading'&&this.starting){
       if(!this.frame)this.frame=requestAnimationFrame(()=>{this.frame=null;if(this.status==='loading')this.paintStartupCamera();else this.render(false);});
       return;
@@ -183,6 +190,7 @@ export class LayoutController {
   }
   wheelGesture(){this.beginGesture('wheel');clearTimeout(this.wheelTimer);this.wheelTimer=setTimeout(()=>{this.wheelTimer=null;this.endGesture('wheel');},120);}
   scheduleSettled(delay=80){
+    if(this.unloaded)return;
     const generation=this.settleGeneration=(this.settleGeneration??0)+1;
     clearTimeout(this.settleTimer);cancelAnimationFrame(this.quietFrame);
     this.settleTimer=null;this.quietFrame=null;this.settlePending=true;
@@ -501,6 +509,7 @@ export class LayoutController {
           try {
             const line=a.kind==='line-label'&&(a.geometryId||a.geometryIds?.length);
             if(line){
+              if(this.packedContours?.needsAnnotation(a)){this.rendering=false;await this.packedContours.ensureAnnotation(a);if(cooperative&&!validSnapshot())throw new DOMException('Placement cancelled','AbortError');this.rendering=true;}
               const parentMatrix=e.parentElement.getScreenCTM(),cached=this.lineCache.get(a.id);
               if(cached)try{
                 // Empty results also belong to a particular scale: a path too
@@ -535,7 +544,7 @@ export class LayoutController {
                 }
               }
             }
-          }catch(error){item.eligibleReason=error.message.includes('overflow')?'no-valid-candidate':'invalid-metrics';item.metricError=error.message;}
+          }catch(error){if(error.name==='AbortError')throw error;item.eligibleReason=error.message.includes('overflow')?'no-valid-candidate':'invalid-metrics';item.metricError=error.message;}
           prepared.push(item);
         }
       }
@@ -584,7 +593,7 @@ export class LayoutController {
         this.status='loading';this.rendering=false;
         return await this.initialPlacer.solve(payload).then(async result=>{
           // Read the current preparation promise: a layer/theme change can replace it.
-          if(this.renderer){const renderer=this.renderer;try{await renderer.ensureView(this.view);}catch(error){this.rendererError=error.message;if(this.renderer===renderer)renderer.fallback(error);}}
+          if(this.renderer){const renderer=this.renderer;try{await renderer.ensureView(this.view);}catch(error){this.rendererError=error.message;if(this.packedContours?.error)throw error;if(this.renderer===renderer)renderer.fallback(error);}}
           if(!this.renderer){let ready;do{ready=this.preview.ready;await ready;}while(ready!==this.preview.ready);}
           const current=[...document.fonts];
           if(current.length!==faces.length||current.some((face,i)=>face!==faces[i]?.[0]||face.status!==faces[i]?.[1])){

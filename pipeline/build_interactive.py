@@ -124,6 +124,7 @@ def trail_label_near(chain, lat, lon, half, text, cls, off=9, flip=False):
     return trail_label(chain, max(d - half, 0), d + half, text, cls, off, flip)
 
 # ---------------------------------------------------------------- symbols
+from cartography.contour_payload import pack_contours
 from cartography.symbols import camp_symbol, symbol_svg, symbol_at
 def _symbol_svg(kind, lat, lon, dx=0, dy=0):
     X, Y = P(lat, lon)
@@ -462,6 +463,7 @@ svg = f'''<svg id="mapsvg" data-renderer="{args.renderer}" class="map" viewBox="
 from cartography.integration import improve, catalog_panel, transport_legend
 svg, cartography_context = improve(svg, M, DEM / 3.28084)
 svg = M.finalize(svg)
+svg, contour_payload = pack_contours(svg)
 
 # ---------------------------------------------------------------- mileage tables & profile
 def stops_table(chain, stops, title, note):
@@ -673,6 +675,7 @@ page = f'''<meta charset="utf-8">
 </footer>
 </main>
 {M.script()}
+{contour_payload}
 {layout_script()}
 <script>{JS}</script>
 '''

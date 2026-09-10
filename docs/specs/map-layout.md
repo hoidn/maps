@@ -179,7 +179,9 @@ the measured typography and selected text variant together with placement.
 Worker construction/execution failure uses the same numerical solver in
 cancellable cooperative slices on the main thread. These slices do not establish
 a hard latency bound. Static finalization retains synchronous placement.
-The worker is released on page hide.
+Workers are released on final page hide, including during initialization;
+persisted page-cache transitions retain their state. Final page hide also
+cancels pending placement and renderer scheduling.
 
 Contour preparation exposes `readyFor(view)`/`isReady(view)` for complete visible
 tiers and retains `ready`/`initialized` for the complete source inventory. SVG
@@ -196,6 +198,19 @@ geometry. Deep initial views wait for all their required tiers. Unsupported
 late WebGL geometry follows the same complete Canvas fallback as initial failure.
 These interfaces do not promise a latency bound for a first visit to pending
 high-detail geometry, or establish the separate startup speedup target.
+
+Interactive source paths may use the lossless
+[embedded contour payload](map-data.md#embedded-interactive-contour-geometry).
+The store retains decoded Float64 world-coordinate runs; `ContourPreview.items`
+keeps the same source-element, runs, chunks and bounds interface as inline SVG.
+Canvas/WebGL prepare those runs directly. A contour used by a text path receives
+its exact native `d` before DOM measurement, with the placement snapshot checked
+again after asynchronous hydration. Native SVG mode and renderer fallback
+hydrate the complete authored contour inventory before publishing a settled
+native view. Fallback hydration participates in controller idle; failed decoding
+cannot become successful readiness merely because a pending counter reached
+zero. Final page hide rejects pending decoding and prevents later source writes.
+Frozen static finalization and its JavaScript-disabled delivery are unchanged.
 
 Interactive pointer drags defer scheduled settled layout until all accepted
 pointers are released, cancelled or lose capture (window blur also releases the

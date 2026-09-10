@@ -18,7 +18,7 @@ export class CanvasMapRenderer{
   this.hitContext=document.createElement('canvas').getContext('2d');
   this.geometryPending=1;this.baseReady=this.prepare();
   this.ready=this.baseReady.then(()=>this.ensureView(controller.view));this.ready.catch(()=>{});
-  this.complete=Promise.all([this.baseReady,controller.preview.contours.ready]).then(async()=>{if(this.gpu){const gpu=this.gpu;try{await gpu.prepare();}catch(error){if(this.gpu===gpu)this.useCanvas(error);}}}).catch(error=>{if(this.controller.renderer===this)this.fallback(error);}).finally(()=>{this.geometryPending=0;this.controller.resolveWaiters();});
+  this.complete=Promise.all([this.baseReady,controller.preview.contours.ready]).then(async()=>{if(this.gpu){const gpu=this.gpu;try{await gpu.prepare();}catch(error){if(this.gpu===gpu)this.useCanvas(error);}}this.geometryComplete=true;}).catch(error=>{if(this.controller.renderer===this)this.fallback(error);}).finally(()=>{this.geometryPending=0;this.controller.resolveWaiters();});
   this.baseReady.then(()=>{if(this.controller.renderer===this)this.controller.schedule();},()=>{}); // The initial transaction awaits and reports preparation failure.
   this.themeObserver=new MutationObserver(()=>this.refresh());this.themeObserver.observe(document.documentElement,{attributes:true,attributeFilter:['data-theme','style','class']});
   this.media=matchMedia('(prefers-color-scheme: dark)');this.themeChanged=()=>this.refresh();this.media.addEventListener('change',this.themeChanged);
@@ -32,8 +32,8 @@ export class CanvasMapRenderer{
   this.basePrepared=true;
  }
  isViewReady(view){
-  if(!this.basePrepared)return false;
-  if(!this.controller.layers.contours||!this.geometryPending)return true;
+  if(!this.basePrepared||this.controller.preview.contours.failure)return false;
+  if(!this.controller.layers.contours||this.geometryComplete)return true;
   const z=this.controller.manifest.map.width/view.w;
   return this.controller.preview.contours.isReady(view)&&(!this.gpu||this.gpu.isReadyFor(z));
  }
@@ -79,7 +79,13 @@ export class CanvasMapRenderer{
   if(this.active)return;this.originalOpacity=this.svg.style.opacity;this.svg.style.opacity='0';this.svg.dataset.mapRenderer=this.backend;
   this.pointerStyle=document.createElement('style');this.pointerStyle.textContent='#mapsvg[data-map-renderer] *{pointer-events:none!important}';this.svg.after(this.pointerStyle,...this.canvases);this.active=true;
  }
- fallback(error){this.error=error?.message||String(error);this.destroy();this.controller.renderer=null;this.controller.invalidateLayout();this.controller.schedule();}
+ fallback(error){
+  const packed=this.controller.packedContours;
+  if(packed&&!packed.allHydrated){
+   if(!this.packedFallback){this.refreshPending++;this.packedFallback=packed.hydrateAll().then(()=>{this.refreshPending--;this.fallback(error);},failure=>{this.refreshPending--;this.controller.status='error';this.controller.error=failure.message;this.controller.details.textContent='Map geometry unavailable: '+failure.message;this.clearLabels();this.controller.visibleIds.clear();packed.close();this.controller.resolveWaiters();});}
+   return;
+  }
+  this.error=error?.message||String(error);this.destroy();this.controller.renderer=null;this.controller.invalidateLayout();this.controller.schedule();}
  destroy(){if(this.controller.renderer===this)this.controller.renderer=null;window.removeEventListener('pagehide',this.pageHidden);this.gpu?.destroy();this.active=false;this.generation++;this.refreshGeneration++;this.canvases.forEach(c=>{c.remove();c.width=c.height=1;});this.labels.clear();this.painted=[];this.pointerStyle?.remove();this.svg.style.opacity=this.originalOpacity||'';delete this.svg.dataset.mapRenderer;this.themeObserver?.disconnect();this.media?.removeEventListener('change',this.themeChanged);}
  camera(view){
   const r=this.svg.getBoundingClientRect(),m=viewMatrix(view,r),z=this.controller.manifest.map.width/view.w;

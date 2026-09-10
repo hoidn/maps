@@ -9,9 +9,9 @@ const backgroundOnly=e=>e.matches(BACKGROUND)&&!e.matches(VECTOR)&&!e.querySelec
  * Source nodes are retained
  * behind placeholders and restored synchronously before every settled pass. */
 export class MotionPreview {
-  constructor(svg,{width,height,maxBytes=24*1024*1024}){
+  constructor(svg,{width,height,maxBytes=24*1024*1024,packedContours=null}){
     this.svg=svg;this.width=width;this.height=height;this.maxBytes=maxBytes;
-    this.generation=0;this.active=false;this.detached=[];this.contours=new ContourPreview(svg,{width,height},{defer:true});
+    this.generation=0;this.active=false;this.detached=[];this.contours=new ContourPreview(svg,{width,height},{defer:true,packedContours});
     this.themeObserver=new MutationObserver(()=>this.invalidate());
     this.themeObserver.observe(document.documentElement,{attributes:true,attributeFilter:['data-theme','class','style']});
     this.media=matchMedia('(prefers-color-scheme: dark)');this.themeChanged=()=>this.invalidate();this.media.addEventListener('change',this.themeChanged);

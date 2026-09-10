@@ -600,3 +600,47 @@ still needs durable general generator encoding, asynchronous worker-failure
 recovery, an explicit compression API fallback, corruption/lifecycle tests,
 Sequoia checks, memory accounting and the full release gate. The ignored prototype
 has not been promoted and is not a substitute for those checks.
+
+## Dependency-free packed contour adoption (source checkpoint)
+
+The production encoder now uses a lossless delta-of-delta varint stream rather
+than the prototype's gzip stream. Its payload is only slightly larger and has
+no compression API or dependency fallback requirement. The owning format and
+hydration interfaces are in [map data](specs/map-data.md#embedded-interactive-contour-geometry)
+and [map layout](specs/map-layout.md#interactive-controller). Static authored
+geometry is unchanged. Both interactive builder hooks are present; no candidate
+or promoted output was replaced during this checkpoint.
+
+Ignored variants inject the current bundle and durable encoder into the same
+cached source HTML, without rebuilding shared `dist` or candidate files:
+
+| Region | Original HTML bytes | Packed HTML bytes | Packed paths |
+|---|---:|---:|---:|
+| Grand Canyon | 53,172,341 | 26,907,030 | 491 |
+| Sequoia | 39,004,293 | 23,973,692 | 2,932 |
+
+Evidence is `artifacts/startup/packed-contours/maps/inputs.json`. Packed hashes
+are `295765b297e57f601d497d1d62ef81408f4e9f8810756d7f96a4e6208127098d`
+and `b368fa126c87344ec805ce65b421364547985d4dcb0053dd1e5263edb427c5df`.
+Reconstructing every packed path restores the entire original SVG byte-for-byte,
+including source attributes, styles and ordering. Real-map Chromium checks cover
+Canvas, WebGL, initial 5× native SVG, a 5× camera transition and complete native
+fallback in both regions. All tier source hashes match, and no completed-camera
+inventory mismatch or page error was recorded. Sequoia retains its four authored
+zero-length paths; expected path lengths are derived from the original geometry.
+
+The focused suite has 33 three-engine browser cases covering actual contour
+pixels, missing compression APIs, worker failures, deep cameras, unsupported and
+unrecognized renderer fallback, delayed geometry with camera/theme/layer changes,
+initial and late corruption, and final page hide during startup. Eleven decoder,
+transport and ownership Node cases and three Python encoder cases pass; the
+complete Node suite passes 168 tests. Regression tests exposed and fixed a failed
+geometry job reaching a falsely successful pending-counter fast path, an unknown
+renderer leaving native paths empty, and placement-worker cleanup being installed
+too late to handle shutdown during initialization.
+
+These checks establish the encoding and lifecycle behavior, not a new speedup.
+The varint codec has no matched startup timing yet. The earlier gzip prototype's
+1.30–1.50× matched improvement does not transfer automatically, and the original
+3× initial-camera-response target remains unmet. Durable cached rebuild, full
+release validation, final pixel/visual review and promotion remain pending.

@@ -134,6 +134,16 @@ from a checked source item. Keep it updated as requests and evidence arrive.
   investigate immutable area geometry/indexing (`review_startup`) and initial
   contour preparation (`startup_investigation`) with unchanged correctness checks.
   10× label placement is an additional objective, not a substitute.
+- [ ] Adopt lossless packed contours in both interactive builders to reduce HTML
+  parsing work. Source uses dependency-free delta-of-delta varints, validated
+  worker/cooperative decoding, exact native SVG hydration and fail-closed
+  geometry readiness. Eleven Node, three Python and 33 focused browser checks
+  pass, including deep views, delayed detail, worker/renderer fallback,
+  corruption and final page hide. Ignored variants are 26.9 MB Grand Canyon and
+  24.0 MB Sequoia; complete SVG byte roundtrip and Chromium Canvas/WebGL/native
+  fallback checks pass in both regions. Durable rebuild, full release validation
+  and matched timings of this codec remain pending; the earlier gzip prototype
+  did not meet the original 3× target.
 - [ ] Rebuild current candidates, run complete release gate/static audits, promote
   both local outputs through verified atomic promotion, then merge into main.
   Latest cached rebuild completed with six static audits; frozen input hashes:

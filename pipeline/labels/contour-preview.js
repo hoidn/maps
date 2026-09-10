@@ -3,8 +3,8 @@ const NS='http://www.w3.org/2000/svg';
 /** Reuse parsed contour paths, but draw strokes at the current camera scale.
  * Only plain, untransformed contour groups are eligible; other SVG stays live. */
 export class ContourPreview {
-  constructor(svg,map,{defer=false}={}){
-    this.svg=svg;this.map=map;this.items=[];this.layers=[];this.rgbaBytes=0;
+  constructor(svg,map,{defer=false,packedContours=null}={}){
+    this.svg=svg;this.map=map;this.packedContours=packedContours;this.items=[];this.layers=[];this.rgbaBytes=0;
     this.element=document.createElementNS(NS,'foreignObject');this.element.dataset.layoutContourPreview='';this.element.setAttribute('pointer-events','none');
     this.canvas=document.createElement('canvas');this.canvas.style.cssText='width:100%;height:100%;display:block';this.element.append(this.canvas);
     this.context=this.canvas.getContext('2d');this.initialized=false;
@@ -50,7 +50,16 @@ export class ContourPreview {
       this.initialized=true;
     }catch(error){this.failure=error;for(const waiter of this.tierWaiters.splice(0))waiter.reject(error);throw error;}
   }
-  preparePath({e,groups,minZoom,order}){
+  async preparePath(entry){
+    const {e,minZoom,order}=entry;
+    if(!e.hasAttribute('data-packed-contour'))return this.prepareNativePath(entry);
+    if(!this.packedContours)throw new Error('Missing packed contour source');
+    const item=await this.packedContours.get(e),runs=item.runs.map(run=>{
+      const points=run.points,original=new Path2D();original.moveTo(points[0],points[1]);for(let i=2;i<points.length;i+=2)original.lineTo(points[i],points[i+1]);return {...run,original};
+    });
+    return {e,minZoom,order,runs,bounds:item.bounds,path:null};
+  }
+  prepareNativePath({e,groups,minZoom,order}){
     const d=e.getAttribute('d'),runs=contourRuns(d)?.map(points=>{
       let x=Infinity,y=Infinity,right=-Infinity,bottom=-Infinity;
       for(let i=0;i<points.length;i+=2){x=Math.min(x,points[i]);y=Math.min(y,points[i+1]);right=Math.max(right,points[i]);bottom=Math.max(bottom,points[i+1]);}

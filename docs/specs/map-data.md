@@ -174,6 +174,37 @@ bytes as base64. Its JavaScript decoder reads that byte order explicitly and use
 the same geographic frame. Change encoder and decoder together. This reduced,
 rounded readout is not the full-resolution bilinear sampler used by the tables.
 
+## Embedded interactive contour geometry
+
+Interactive builders may replace exactly representable contour `d` attributes
+with empty source-path shells and an inert `map-contour-payload` JSON script.
+Frozen static output keeps the complete authored SVG. Packing preserves path
+identity, attributes, group order, source attribution and map coordinates; it
+does not simplify geometry. Unsupported path syntax remains inline unchanged.
+The current encoder accepts absolute `M` polyline runs with exactly three decimal
+places whose coordinates round-trip lexically at scale 1000 within signed int32.
+
+Version 1 uses `encoding: "delta2-varint"`, `scale: 1000`, a total `pathCount`,
+and tiers at zoom 0, 2 and 4.5 according to inherited contour detail classes.
+Each tier records ordered shell IDs, coordinate count, byte count, CRC32,
+`sourceSha256` and base64 `data`. The decoded byte stream starts with ASCII
+`CTP1`, followed by unsigned varint path count. Each path contains its shell ID
+and run count; each run contains its even coordinate count and alternating x/y
+coordinates encoded as zigzag signed second differences. Both axis predictors
+reset to zero at each run. Varints are canonical base-128, least significant
+group first. `sourceSha256` hashes the original UTF-8 `d` strings joined with
+NUL in tier order; it supports independent lossless-roundtrip verification.
+
+The decoder validates ownership, tier membership, version, checksums, counts,
+integer bounds and complete consumption before publishing decoded geometry.
+CRC32 detects payload corruption; it is not an authenticity guarantee. Worker
+transport failure runs the same dependency-free decoder cooperatively on the
+main thread. No compression API, external request or extra package is required.
+Malformed geometry is an explicit initialization/rendering error, never a
+completed camera frame with missing visible contours. The owning
+[layout interface](map-layout.md#interactive-controller) defines demand
+preparation, native SVG hydration and controller readiness.
+
 ## Known enforcement gaps
 
 The legacy static fetch does not verify returned extent; legacy fetchers do not

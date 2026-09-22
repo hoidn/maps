@@ -27,7 +27,7 @@ class RegionBuilderTests(unittest.TestCase):
       self.assertTrue('data-renderer="svg"' in html,'data-renderer="svg"')
       for text in ('class="ctl"','id="readout"','// ---- cursor DEM','Drag to pan','id="map-interaction"','class="hit"','id="map-contour-payload"'):
        self.assertFalse(text in html,text)
-      self.assertRegex(html,r'<path class="c[ix][^"]*" d="M')
+      self.assertIsNotNone(re.search(r'<path class="c[ix][^"]*"[^>]* d="M',html),'Static contours must remain inline SVG')
       self.assertTrue('Trail Sheet</title>' in html,'Trail Sheet</title>')
      else:
       for text in ('class="ctl"','id="readout"','// ---- cursor DEM','Drag to pan','id="map-interaction"','class="hit"'):

@@ -4,7 +4,7 @@ Metric working coordinates are used for distance, buffers and network operations
 from dataclasses import dataclass
 from functools import cached_property
 from pathlib import Path
-import json,math,re
+import json,math,re,hashlib,unicodedata
 from pyproj import CRS,Transformer,Geod
 MAPS=Path(__file__).with_name('maps')
 @dataclass(frozen=True)
@@ -21,10 +21,25 @@ class MapSpec:
  required_routes:tuple=()
  sources:tuple=()
  def __post_init__(self):
-  if not isinstance(self.id,str) or not re.fullmatch(r'[a-z][a-z0-9_]*',self.id):raise ValueError('Invalid map ID: use lowercase letters, digits and underscores')
+  if not isinstance(self.id,str) or not re.fullmatch(r'[a-z][a-z0-9_-]*',self.id):raise ValueError('Invalid map ID: use lowercase letters, digits, underscores and hyphens')
  @classmethod
  def configured_ids(cls):
   return sorted(cls.load(path).id for path in MAPS.glob('*.json'))
+ @classmethod
+ def for_extent(cls,title,bbox,*,map_id=None):
+  if not isinstance(title,str) or not title.strip():raise ValueError('A map title is required')
+  if map_id is None:
+   slug=re.sub(r'[^a-z0-9]+','_',unicodedata.normalize('NFKD',title).encode('ascii','ignore').decode().lower()).strip('_') or 'map'
+   if not slug[0].isalpha():slug='map_'+slug
+   map_id=slug[:60]+'_'+hashlib.sha256(json.dumps(bbox).encode()).hexdigest()[:8]
+  d={'id':map_id,'title':title.strip(),'bbox':bbox,'sources':['osm','3dep','3dhp','gnis','nlcd','padus']}
+  spec=cls.from_dict(d);lat,lon=spec.center;w,s,e,n=spec.bbox;geod=Geod(ellps='WGS84')
+  d['height']=max(1,round(spec.width*geod.inv(lon,s,lon,n)[2]/geod.inv(w,lat,e,lat)[2]))
+  return cls.from_dict(d)
+ def to_dict(self):
+  return {'id':self.id,'title':self.title,'subtitle':self.subtitle,'bbox':list(self.bbox),'width':self.width,'height':self.height,
+          'contourIntervalsFeet':list(self.contour_intervals),'bufferDegrees':self.buffer_degrees,'requiredNames':list(self.required_names),
+          'requiredRoutes':list(self.required_routes),'sources':list(self.sources)}
  @classmethod
  def load(cls,name='grand_canyon'):
   p=Path(name)

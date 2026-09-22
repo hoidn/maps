@@ -41,6 +41,15 @@ class MapSpecTests(unittest.TestCase):
   s=MapSpec.load('san_gabriel');w,south,e,n=s.bbox;lat,lon=s.center;g=Geod(ellps='WGS84')
   self.assertEqual(s.bbox,(-118.45,34.10,-117.42,34.55))
   self.assertEqual(s.height,round(s.width*g.inv(lon,south,lon,n)[2]/g.inv(w,lat,e,lat)[2]))
+ def test_bounds_alone_derive_a_portable_spec_without_region_registry(self):
+  spec=MapSpec.for_extent('San Gabriel Mountains',[-118.45,34.10,-117.42,34.55],map_id='san_gabriel')
+  self.assertEqual(spec.frame,MapSpec.load('san_gabriel').frame)
+  self.assertEqual(MapSpec.from_dict(spec.to_dict()),spec)
+  a=MapSpec.for_extent('A new selected area',[-120,35,-119.9,35.05])
+  b=MapSpec.for_extent('A new selected area',[-120,35,-119.8,35.05])
+  self.assertNotEqual(a.id,b.id)
+  self.assertIn('osm',a.sources);self.assertIn('3dep',a.sources)
+  with self.assertRaises(ValueError):MapSpec.for_extent('Invalid',[10,20,0,30])
  def test_explicit_custom_json_file_still_loads(self):
   with tempfile.TemporaryDirectory() as tmp:
    p=Path(tmp)/'different-name.json';p.write_text(json.dumps({'id':'custom','title':'Custom','bbox':[0,0,1,1]}))

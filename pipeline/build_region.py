@@ -43,7 +43,7 @@ def build(spec,renderer='webgl',mode='interactive',output=None):
      gid=stable_id('contour-geometry',d);defs.append(f'<path id="{gid}" d="{d}"/>');labels.append(f'<text class="l-contour"><textPath href="#{gid}" startOffset="50%" text-anchor="middle">{row["lv"]:,}</textPath></text>')
  w,h=spec.width,spec.height
  svg=f'<svg xmlns="http://www.w3.org/2000/svg" id="mapsvg" class="map" data-w="{w}" data-h="{h}" data-renderer="{renderer}" viewBox="0 0 {w} {h}" role="img" aria-label="{escape(spec.title)} trails, terrain, water and public facilities"><defs>'+''.join(defs)+'</defs>'+f'<image class="terrain t-light" href="{terrain["uri_light"]}" width="{w}" height="{h}"/><image class="terrain t-dark" href="{terrain["uri_dark"]}" width="{w}" height="{h}"/>'+'<g class="contours"><g class="g-finest">'+''.join(paint['finest'])+'</g><g class="g-fine">'+''.join(paint['fine'])+'</g>'+''.join(paint['inter']+paint['index'])+'</g><g class="contour-labels">'+''.join(labels)+'</g><g class="labels"/></svg>'
- svg,context=improve(svg,M,dem,spec.id);svg=M.finalize(svg)
+ svg,context=improve(svg,M,dem,spec);svg=M.finalize(svg)
  svg,contour_payload=pack_contours(svg,mode=mode)
  css=(Path(__file__).parent/'cartography/map.css').read_text()+(Path(__file__).parent/'cartography/styles.css').read_text()
  # Cursor lookup is an explicitly downsampled array, preserving the full frame.

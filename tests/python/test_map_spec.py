@@ -1,10 +1,10 @@
-import unittest,sys
+import unittest,sys,json,tempfile
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[2]/'pipeline'))
-from map_spec import MapSpec
+from map_spec import MapSpec,MAPS
 class MapSpecTests(unittest.TestCase):
- def test_both_regions_round_trip_and_use_metric_working_coordinates(self):
-  for name in ['grand_canyon','sequoia']:
+ def test_all_configured_regions_round_trip_and_use_metric_working_coordinates(self):
+  for name in MAPS.glob('*.json'):
    s=MapSpec.load(name);lat,lon=s.center
    x,y=s.project(lat,lon);a,b=s.unproject(x,y)
    self.assertAlmostEqual(a,lat,9);self.assertAlmostEqual(b,lon,9)
@@ -30,3 +30,18 @@ class MapSpecTests(unittest.TestCase):
  def test_invalid_dimensions_and_buffer_fail_before_geographic_operations(self):
   for values in ({'width':float('nan')},{'width':True},{'height':3.5},{'bufferDegrees':-1},{'bufferDegrees':float('inf')},{'contourIntervalsFeet':None}):
    with self.subTest(values=values),self.assertRaises(ValueError):MapSpec.from_dict({'id':'test','title':'Test','bbox':[0,0,1,1],**values})
+
+ def test_discovery_includes_third_region_and_safe_ids(self):
+  self.assertEqual(MapSpec.configured_ids(),['grand_canyon','san_gabriel','sequoia'])
+  for name in ('../bad','a/b','a\\b','.', 'UPPER', '', None):
+   with self.subTest(name=name),self.assertRaisesRegex(ValueError,'map ID'):
+    MapSpec.from_dict({'id':name,'title':'Unsafe','bbox':[0,0,1,1]})
+ def test_san_gabriel_matches_central_geodetic_aspect(self):
+  from pyproj import Geod
+  s=MapSpec.load('san_gabriel');w,south,e,n=s.bbox;lat,lon=s.center;g=Geod(ellps='WGS84')
+  self.assertEqual(s.bbox,(-118.45,34.10,-117.42,34.55))
+  self.assertEqual(s.height,round(s.width*g.inv(lon,south,lon,n)[2]/g.inv(w,lat,e,lat)[2]))
+ def test_explicit_custom_json_file_still_loads(self):
+  with tempfile.TemporaryDirectory() as tmp:
+   p=Path(tmp)/'different-name.json';p.write_text(json.dumps({'id':'custom','title':'Custom','bbox':[0,0,1,1]}))
+   self.assertEqual(MapSpec.load(p).id,'custom')

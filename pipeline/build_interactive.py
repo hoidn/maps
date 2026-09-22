@@ -461,7 +461,7 @@ svg = f'''<svg id="mapsvg" data-renderer="{args.renderer}" class="map" viewBox="
 </svg>'''
 
 from cartography.integration import improve, catalog_panel, transport_legend
-svg, cartography_context = improve(svg, M, DEM / 3.28084)
+svg, cartography_context = improve(svg, M, DEM / 3.28084, o.SPEC)
 svg = M.finalize(svg)
 svg, contour_payload = pack_contours(svg)
 

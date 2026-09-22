@@ -1,7 +1,6 @@
 """Adapter preserving authored page composition while sharing geographic rendering."""
 from pathlib import Path
 import json,xml.etree.ElementTree as ET
-from map_spec import MapSpec
 from .catalog import load_catalog
 from .scene import augment_svg
 from .furniture import grid
@@ -9,8 +8,8 @@ from .terrain import neutral_relief,cover_image,COVER,COVER_DARK,COVER_KEY
 from sources.catalog import atomic_json
 from label_manifest import NS,safe_json
 
-def improve(svg,manifest,dem,spec_name='grand_canyon'):
- spec=MapSpec.load(spec_name);root=Path('cache')/spec.id
+def improve(svg,manifest,dem,spec):
+ root=Path('cache')/spec.id
  if not (root/'features.json').exists():return svg,None # deterministic legacy fixture adapter
  catalog=load_catalog(spec);svg,report=augment_svg(svg,manifest,spec,catalog)
  tree=ET.fromstring(svg);shade=neutral_relief(dem,spec)

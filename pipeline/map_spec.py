@@ -4,7 +4,7 @@ Metric working coordinates are used for distance, buffers and network operations
 from dataclasses import dataclass
 from functools import cached_property
 from pathlib import Path
-import json,math
+import json,math,re
 from pyproj import CRS,Transformer,Geod
 MAPS=Path(__file__).with_name('maps')
 @dataclass(frozen=True)
@@ -20,6 +20,11 @@ class MapSpec:
  required_names:tuple=()
  required_routes:tuple=()
  sources:tuple=()
+ def __post_init__(self):
+  if not isinstance(self.id,str) or not re.fullmatch(r'[a-z][a-z0-9_]*',self.id):raise ValueError('Invalid map ID: use lowercase letters, digits and underscores')
+ @classmethod
+ def configured_ids(cls):
+  return sorted(cls.load(path).id for path in MAPS.glob('*.json'))
  @classmethod
  def load(cls,name='grand_canyon'):
   p=Path(name)

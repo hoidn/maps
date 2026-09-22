@@ -247,6 +247,16 @@ points to its full outcome inventory under `OUTPUT.json.scenes/`. Each inventory
 is saved before the next scene, so large regional audits do not accumulate every
 label's blocker list in one final JSON string. Preserve that directory with the
 index and screenshots when reviewing or archiving evidence.
+
+The [scene fixture](../tests/fixtures/cartography-scenes.json) keeps source-identity
+review separate from `reviews[region]`, which binds visual review to an exact HTML
+SHA-256. A `reviewed` entry records completed inspection, including recorded gaps;
+it cannot override a failed scene. A different HTML hash remains unreviewed until
+its own evidence is checked. Explicit source IDs require that feature's painted
+representation, so another POI or a same-name settlement cannot satisfy a summit
+expectation. Preserve the full scene reports and the hashed review artifacts when
+freezing these records; the fixture is not an all-browser release approval.
+
 The [seeded interaction fuzzer](../scripts/fuzz-cartography.mjs)
 exercises camera gestures, text size, layers, themes and resizing, checks eventual completion
 and painted-camera agreement, and writes a replayable report plus a contact sheet. These

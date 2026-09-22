@@ -1,5 +1,5 @@
 {
-  "status":"pending-real-artifact-review",
+  "status":"partially-reviewed",
   "groundScalesMetersPerPixel":[32,12,6],
   "regions":{
     "grand_canyon":[
@@ -14,10 +14,99 @@
       {"name":"Alta Peak","expectedKinds":["trail","poi"]}
     ],
     "san_gabriel":[
-      {"name":"Mount Wilson","expectedKinds":["poi"],"sourceEvidence":{"provider":"GNIS","sourceId":"gnis:251702","reviewStatus":"pending-real-artifact-review","catalogSourceId":"osm:node:358794822","identity":"OSM gnis:feature_id=251702 identifies the summit, not the Mount Wilson settlement."},"sourceId":"osm:node:358794822"},
-      {"name":"Mount San Antonio","expectedKinds":["poi"],"sourceEvidence":{"provider":"GNIS","sourceId":"gnis:273439","reviewStatus":"pending-real-artifact-review","catalogSourceId":"osm:node:348272990","identity":"Named OSM summit; nearby GNIS coordinate is corroborating source context, not an asserted identity merge."},"sourceId":"osm:node:348272990"},
-      {"name":"Mount Baden-Powell","sourceId":"osm:node:358796353","expectedKinds":["poi"],"sourceEvidence":{"provider":"OSM / GNIS","sourceId":"gnis:255344","catalogSourceId":"osm:node:358796353","identity":"OSM gnis:feature_id=255344 identifies the summit.","reviewStatus":"pending-real-artifact-review"}},
-      {"name":"West Fork San Gabriel River","expectedKinds":["waterway"],"sourceEvidence":{"provider":"USGS 3DHP","sourceId":"3dhp:50:11UZK","reviewStatus":"pending-real-artifact-review"},"sourceId":"3dhp:50:11UZK"}
+      {"name":"Mount Wilson","expectedKinds":["poi"],"sourceEvidence":{"provider":"GNIS","sourceId":"gnis:251702","reviewStatus":"reviewed","catalogSourceId":"osm:node:358794822","identity":"OSM gnis:feature_id=251702 identifies the summit, not the Mount Wilson settlement."},"sourceId":"osm:node:358794822"},
+      {"name":"Mount San Antonio","expectedKinds":["poi"],"sourceEvidence":{"provider":"GNIS","sourceId":"gnis:273439","reviewStatus":"reviewed","catalogSourceId":"osm:node:348272990","identity":"Named OSM summit; nearby GNIS coordinate is corroborating source context, not an asserted identity merge."},"sourceId":"osm:node:348272990"},
+      {"name":"Mount Baden-Powell","sourceId":"osm:node:358796353","expectedKinds":["poi"],"sourceEvidence":{"provider":"OSM / GNIS","sourceId":"gnis:255344","catalogSourceId":"osm:node:358796353","identity":"OSM gnis:feature_id=255344 identifies the summit.","reviewStatus":"reviewed"}},
+      {"name":"West Fork San Gabriel River","expectedKinds":["waterway"],"sourceEvidence":{"provider":"USGS 3DHP","sourceId":"3dhp:50:11UZK","reviewStatus":"reviewed"},"sourceId":"3dhp:50:11UZK"}
     ]
+  },
+  "reviews":{
+    "san_gabriel": {
+      "status": "reviewed",
+      "artifactSha256": "1408f4196d083a38d6d15bc52f1f0843f1f8ddfd65c5a9e2ba9a46c9c73efc95",
+      "reviewedAt": "2026-09-22",
+      "coverageStatus": "failed",
+      "scope": "Reviewed source identities and 12 matched-scale visuals for this exact artifact. Review completion does not waive missing painted source features.",
+      "browser": "chromium",
+      "browserVersion": "140.0.7339.186",
+      "requestedBackend": "webgl",
+      "activeBackend": "webgl",
+      "viewport": {
+        "width": 1440,
+        "height": 1200
+      },
+      "deviceScaleFactor": 1,
+      "theme": "light",
+      "groundScalesMetersPerPixel": [
+        32,
+        12,
+        6
+      ],
+      "evidence": {
+        "coverage": {
+          "path": "artifacts/regional-print/san-gabriel/coverage.json",
+          "sha256": "79bbc0a60380b719bd63b9ab6e53cd54af54fdeee4f0119cf8e1bdfec1a358a9"
+        },
+        "visualReview": {
+          "path": "artifacts/regional-print/san-gabriel/coverage-visual-review.json",
+          "sha256": "20f96df7bca8f9c6acd12c8fd505e27a95f8047323f4c3d2c5f8c1aa1fe7716e"
+        },
+        "sourceReview": {
+          "path": "artifacts/regional-print/san-gabriel/source-checks.json",
+          "sha256": "b7c2dd0f678c80532bd34876ad451541457906c91c2bc68ed6b97dcb0beddea7"
+        },
+        "sourceIdentities": {
+          "path": "artifacts/regional-print/san-gabriel/reviewed-source-identities.json",
+          "sha256": "c6b9b878c38154aa56959bd3154661a999ebcc31062cfcc97269aa609dd0e7d5"
+        }
+      },
+      "sceneCount": 12,
+      "passedScenes": 9,
+      "failedScenes": [
+        {
+          "scene": 1,
+          "profile": "Mount Wilson",
+          "sourceId": "osm:node:358794822",
+          "metersPerPixel": 32,
+          "missingPaintedSource": true,
+          "reason": "summit symbol omitted by collision",
+          "blockerSourceId": "osm:node:150979270",
+          "blockerKind": "settlement name"
+        },
+        {
+          "scene": 2,
+          "profile": "Mount Wilson",
+          "sourceId": "osm:node:358794822",
+          "metersPerPixel": 12,
+          "missingPaintedSource": true,
+          "reason": "summit symbol omitted by collision",
+          "blockerSourceId": "osm:node:3659656141",
+          "blockerKind": "drinking-water symbol"
+        },
+        {
+          "scene": 3,
+          "profile": "Mount Wilson",
+          "sourceId": "osm:node:358794822",
+          "metersPerPixel": 6,
+          "missingPaintedSource": true,
+          "reason": "summit symbol omitted by collision",
+          "blockerSourceId": "osm:node:3659656141",
+          "blockerKind": "drinking-water symbol"
+        }
+      ],
+      "visualFindings": [
+        "All four profile areas show continuous relief, hydrography, roads/trails and populated matching legend at 32, 12 and 6 metres per pixel.",
+        "Mount San Antonio summit label and elevation are legible at all three reviewed scales; nearby West Baldy remains separately identified.",
+        "Mount Baden-Powell summit name/elevation are legible in the 12 and 6 m/pixel views; its name is absent at 32 m/pixel.",
+        "Mount Wilson summit name/elevation is legible at 6 m/pixel. Bold Mount Wilson text at wider scales identifies the nearby settlement and cannot establish summit coverage.",
+        "West Fork San Gabriel River and adjoining East/North Fork areas, trailheads and roads are visible; the river label drops out of the 6 m/pixel view under ordinary placement rules."
+      ],
+      "limits": [
+        "All 12 screenshot hashes were verified against the recorded review and the previously reviewed images. This review is not transferred to later HTML hashes.",
+        "Mount Wilson summit osm:node:358794822 is distinct from the nearby same-name settlement osm:node:150979270; the settlement cannot satisfy summit coverage.",
+        "No all-engine/backend/theme interaction acceptance, promotion approval, independent survey accuracy or current-access claim.",
+        "The approved rectangle omits western portions of the San Gabriel Mountains National Monument; it is not complete monument coverage."
+      ]
+    }
   }
 }

@@ -25,306 +25,133 @@ Interactive matrix acceptance remains in progress. Nothing has been promoted or 
 San Gabriel preset alone does not establish automated region setup. The generic command
 derives its specification and dimensions; the real third-map proof must use this path.
 
-**Current evidence:** `artifacts/regional-print/` records full-suite runs with
-196 passing Python and 197 passing Node checks. The later terrain-provenance
-correction has 19 focused Python passes. The latest print/PDF fixture run passes 14 checks (10
-intentional duplicate skips), including inspected 36 × 24 and 96 × 60 inch PDFs,
-unregistered-area generation, the authored adapter, actual legend selection,
-physical calibration and rollback. Shared runtime fixes have 176 focused browser
-passes across the three engines (16 intentional skips). Frozen optional-wrapper
-subtraction preserves every manifest record and original outcome; its regression
-independently audits all six browser/theme combinations.
+**Current evidence (2026-09-22):** The final full suites pass
+[197 Python tests](../../artifacts/regional-print/final-python-tests.log) and
+[197 Node tests](../../artifacts/regional-print/final-node-tests.log). The print/PDF
+fixture run passes 14 checks (10 intentional duplicate skips), including 36 × 24
+and 96 × 60 inch sheets, unregistered bounds, the authored adapter, legends,
+calibration and rollback. Focused three-engine regressions cover measurement,
+selection, runtime input targets, inert JSON, actual painted-source evidence and
+resource cleanup. Fixture passes do not establish real-map interaction acceptance.
 
-All six San Gabriel providers are acquired and hash-verified. The 55-section OSM
-merge contains 13,336,395 complete objects at its recorded June 1 snapshot.
-Normalization produced 1,054,031 features and reports 64 rejected geometries,
-including 52 whose bounds intersect the frame. Source checks and diagnostics are
-under `artifacts/regional-print/san-gabriel/`. Retrieval dates do not establish
-source currency. Real Grand Canyon/Sequoia caches are absent; those regions' real
-print acceptance remains pending rather than being inferred from fixtures.
+All six San Gabriel providers (OSM, 3DEP, 3DHP, GNIS, NLCD and PAD-US) are acquired
+and hash-verified. The 55-section OSM merge contains 13,336,395 complete objects
+at its recorded June 1 snapshot. Normalization produced 1,054,031 features and
+reported 64 rejected geometries, including 52 whose bounds intersect the frame.
+[Source checks](../../artifacts/regional-print/san-gabriel/source-checks.json) and
+[reviewed source identities](../../artifacts/regional-print/san-gabriel/reviewed-source-identities.json)
+retain the evidence; retrieval dates do not establish source currency. Real Grand
+Canyon/Sequoia caches are absent, so their real print acceptance remains pending.
+The normalized relief samples are approximately 36.46 × 43.94 m; native source
+resolution is unreported, rather than inferred from that export grid.
 
-The real selected-bounds command produced a 683 MiB interactive candidate. Its
-first coverage attempt reached active WebGL but failed view settlement. Shared
-fixes prepare measurements outside geographic paint, attach only the current
-annotation, and isolate those mutations with HTML layout containment. Exact
-metrics remain unchanged across the three engines; 51 startup and interaction
-checks pass against the rebuilt bundle. In the actual 90-second diagnostic,
-measurement layout fell to 3.8 seconds, but document painting and hit testing
-still prevented complete settlement. The rebuilt public candidate
-(`ef16152dd4f810af7b9505dad79e9eddf3cdafaeacfec134d67032a067d10cf8`)
-also failed its first requested coverage view at the unchanged 90-second limit.
-Subsequent scene-capture changes remove empty class-list mutations; 45 Canvas
-checks pass, including exact highlight restoration and preserved fallback errors.
-A bounded actual diagnostic reached initial ready at 112.7 seconds, but full view
-settlement still exceeded 90 seconds. Hiding the duplicate SVG buildings and roads
-reduced hit-testing time without reducing document paint time, so that experiment
-was not adopted. Paint containment on the separate 185,890-path detail figure reduces actual
-90-second native Paint from 37.361 to 7.027 seconds; that diagnostic fully settles
-in 75.897 seconds with 213 placements. Screen/print geometry and screenshots are
-identical in all three engines at 430/1440 px. Startup still reaches ready at
-112.748 seconds. The single shared CSS rule and its 12-case regression are
-committed. Actual startup profiling identifies 65.2 seconds in scene capture,
-including 10.47 seconds in native matrix/point allocations for command bounds.
-Scalar corner calculations preserve 304 native cases and 21,672 culling decisions
-per engine; 12 focused checks pass and captured-path benchmarks improve in all
-three engines. A same-camera viewBox guard removes redundant layout events;
-40 startup/static/print checks pass. The subsequent preflights below use these
-committed changes.
-The first DPR-2 interaction preflight exhausted the harness's combined 120-second
-initialization watchdog before any action or screenshot. That watchdog was an
-operating bound, not a promised startup-performance threshold. Initialization now
-bounds and records navigation, controller readiness and initial settlement/audit/
-capture separately, each at the existing 120-second limit. The 90-second idle
-limit, subsequent 120-second action limit (including URL reload), and every audit
-remain unchanged. Sixteen focused Node checks and actual CLI success/failure
-fixtures pass; version 3 reports identify the failed phase. This change does not
-establish the separate 8 ms/33 ms warm-camera or 3× startup targets.
-The phased actual preflight passed navigation (35.087 seconds), readiness
-(71.290 seconds) and initial checks (50.969 seconds). Initial, zoom and pan
-captures passed independent paint checks with WebGL active; wheel input then hit
-the unchanged 120-second action watchdog. An exact three-action replay attributes
-36.960 seconds to native hit testing over the inactive source SVG; gestures clear
-normally, but label preparation misses the deadline. One nonpainting input rectangle
-now short-circuits those hit tests while retaining source geometry for measurement.
-Six three-engine interaction/measurement/paint regressions pass. The actual replay
-with only the equivalent rectangle injected passes: 52.020-second settlement and
-90.165-second complete wheel action, zero paint findings and active WebGL. Hit-test
-cost falls to 0.014 seconds; limits remain unchanged. Evidence and explicit derivative
-provenance are in `san-gabriel/input-target-actual-comparison.json`.
-The derivative coverage run reached all 12 screenshots at the declared scales,
-but aggregate report serialization exceeded Node's maximum string length. Full
-mechanical results were not saved, so those screenshots establish only reviewed
-visual evidence, recorded in `san-gabriel/coverage-current-serialization-failure.json`.
-They show the three summit areas and West Fork; wider views omit some summit names,
-and the nearby Mount Wilson settlement is not counted as the summit. The report
-writer now saves each full scene before advancing and always closes
-browser/server resources, including on report-write failure. Twelve focused checks
-pass. Schema version 2 keeps summary/paint evidence and each scene's `reportPath`
-in the index; full outcomes remain on disk. The complete coverage audit used interactive SHA
-`1408f4196d083a38d6d15bc52f1f0843f1f8ddfd65c5a9e2ba9a46c9c73efc95`.
-Its coverage run saved full scene evidence. Mount Wilson's summit symbol
-loses collision checks at 32/12/6 m/pixel, so those source-marker expectations fail;
-the summit name itself is placed at 6 m/pixel. These are preserved coverage gaps,
-not missing source data or a substitute settlement counted as the summit.
-The complete public audit saves all 12 scenes: nine pass and those three fail,
-with no browser errors. Every new screenshot is byte-identical to its previously
-reviewed counterpart; `san-gabriel/coverage-visual-review.json` records this review
-and its limits. The exact public Chromium/SVG preflight passes initial capture and
-12 actions with zero paint findings, then fails place selection: the selected
-La Junta Drive camera is correct, but a stationary-pointer trail hover overwrites
-its details. Shared selection ownership now keeps explicit directory details
-through hover, lets a deliberate trail click take ownership, and clears previous
-trail pins on both directory/programmatic selection. A native captured click uses
-the actual hit element when capture retargets it to the SVG root. Eighteen focused
-browser checks pass across all three engines. Bundle SHA
-`3dad47c93266489c561d5f01064bdd75a4764b0811bd9e1174539aa35c3f7645`
-contains both fixes. The public Python interactive rebuild from the same generated
-specification completed with SHA
-`5da66938564313e3b7711aefb65d8418c111880c127f50c09c005685fa862eb3`.
-The [byte comparison](../../artifacts/regional-print/san-gabriel/provenance-1408-to-5da/summary.json)
-confirms identical geometry, metadata, source identities, imagery and styles;
-only two executable scripts differ. Source-content review applies to those
-identical data/styles without a fresh 12-scene run solely for that review.
-Mechanical coverage remains bound to `1408f419…`, including its three Mount
-Wilson marker failures; interactive acceptance does not transfer to `5da66938…`.
-Full selected-matrix acceptance remains pending. The bounds-driven cached command
-also completed all six audits of its refreshed native frozen HTML, SHA
-`66b5de5267db2aa379db509facece0344c2d1ce7d71dc8889c764ad4d9c2c8fa`;
-its physical 36-inch export completed successfully. The public command exits 0,
-producing `artifacts/print/san-gabriel-current.pdf`, SHA
+The public selected-bounds workflow derived the San Gabriel specification,
+acquired its sources and built the regional outputs. Its cached continuation
+exited 0, including six audits of native frozen HTML SHA
+`66b5de5267db2aa379db509facece0344c2d1ce7d71dc8889c764ad4d9c2c8fa`
+and the 36-inch PDF. The current public interactive HTML is 715,498,208 bytes,
+SHA `5da66938564313e3b7711aefb65d8418c111880c127f50c09c005685fa862eb3`.
+
+Both real PDFs pass six independent Chromium/Firefox/WebKit light/dark audits
+with zero findings, plus single-page size, embedded-font, map-interior vector,
+terrain-pixel and calibration checks. The 100 mm bar measures 100.189 mm after
+rasterization. Whole-poster and 300 DPI crop reviews find readable collars,
+vector text and dense trails, with the label and raster limits below. These are
+digital reviews, not physical printer proofs or evidence of current trail access.
+
+| Accepted PDF | Mechanical evidence | Visual evidence |
+|---|---|---|
+| [36 × 24 inches](../../artifacts/print/san-gabriel-current.pdf) | [Print report](../../artifacts/print/san-gabriel-current.print.json) | [Whole poster and six crops](../../artifacts/regional-print/san-gabriel/pdf-36-current-visual/review.json) |
+| [Nominal 1:50,000](../../artifacts/print/san-gabriel-50k.pdf) | [Print report](../../artifacts/print/san-gabriel-50k.print.json) | [Whole poster and thirteen crops](../../artifacts/regional-print/san-gabriel/pdf-50k-visual/review.json) |
+
+The 36-inch PDF SHA is
 `1e187b4432676813a5959cf58ecfef94946cb057eb9d4d5f4ee71891da5b8b40`,
-from frozen print SHA
-`f0583c6f7b29f1a13045ad8ce0207f65e2e773d905ea9a077f59b748875af59a`.
-All six static audits and independent PDF checks pass. The current whole poster
-is reviewed; all six new 300 DPI crops exactly match the earlier accepted crops.
-`san-gabriel/pdf-36-current-visual/review.json` records the unchanged raster and
-label-coverage limits, with current annotation evidence.
+from frozen SHA `f0583c6f7b29f1a13045ad8ce0207f65e2e773d905ea9a077f59b748875af59a`.
+It retains 156,876 map-interior vector paths. Relief is approximately 74 × 61 DPI
+and land cover 37 DPI. San Antonio's summit name is visible; Wilson's summit
+symbol/name and Baden-Powell's name lose existing placement checks. The bold
+Mount Wilson name belongs to the separate settlement. Only two of 122 contour
+labels are visible (3,000 and 4,000 feet); exact-path diagnostics attribute most
+omissions to existing curvature/uprightness rules, not incorrect physical font size.
 
-The selected nine-case matrix started on interactive SHA `5da66938…`. Its first
-Chromium/SVG case (seed 779321071) passed initialization in 85.645 seconds and five
-actions, with zero independent paint findings in all six completed captures.
-The layer action (step 6) exceeded the unchanged 120-second watchdog; its cause
-is undetermined. Selection and URL restoration were not reached. Separately,
-ENOSPC interrupted the failed-input copy before failure status/state were saved. The
-original report is preserved; the partial copy is archived and the full input
-is recovered through a verified immutable copy, independent of the mutable
-pipeline candidate. `san-gabriel/fuzz-public-5da66938/first-case-result.json`,
-`first-case-comparison.json` and `first-case-visual-review.json` record the failure,
-comparison and limited six-frame review. `scheduler-pause.json` records the
-pause for isolated print validation. `scheduler-resume.json` records resumption
-of the same parent at 21:37:11 UTC after the print browser closed; remaining
-cases run sequentially. Commit `cf1519d` now records the primary
-failure before copying evidence, reports copy errors separately and closes
-browser/server resources even if report or contact-sheet writes fail. Three
-actual CLI write-failure regressions and seven initialization/pan checks pass;
-this fixes evidence handling without establishing a pass for the failed action.
+The 1:50,000 PDF SHA is
+`65e8197156c4ba0288fd2a997b6c9c1a8cb9773bd9658b655ff7bed965fb8432`,
+from frozen SHA `c959aa4621339e69d8374f4a5327c51ae1c62a4440c3f7635b57d1f677b81456`.
+Its 5,436 × 3,136.08 point page retains 159,140 map-interior paths and 16,248 text
+operations. Relief is approximately 35 × 29 DPI and land cover 17 DPI; cells
+remain visibly coarse. Antonio and Baden-Powell summit names/elevations/symbols
+are visible. Wilson's summit symbol is visible but its summit name is omitted;
+the bold name remains the distinct settlement. There are 42 visible contour
+labels out of 122. Neither sheet establishes comprehensive summit/contour naming.
 
-Inactive audit inventories and earlier failed-input HTML are preserved as
-hash-indexed gzip archives. Under `artifacts/regional-print/`,
-`archived-inactive-print-audits.json`,
-`archived-inactive-print-audits-disk-recovery.json` and
-`archived-inactive-evidence-separate-volume.json` map original paths to archives,
-uncompressed hashes and restoration commands. The archives are retained in
-ignored workspace paths; their recorded temporary-volume paths are recovery
-provenance, not the only copies.
-Shared comparison scales are 32, 12 and
-6 m/pixel, because the existing 14× zoom cap cannot reach 3 m/pixel in this frame;
-the audit rejects clamped requested scales.
+The accepted 1:50,000 layout uses the `befc274` runtime derivative, with all bytes
+outside the runtime unchanged from its original staging file. Its
+[provenance and mechanical summary](../../artifacts/regional-print/san-gabriel/50k-native-crash/point-envelope-50k/mechanical-summary.json)
+record normal-heap settlement with 3,676 placements and no missing required content.
+The [five former WebKit failures](../../artifacts/regional-print/san-gabriel/50k-native-crash/point-envelope-50k/five-point-outcomes.json)
+are now omitted optional labels under recorded collision/frame outcomes; source
+identities and anchors remain intact. The later `b6a3bfc` fix probes the immutable
+original name after initial wrapping and has three focused differential passes.
+It is absent from the accepted run: the exact-byte audits validate that layout,
+while the newer source change has separate focused evidence. No heap override,
+geometry threshold or independent audit gate was relaxed.
 
-The initial static export exceeded V8's single-string limit. Static preparation
-now omits only detail proved ineligible at the fixed output scale and unused path
-definitions, while retaining source feature records, anchors and required content.
-Physical finalization no longer solves during zero-height collar measurements.
-A complete 36 × 24 inch diagnostic shows continuous terrain and a populated
-collar. WebKit's loading failure was isolated to the large inert JSON raw-text
-nodes. Shared producers and finalization now split those nodes into bounded,
-adjacent inert chunks while preserving `ID.textContent`, Unicode and JavaScript-
-disabled rendering. The reduced full-size diagnostic passes all six independent
-browser/theme audits with 1,037 placed annotations. Evidence is under
-`san-gabriel/frozen-diagnostic-audits/`; this old-layout diagnostic is not an
-accepted print artifact. Static/PDF loading uses the same 120-second allowance
-as regional tools without relaxing content, geometry or performance checks.
+The complete [12-scene coverage audit](../../artifacts/regional-print/san-gabriel/coverage.json)
+is bound to interactive SHA
+`1408f4196d083a38d6d15bc52f1f0843f1f8ddfd65c5a9e2ba9a46c9c73efc95`:
+nine scenes pass and three Mount Wilson summit-marker expectations fail at
+32/12/6 m/pixel through ordinary collision selection. The summit name is placed
+at 6 m/pixel; a settlement is never counted as the summit. Full scene outcomes
+and the [visual review](../../artifacts/regional-print/san-gabriel/coverage-visual-review.json)
+remain available. Those scales respect the existing 14× zoom cap; requested
+scales that would be clamped are rejected. The
+[1408-to-5da byte comparison](../../artifacts/regional-print/san-gabriel/provenance-1408-to-5da/summary.json)
+proves identical geometry, metadata, source identities, images and styles; only
+the two executable scripts changed for input/selection fixes. Source-content
+review applies to those identical data/styles without a fresh 12-scene rerun
+solely for that purpose. Mechanical coverage, its three failures and interactive
+acceptance do not transfer to the new hash.
 
-Physical print point names retain feature-scale limits and unchanged priorities
-without the extra interactive text gate; contour and distance thresholds remain.
-This corrects summit-name eligibility without region-specific names or inferred
-prominence. The next real 36-inch render placed 1,401 annotations but failed its
-first audit on one point's native rounding: Ruddell Hill measured 16.00019480325 px
-against the 16 px displacement limit. Reusing the existing interactive paint
-reserve for physical printing fixes the exact actual-data regression (36 focused
-browser checks and 11 distance checks pass); anchors and audit limits are unchanged.
-The next public 36 × 24 inch render passed both Chromium theme audits but failed
-on one Firefox overlap. Font shaping at the physical scale, rather than multiplying
-unit-scale measurements afterwards, fixes the measured source of that difference.
-The exact actual-data regression and 14 existing print/static checks pass. Its
-recovery run has passed all six browser/theme audits on the exact frozen SHA
-`a5e13bc9524c74509b382db60b75d478fcc3cdf2c1a9e4ec82d00f01eb1ab2a9`.
-Keeping every full audit in memory exhausted the Node heap after four audits;
-the finalizer now retains metadata and report paths while full inventories remain
-on disk. Ten static/PDF checks pass. The two remaining audits were run on the
-preserved exact bytes before recovery accepted the frozen HTML. PDF export then
-hit Chromium's 100 MiB DevTools message limit; exact-byte loopback navigation
-replaces the oversized `setContent` call. Its greater-than-100 MiB regression and
-physical PDF/rollback tests pass. The actual 36-inch PDF now passes its automated
-checks: one correctly sized page, embedded fonts, 156,876 map-interior vector
-paths, 3,696 text operations, retained relief pixels and a 100.189 mm calibration
-bar. PDF SHA: `d0fa7d07d7d2ddca6035579cecda38baadc32bc7444989998024b809d17d2851`.
-The whole PDF and six 300 DPI crops show readable collar, sharp vectors and
-continuous terrain; relief is approximately 74 × 61 DPI and land cover 37 DPI.
-Visual review records label coverage limits: Wilson's summit symbol/name and
-Baden-Powell's name lose ordinary collision checks, and only two contour values
-are placed. Exact-path reproduction attributes 112 contour omissions to the
-existing curvature limit, seven to reverse-reading windows and one to collision;
-the physical font size is correct. This is readable output with limited contour
-labelling, not evidence of USGS-equivalent label coverage. Evidence is in
-`san-gabriel/pdf-36-visual/`; this distinguishes source summits from nearby named
-settlements. The selected public cached build has also completed, including all
-six audits of native frozen HTML SHA
-`d7fc3a3f33081bce139f055b5a1d7597a3051dbe1d5dd2fc4ec2493208fe9595`.
-The earlier whole-poster screenshot shows
-populated map furniture and continuous terrain;
-`san-gabriel/print-36-visual-review.json` records this limited review.
+The nine-case matrix is running on `5da66938…`; the
+[same parent resumed at 21:37:11 UTC](../../artifacts/regional-print/san-gabriel/fuzz-public-5da66938/scheduler-resume.json)
+after isolated print validation. The
+[completed-case records](../../artifacts/regional-print/san-gabriel/fuzz-public-5da66938/completed-cases.jsonl)
+currently show two failures: Chromium/SVG exceeded the 120-second watchdog on
+layer action 6 after six captures; Chromium/Canvas exceeded it on interrupt
+action 11 after eleven captures with Canvas active. All completed paint
+audits have zero findings, but selection and URL restoration were not reached.
+The [Canvas visual review](../../artifacts/regional-print/san-gabriel/fuzz-public-5da66938/san_gabriel-chromium-canvas/visual-review.json)
+finds a real 430 px control defect: the scale box partly hides the Layers control
+in frames 8–10. A shared CSS fix and regression are in progress. Chromium/WebGL
+continues while subsequent scheduling is paused at a
+[recorded maintenance boundary](../../artifacts/regional-print/san-gabriel/fuzz-public-5da66938/scheduler-pause-for-css.json)
+for that focused work. The watchdog causes remain undetermined; these results
+do not establish interactive acceptance.
 
-The 1:50,000 Chromium renderer exhausted its approximately 4 GB JavaScript heap
-during label placement. Geometry preparation completed at approximately 604 MB;
-a bounded allocation diagnostic identifies retained dense point fallbacks as
-the later growth: 4.30 million solver-private candidates, 10.13 million footprint
-parts and 52.41 million cached blocker references at approximately 3.12 GB.
-Static solves now release and regenerate exact deterministic fallback prefixes
-between uses. Complete placements and outcomes match the one-shot path, including
-required retries, neighbor repair, wraps, reserves and previous ordering. All 189
-Node tests pass; a 220-label case that exhausted a 128 MiB heap now completes in
-2.4 seconds. Seven static workflows and three repetitions of the real crash test
-pass. The actual 1:50,000 retry has completed both preliminary physical solves,
-all three font probes and its reserved physical solve under normal heap limits;
-the latter placed 3,682 annotations and ended at approximately 1.63 GB JS heap.
-Final settlement placed 3,685 annotations; the frozen SHA is
-`8ae0e70a80fd42e61b738769a23909567a2a8de94fffc6165d246f2960f3b810`.
-Both Chromium audits passed. Firefox/light rejected two text-path labels
-whose measured angles exceed the 90° uprightness limit. The failed candidate is
-preserved; no PDF or frozen destination was replaced. The two exact paths contain
-very short backwards segments that Chromium glyph
-centers miss while Firefox/WebKit glyphs land on them. Shared curved-window
-preparation now rejects such segments only within the occupied span plus existing
-ink/font reserves. The actual-source regression passes across all three engines
-at physical/native scales; 43 browser checks and all 189 Node checks pass. The new
-1:50,000 run completed normal-heap layout with 3,681 placements; frozen SHA
-`53c60614c77c3988feb060acf03dd95226683c42c6551340a60c5e9d29d5d8cd`
-passed Chromium/light with zero findings. Chromium/dark then exceeded the existing
-120-second navigation bound while remaining alive. Isolated same-byte audits pass
-Chromium/dark and both Firefox themes; Chromium/dark navigation takes 114.850 seconds.
-WebKit/light finds five optional point names at 16.059–16.916 px from their anchors,
-beyond the unchanged 16 px limit. An exact five-label fixture reproduces all five:
-WebKit's narrower ink bounds are already present in the font probes, but the
-distance check used their outward collision envelope. Shared candidate and hard
-checks now use measured inward edge constraints for point distance, preserving
-annotation IDs through lazy fallback replay. The exact five-source regression
-passes across all three engines for ordinary and wrapped candidates; 197 Node
-checks and 15 focused browser checks pass (18 intentional duplicate skips).
-The completed 1:50,000 full-solve and six-audit retry uses a runtime-only derivative
-of the original staging file under commit `befc274`; every byte outside its
-runtime is unchanged. Provenance is recorded in
-`san-gabriel/50k-native-crash/point-envelope-50k/provenance.json`.
-Normal-heap settlement places 3,676 annotations with no missing required content.
-The five previously failing optional names are omitted by the existing collision
-and frame rules after measured-distance filtering; their source identities,
-anchors and full outcome/blocker records remain. All six browser/theme audits
-pass with zero findings on frozen SHA
-`c959aa4621339e69d8374f4a5327c51ae1c62a4440c3f7635b57d1f677b81456`.
-The inspected PDF is `artifacts/print/san-gabriel-50k.pdf`, SHA
-`65e8197156c4ba0288fd2a997b6c9c1a8cb9773bd9658b655ff7bed965fb8432`.
-Its one 5,436 × 3,136.08 point page passes physical-size checks, embeds all fonts,
-retains 159,140 map-interior vector paths and 16,248 text operations, and preserves
-terrain source pixels/statistics. The 100 mm calibration bar measures 100.189 mm
-after PDF rasterization. Relief is approximately 35 × 29 DPI and land cover
-17 DPI. The whole poster and all thirteen 300 DPI crops are reviewed in
-`san-gabriel/pdf-50k-visual/review.json`: the complete collar, vector text and dense
-trails are readable; land-cover cells remain visibly coarse. Antonio and
-Baden-Powell summit names/elevations/symbols are visible. Wilson's summit symbol
-is visible but its summit name is omitted; the bold name is the distinct settlement.
-The audit identifies 42 visible contour labels out of 122. These reviews are
-digital evidence, not physical printer proofs. The sibling
-`san-gabriel-50k.print.json`, finalization reports, `five-point-outcomes.json` and
-`mechanical-summary.json` record these claims and their limits. Storage was
-redirected before serialization with verified copies and preserved open logs;
-`environment.json` records that historical mapping. Completed evidence is now
-retained in ignored workspace paths; `point-envelope-50k-retention.json` and
-`point-envelope-50k-retention-archives.json` record verified repatriation and
-compressed audit inventories. Logical artifact paths remain stable.
-The later `b6a3bfc` correction makes font probes use the immutable original name
-after an initial wrapped placement; three focused differential checks pass.
-That correction is absent from this completed run; its exact-byte audits prove
-the delivered layout, while the newer source change has separate focused evidence.
-The earlier failed `53c606…` candidate remains preserved and unaccepted.
-A shared
-finalizer fix now closes a crashed renderer and records failure promptly instead
-of waiting on DOM diagnostics from the dead page. Its real renderer-crash test
-and eight static-workflow checks pass. No heap override or geometric/rendering
-gate relaxation has been applied. Both actual PDF sizes have separate, hash-bound
-visual reviews with recorded label and raster limits.
+The [first-case record](../../artifacts/regional-print/san-gabriel/fuzz-public-5da66938/first-case-result.json),
+[comparison](../../artifacts/regional-print/san-gabriel/fuzz-public-5da66938/first-case-comparison.json)
+and [six-frame review](../../artifacts/regional-print/san-gabriel/fuzz-public-5da66938/first-case-visual-review.json)
+also preserve a separate ENOSPC failure during input copying: primary failure
+status/state were not saved in the original report. The partial copy is archived
+and the complete input recovered from a verified immutable copy. `cf1519d` fixes
+failure ordering, separate copy-error reporting and browser/server cleanup; three
+actual CLI regressions and seven initialization/pan checks pass. Remaining matrix
+children use that fix, without changed actions or gates. Initialization phases
+and actions retain 120-second limits; settlement retains 90 seconds. The separate
+8 ms/33 ms warm-camera and 3× startup targets remain unproven. Focused selection
+and reload-based URL tests do not substitute for the unfinished real matrix.
 
-The inert-JSON consumer run passed 62 browser checks with 24 intentional skips.
-One Firefox corrupt-contour teardown reported the fixture's deliberate checksum
-error; it passed three isolated repetitions, and that fixture's emitted bytes
-were unchanged. All new chunk round trips and six-audit finalization checks pass.
-
-Coverage now requires each explicit profile source ID in its painted representation;
-Canvas/WebGL evidence comes from actual submitted draws and native SVG from visible
-paint. Land-cover evidence survives foreground-only redraws. Nine focused Node and
-nine browser checks pass. The existing fuzzer now performs actual place selection
-and reload-based URL restoration, checking the serialized camera's rounding and
-clamping. Thirty focused browser checks and a 14-action synthetic CLI cycle pass;
-these do not establish real San Gabriel interaction acceptance. The public command
-flow was reviewed from derived specification through fetching, cached building and
-PDF export. Documentation now routes new areas away from the authored Grand Canyon
-constants; all 192 checked local file/heading links resolve.
-
-Final interface review found a print-provenance defect when an explicit regional
-JSON file used the `grand_canyon` ID. The composer now receives the actual authored
-terrain-adapter choice instead of inferring it from the region ID. Distinct regional
-and legacy DEM fixtures verify reported sampling and unknown native resolution;
-19 focused Python checks pass. This metadata correction does not alter San Gabriel
-geometry or require its regeneration.
+Completed evidence is retained in ignored workspace paths, not solely on a
+temporary volume. The stable logical 1:50,000 folder is documented by its
+[retention manifest](../../artifacts/regional-print/san-gabriel/50k-native-crash/point-envelope-50k-retention.json)
+and [audit archive manifest](../../artifacts/regional-print/san-gabriel/50k-native-crash/point-envelope-50k-retention-archives.json).
+Earlier inventories, failed candidates and inputs remain indexed by
+[print audit archives](../../artifacts/regional-print/archived-inactive-print-audits.json),
+[disk-recovery archives](../../artifacts/regional-print/archived-inactive-print-audits-disk-recovery.json)
+and [other inactive evidence](../../artifacts/regional-print/archived-inactive-evidence-separate-volume.json).
+These record original paths, hashes and restoration instructions; old temporary
+paths describe recovery history. Detailed retry investigations remain in these
+artifacts and Git history. No delivered `output/` file has been promoted or published.
 
 **Design:** [Regional generation and print design](2026-09-22-regional-generation-and-print-design.md),
 including the user's clarified requirement for a conventional printed map collar.

@@ -77,6 +77,10 @@ export class CanvasMapRenderer{
 
  activate(){
   if(this.active)return;this.originalOpacity=this.svg.style.opacity;this.svg.style.opacity='0';this.svg.dataset.mapRenderer=this.backend;
+  // A topmost target avoids native hit-testing every retained source path.
+  // The complete map frame covers every clamped camera; events still bubble to SVG.
+  this.inputTarget=document.createElementNS(this.svg.namespaceURI,'rect');this.inputTarget.dataset.mapHitTarget='';this.inputTarget.dataset.layoutRuntime='';
+  this.inputTarget.setAttribute('width',this.controller.manifest.map.width);this.inputTarget.setAttribute('height',this.controller.manifest.map.height);this.inputTarget.setAttribute('fill','none');this.inputTarget.setAttribute('aria-hidden','true');this.inputTarget.style.setProperty('pointer-events','all','important');this.svg.append(this.inputTarget);
   this.pointerStyle=document.createElement('style');this.pointerStyle.textContent='#mapsvg[data-map-renderer] *{pointer-events:none!important}';this.svg.after(this.pointerStyle,...this.canvases);this.active=true;
  }
  fallback(error){
@@ -86,7 +90,7 @@ export class CanvasMapRenderer{
    return;
   }
   this.error=error?.message||String(error);this.controller.rendererError=this.error;this.destroy();this.controller.renderer=null;this.controller.invalidateLayout();this.controller.schedule();}
- destroy(){if(this.controller.renderer===this)this.controller.renderer=null;window.removeEventListener('pagehide',this.pageHidden);this.gpu?.destroy();this.active=false;this.generation++;this.refreshGeneration++;this.canvases.forEach(c=>{c.remove();c.width=c.height=1;});this.labels.clear();this.painted=[];this.paintedGeometry=[];this.pointerStyle?.remove();this.svg.style.opacity=this.originalOpacity||'';delete this.svg.dataset.mapRenderer;this.themeObserver?.disconnect();this.media?.removeEventListener('change',this.themeChanged);}
+ destroy(){if(this.controller.renderer===this)this.controller.renderer=null;window.removeEventListener('pagehide',this.pageHidden);this.gpu?.destroy();this.active=false;this.generation++;this.refreshGeneration++;this.canvases.forEach(c=>{c.remove();c.width=c.height=1;});this.labels.clear();this.painted=[];this.paintedGeometry=[];this.inputTarget?.remove();this.pointerStyle?.remove();this.svg.style.opacity=this.originalOpacity||'';delete this.svg.dataset.mapRenderer;this.themeObserver?.disconnect();this.media?.removeEventListener('change',this.themeChanged);}
  camera(view){
   const r=this.svg.getBoundingClientRect(),m=viewMatrix(view,r),z=this.controller.manifest.map.width/view.w;
   const badge=document.getElementById('zlabel'),text=z.toFixed(1)+'× · contours '+((this.controller.manifest.map.contourIntervalsFeet||[250,100,50])[z>=4.5?2:z>=2?1:0])+' ft';if(badge&&badge.textContent!==text)badge.textContent=text;

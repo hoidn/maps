@@ -5,6 +5,7 @@ import {realpathSync} from 'node:fs';
 import {resolve,dirname,basename,join,extname} from 'node:path';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 import {createHash,randomUUID} from 'node:crypto';
+import {createServer} from 'node:http';
 import {chromium} from '@playwright/test';
 import {finalizeStatic} from './finalize-static.mjs';
 
@@ -45,11 +46,19 @@ export async function exportPdf({input,output,finalization,python=join(root,'.ve
  if(finalization?.artifactSha256!==frozenSha256||finalization.audits.length!==6||finalization.audits.some(a=>a.status!=='pass'||a.artifactSha256!==frozenSha256))throw Error('PDF requires the exact frozen HTML with all six passing audits');
  await pdfTools();await mkdir(dirname(output),{recursive:true});
  const folder=await mkdtemp(join(dirname(output),'.print-check-')),candidate=join(dirname(output),'.'+randomUUID()+'.pdf');
+ // Navigate to the exact audited bytes; setContent sends the entire sheet in
+ // one DevTools message, exceeding Chromium's receive limit on regional maps.
+ const server=createServer((request,response)=>{
+  if(request.url!=='/'){response.writeHead(404);response.end();return;}
+  response.setHeader('Content-Type','text/html; charset=utf-8');response.end(bytes);
+ });
  let browser;
  try{
+  await new Promise((ok,fail)=>{server.once('error',fail);server.listen(0,'127.0.0.1',ok);});
+  const url=`http://127.0.0.1:${server.address().port}/`;
   browser=await chromium.launch();const browserVersion=browser.version();
   const page=await browser.newPage({javaScriptEnabled:false,viewport:finalization.viewport,colorScheme:'light'});
-  await page.route('**/*',r=>r.abort('blockedbyclient'));await page.setContent(bytes.toString(),{waitUntil:'load',timeout:120000});await page.emulateMedia({media:'print'});
+  await page.route('**/*',r=>r.request().isNavigationRequest()&&r.request().url()===url?r.continue():r.abort('blockedbyclient'));await page.goto(url,{waitUntil:'load',timeout:120000});await page.emulateMedia({media:'print'});
   const data=await page.evaluate(async()=>{
    await Promise.all([...document.fonts].map(f=>f.load()));await document.fonts.ready;
    const manifest=JSON.parse(document.getElementById('map-label-manifest').textContent),p=manifest.map.print;
@@ -120,7 +129,7 @@ print(json.dumps({'calibrationMm':longest*25.4/72,'rasterStddev':ImageStat.Stat(
    throw error;
   }
   return report;
- }finally{await browser?.close();await unlink(candidate).catch(e=>{if(e.code!=='ENOENT')throw e;});}
+ }finally{await browser?.close();await new Promise(ok=>server.close(ok));await unlink(candidate).catch(e=>{if(e.code!=='ENOENT')throw e;});}
 }
 
 export async function printMap(request){

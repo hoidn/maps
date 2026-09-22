@@ -1,5 +1,5 @@
 import {test,expect} from '@playwright/test';
-import {mkdtemp,readFile,writeFile,mkdir,rm} from 'node:fs/promises';
+import {mkdtemp,readFile,writeFile,mkdir,rm,stat} from 'node:fs/promises';
 import {createHash,randomUUID} from 'node:crypto';
 import {tmpdir} from 'node:os';
 import {join,resolve} from 'node:path';
@@ -7,6 +7,19 @@ import {execFileSync} from 'node:child_process';
 import {finalizeStatic} from '../../scripts/finalize-static.mjs';
 import {exportPdf} from '../../scripts/print-map.mjs';
 import {generateMap} from '../../scripts/generate-map.mjs';
+test('PDF export loads exact audited HTML larger than the DevTools message limit',async({browserName})=>{
+ test.skip(browserName!=='chromium','PDF export uses Chromium');test.setTimeout(180000);
+ const dir=await mkdtemp(join(tmpdir(),'map-print-large-html-')),python=resolve('.venv/bin/python'),input=join(dir,'input.html'),frozen=join(dir,'frozen.html'),output=join(dir,'large.pdf');
+ execFileSync(python,['tests/support/build-fixture.py',dir,'--regional']);
+ execFileSync(python,[resolve('pipeline/build_region.py'),'--map',join(dir,'custom-region.json'),'--mode','static','--print','--paper','36x24in','--output',input],{cwd:dir});
+ await writeFile(input,(await readFile(input,'utf8')).replace('</main>','<!--'+' '.repeat(101*1024*1024)+'--></main>'));
+ const finalization=await finalizeStatic({input,output:frozen,reportDir:join(dir,'layout')});
+ expect((await stat(frozen)).size).toBeGreaterThan(100*1024*1024);
+ expect(finalization.audits).toHaveLength(6);
+ const report=await exportPdf({input:frozen,output,finalization,python});
+ expect(report.frozenSha256).toBe(finalization.artifactSha256);expect(report.pdf.pages).toBe(1);
+ expect(report.pdf.mapVectorPaths).toBeGreaterThan(0);expect(report.pdf.mapTextOperations).toBeGreaterThan(0);expect(report.pdf.fontsEmbedded).toBe(true);
+});
 test('physical PDF keeps vectors, embedded text, page size and calibration; failure preserves destination',async({browserName})=>{
  test.skip(browserName!=='chromium','PDF export uses Chromium');test.setTimeout(240000);
  const dir=await mkdtemp(join(tmpdir(),'map-print-pdf-')),python=resolve('.venv/bin/python');

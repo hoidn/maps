@@ -24,13 +24,14 @@ acquisition/acceptance is in progress. Nothing has been promoted or published.
 San Gabriel preset alone does not establish automated region setup. The generic command
 derives its specification and dimensions; the real third-map proof must use this path.
 
-**Current evidence:** `artifacts/regional-print/` records 182 passing Python and
+**Current evidence:** `artifacts/regional-print/` records 187 passing Python and
 183 passing Node checks, verified 36 × 24 and 96 × 60 inch fixture PDFs, and a complete
 unregistered-area generation test. Authored Grand Canyon print serialization now passes
 all six independent browser/theme audits after a CSS precision fix. A representative
 collar fixture covers absent water, restricted paths, two land-cover classes, a boundary,
-placement-hidden facilities and missing source metadata. The final browser regression passed 40 checks, with 20 deliberate duplicate skips. Real San Gabriel OSM acquisition retained its checkpoints after detecting a
-conflicting object at the declared snapshot; investigation continues.
+placement-hidden facilities and missing source metadata. The final browser regression passed 40 checks, with 20 deliberate duplicate skips. Real San Gabriel OSM acquisition is progressing through verified checkpoints. A stale
+fallback snapshot and an unnecessarily global relation-exclusion query were corrected
+with regressions; current provider admission errors are retained in the acquisition log.
 Real Grand Canyon/Sequoia caches are absent; their real-map print acceptance is pending.
 
 **Design:** [Regional generation and print design](2026-09-22-regional-generation-and-print-design.md),

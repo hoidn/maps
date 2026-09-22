@@ -26,7 +26,11 @@ def load_dem(spec,root):
  return dem,digest
 
 def build(spec,renderer='webgl',mode='interactive',output=None):
- root=Path('cache')/spec.id;dem,dem_hash=load_dem(spec,root)
+ root=Path('cache')/spec.id
+ missing=[str(root/name) for name in ('features.json','dem.npy','dem.json') if not (root/name).is_file()]
+ if missing:raise ValueError('Missing cached build inputs: '+', '.join(missing))
+ if mode=='static':renderer='svg'
+ dem,dem_hash=load_dem(spec,root)
  terrain_path=root/'terrain.json';terrain=json.loads(terrain_path.read_text()) if terrain_path.exists() else {}
  key={'demSha256':dem_hash,'geometryVersion':'portable-contours-2-pixel-centers','frame':spec.frame,'contourIntervalsFeet':list(spec.contour_intervals)}
  if terrain.get('cacheKey')!=key:
@@ -46,15 +50,20 @@ def build(spec,renderer='webgl',mode='interactive',output=None):
  svg,context=improve(svg,M,dem,spec);svg=M.finalize(svg)
  svg,contour_payload=pack_contours(svg,mode=mode)
  css=(Path(__file__).parent/'cartography/map.css').read_text()+(Path(__file__).parent/'cartography/styles.css').read_text()
- # Cursor lookup is an explicitly downsampled array, preserving the full frame.
- cursor=np.asarray(Image.fromarray(dem).resize((260,round(260*h/w)),Image.Resampling.BILINEAR))*3.28084;gh,gw=cursor.shape;encoded=base64.b64encode(np.clip(cursor,0,65535).astype('<u2').tobytes()).decode()
- js=(Path(__file__).parent/'cartography/interactive.js').read_text()
- replacements={'PROFILE_JSON':'{}','DEM_GW':str(gw),'DEM_GH':str(gh),'DEM_B64':encoded,'DEM_LON0':str(spec.bbox[0]),'DEM_LON1':str(spec.bbox[2]),'DEM_LAT0':str(spec.bbox[1]),'DEM_LAT1':str(spec.bbox[3])}
- for a,b in replacements.items():js=js.replace(a,b)
- controls='<div class="ctl"><div class="zoomrow"><button id="zin" aria-label="Zoom in">+</button><button id="zout" aria-label="Zoom out">−</button><button id="zreset" aria-label="Reset view">⌂</button></div><select id="goto" aria-label="Go to a place"></select><details class="layers"><summary>Layers</summary><div class="box">'
- for layer,name,checked in [('relief','Shaded relief',True),('landcover','Land cover',True),('boundaries','Land boundaries',True),('water','Water',True),('contours','Contours',True),('places','Facilities and places',True),('peaks','Summits',True),('names','Names',True),('grid','Coordinate grid',False)]:controls+=f'<label><input type="checkbox" data-layer="no-{layer}" {"checked" if checked else ""}> {name}</label>'
- controls+='<label>Text size<select id="text-size"><option value="1">Standard</option><option value="1.25">Large</option><option value="1.5">Extra large</option></select></label></div></details></div><div class="zlabel" id="zlabel"></div><div class="readout" id="readout"></div><div class="ttip" id="ttip" hidden></div>'
- page='<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>'+escape(spec.title)+' Trail Explorer</title><style>'+embedded_fonts()+css+'[data-layout-id]{visibility:hidden}</style><main class="sheet"><header class="mast"><div><p class="eyebrow">Trails and terrain</p><h1>'+escape(spec.title)+'</h1><p class="lede">'+escape(spec.subtitle)+'</p></div></header><figure class="map-fig"><div class="map-wrap">'+svg+controls+'</div><figcaption class="legend">'+transport_legend(context)+'<span>Drag to pan · scroll or pinch to zoom · select a trail or find a place</span></figcaption></figure>'+catalog_panel(context)+'<footer><p>Terrain and geographic names: USGS 3DEP and GNIS. Hydrography: USGS 3DHP. Land cover: Annual NLCD. Land boundaries: PAD-US. Roads, trails and facilities: © OpenStreetMap contributors (ODbL). Source versions and retrieval dates are listed above.</p><p>Schematic reference, not for navigation. Use official trail guides and current conditions for planning.</p></footer></main>'+M.script()+contour_payload+layout_script()+'<script>'+js+'</script></html>'
+ controls=interaction=''
+ if mode=='interactive':
+  # Cursor lookup is an explicitly downsampled array, preserving the full frame.
+  cursor=np.asarray(Image.fromarray(dem).resize((260,round(260*h/w)),Image.Resampling.BILINEAR))*3.28084;gh,gw=cursor.shape;encoded=base64.b64encode(np.clip(cursor,0,65535).astype('<u2').tobytes()).decode()
+  js=(Path(__file__).parent/'cartography/interactive.js').read_text()
+  replacements={'PROFILE_JSON':'{}','DEM_GW':str(gw),'DEM_GH':str(gh),'DEM_B64':encoded,'DEM_LON0':str(spec.bbox[0]),'DEM_LON1':str(spec.bbox[2]),'DEM_LAT0':str(spec.bbox[1]),'DEM_LAT1':str(spec.bbox[3])}
+  for a,b in replacements.items():js=js.replace(a,b)
+  controls='<div class="ctl"><div class="zoomrow"><button id="zin" aria-label="Zoom in">+</button><button id="zout" aria-label="Zoom out">−</button><button id="zreset" aria-label="Reset view">⌂</button></div><select id="goto" aria-label="Go to a place"></select><details class="layers"><summary>Layers</summary><div class="box">'
+  for layer,name,checked in [('relief','Shaded relief',True),('landcover','Land cover',True),('boundaries','Land boundaries',True),('water','Water',True),('contours','Contours',True),('places','Facilities and places',True),('peaks','Summits',True),('names','Names',True),('grid','Coordinate grid',False)]:controls+=f'<label><input type="checkbox" data-layer="no-{layer}" {"checked" if checked else ""}> {name}</label>'
+  controls+='<label>Text size<select id="text-size"><option value="1">Standard</option><option value="1.25">Large</option><option value="1.5">Extra large</option></select></label></div></details></div><div class="zlabel" id="zlabel"></div><div class="readout" id="readout"></div><div class="ttip" id="ttip" hidden></div>'
+  interaction='<script id="map-interaction">'+js+'</script>'
+ title='Trail Sheet' if mode=='static' else 'Trail Explorer'
+ instruction='' if mode=='static' else '<span>Drag to pan · scroll or pinch to zoom · select a trail or find a place</span>'
+ page='<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>'+escape(spec.title)+' '+title+'</title><style>'+embedded_fonts()+css+'[data-layout-id]{visibility:hidden}</style><main class="sheet"><header class="mast"><div><p class="eyebrow">Trails and terrain</p><h1>'+escape(spec.title)+'</h1><p class="lede">'+escape(spec.subtitle)+'</p></div></header><figure class="map-fig"><div class="map-wrap">'+svg+controls+'</div><figcaption class="legend">'+transport_legend(context)+instruction+'</figcaption></figure>'+catalog_panel(context)+'<footer><p>Terrain and geographic names: USGS 3DEP and GNIS. Hydrography: USGS 3DHP. Land cover: Annual NLCD. Land boundaries: PAD-US. Roads, trails and facilities: © OpenStreetMap contributors (ODbL). Source versions and retrieval dates are listed above.</p><p>Schematic reference, not for navigation. Use official trail guides and current conditions for planning.</p></footer></main>'+M.script()+contour_payload+layout_script()+interaction+'</html>'
  path=Path(output or f'{spec.id}_trails_{mode}.html');path.write_text(page);print('wrote',path,len(page)//1024,'KB',len(M.annotations),'annotations',flush=True)
 if __name__=='__main__':
  p=argparse.ArgumentParser();p.add_argument('--map',default='sequoia');p.add_argument('--renderer',choices=['svg','canvas','webgl'],default='webgl');p.add_argument('--mode',choices=['static','interactive'],default='interactive');p.add_argument('--output');a=p.parse_args();build(MapSpec.load(a.map),a.renderer,a.mode,a.output)

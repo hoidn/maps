@@ -1,8 +1,9 @@
 # Process: from raw data to the two maps
 
-**Role:** Guide to the current pipeline. The [data contract](specs/map-data.md)
+**Role:** Guide to the authored Grand Canyon pipeline. The [data contract](specs/map-data.md)
 owns interface conventions; [validation](VALIDATION.md) owns check guidance.
 Use the [index](index.md) for task routing and proposed work.
+For a new area, use the [bounds-driven regional workflow](LAYOUT_VALIDATION.md#regional-builds-and-large-format-pdfs).
 
 The pipeline is nine scripts run in order. Each one reads files written by the previous ones and
 writes plain files, so any stage can be re-run alone. All paths below are inside `pipeline/`.
@@ -27,10 +28,10 @@ Static finalization serializes the measured layout and audits that file without 
 
 ## 0. Decide the frame
 
-Everything is keyed to one geographic frame. `osmdata.py` and the DEM fetchers declare
+The authored Grand Canyon stages are keyed to one geographic frame. `osmdata.py` and the DEM fetchers declare
 its bounds; the DEM processors hard-code the corresponding spans and SVG dimensions.
-See the [data contract](specs/map-data.md#coordinates-frame-and-units) and
-[adaptation checklist](ADAPTING.md#1-frame) when changing these copies:
+The [data contract](specs/map-data.md#coordinates-frame-and-units) owns these conventions.
+Adding a region uses the [shared regional builder](ADAPTING.md), without changing these copies:
 
 ```
 LON0, LAT0, LON1, LAT1 = -112.262, 35.990, -111.898, 36.232

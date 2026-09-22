@@ -32,7 +32,7 @@ references relevant to the task; this index links to authority without duplicati
 | [Validation](VALIDATION.md) | Task-level evidence selection; separates geographic, rendered, interaction, and release claims |
 | [Performance](PERFORMANCE.md) | Explanation of implemented optimizations, measured gains, reproduction and limitations; not a release guarantee |
 | [Startup investigation](STARTUP_INVESTIGATION.md) | Current task 13 measurement corrections, evidence and remaining work; no established 3× startup pass |
-| [Process](PROCESS.md) | Current pipeline stages and rendering procedure |
+| [Process](PROCESS.md) | Authored Grand Canyon pipeline stages and rendering procedure |
 | [Design](DESIGN.md) | Current cartographic choices and interaction behavior |
 | [Data sources](DATA_SOURCES.md) | Acquisition/reference notes, attribution, and dated source observations; not a live conditions feed |
 | [Pitfalls](PITFALLS.md) | Recorded failures, fixes, and lessons; consult the contract for maintained interface requirements |

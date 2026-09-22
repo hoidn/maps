@@ -25,7 +25,7 @@ for evidence appropriate to a change.
 | Contour levels, rendered elevations, tint stops | Feet; contour `lv` is not metres |
 | `hav`, chain lengths, merge tolerance, table mileage | Miles |
 
-The current geographic frame is west `-112.262`, south `35.990`, east `-111.898`,
+The authored Grand Canyon frame is west `-112.262`, south `35.990`, east `-111.898`,
 north `36.232`. SVG dimensions are `1300 × 1070` user units. In
 [osmdata.py](../../pipeline/osmdata.py), projection is:
 
@@ -35,9 +35,10 @@ y = (LAT1 - lat) / (LAT1 - LAT0) * H
 ```
 
 Fetch extents, DEM orientation, processor scales, and builder projection must
-describe the same area. The existing processors hard-code geographic spans and
-SVG dimensions; they do not read a shared frame configuration. Region changes
-must account for these copies; see [Adapting](../ADAPTING.md#1-frame).
+describe the same area. The authored processors hard-code geographic spans and
+SVG dimensions; they do not read a shared frame configuration. Changing that
+adapter's frame must account for these copies. New regions use the shared
+`MapSpec` path described in [Adapting](../ADAPTING.md).
 
 An ImageServer response can expand the requested extent. Pixel dimensions alone
 are not proof of registration. The dense fetch checks returned bounds against

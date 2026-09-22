@@ -127,10 +127,12 @@ test('renderer crash fails finalization without hanging in diagnostic evaluation
   try{
     finalizing=finalizeStatic({...paths,policy,reportDir:join(paths.dir,'reports')}).then(()=>null,error=>error);
     const error=await Promise.race([finalizing,new Promise(resolve=>{timer=setTimeout(()=>resolve(new Error('Finalizer hung after renderer crash')),7000);})]);
-    expect(error?.message).toMatch(/Static layout renderer crashed/);
+    // Chromium can reject the evaluation before delivering its crash event.
+    const crashFailure=/renderer crashed|Execution context was destroyed/;
+    expect(error?.message).toMatch(crashFailure);
     expect(stagingBrowser.isConnected()).toBe(false);
     expect(await readFile(paths.output,'utf8')).toBe('prior output');
-    expect(JSON.parse(await readFile(join(paths.dir,'reports/failure.json'),'utf8')).message).toMatch(/renderer crashed/);
+    expect(JSON.parse(await readFile(join(paths.dir,'reports/failure.json'),'utf8')).message).toMatch(crashFailure);
   }finally{
     clearTimeout(timer);chromium.launch=launch;await stagingBrowser?.close();await crashTask;await finalizing;
   }

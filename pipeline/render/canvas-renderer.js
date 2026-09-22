@@ -8,7 +8,7 @@ const EMPTY_CANDIDATES=Object.freeze([]);
  * source; it is not the camera or the hit-test surface during fast frames. */
 export class CanvasMapRenderer{
  constructor(controller,backend='canvas'){
-  this.controller=controller;this.svg=controller.svg;this.backend=backend;this.requestedBackend=backend;this.scene=new MapScene(this.svg,controller.manifest.map);this.labels=new Map();this.painted=[];this.active=false;this.canvases=[];this.generation=0;this.refreshGeneration=0;this.refreshPending=0;
+  this.controller=controller;this.svg=controller.svg;this.backend=backend;this.requestedBackend=backend;this.scene=new MapScene(this.svg,controller.manifest.map);this.labels=new Map();this.painted=[];this.paintedGeometry=[];this.active=false;this.canvases=[];this.generation=0;this.refreshGeneration=0;this.refreshPending=0;
   for(const name of ['terrain','contours','foreground']){
    const canvas=document.createElement('canvas');canvas.dataset.mapCanvas=name;canvas.style.cssText='position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1';this.canvases.push(canvas);
   }
@@ -86,7 +86,7 @@ export class CanvasMapRenderer{
    return;
   }
   this.error=error?.message||String(error);this.destroy();this.controller.renderer=null;this.controller.invalidateLayout();this.controller.schedule();}
- destroy(){if(this.controller.renderer===this)this.controller.renderer=null;window.removeEventListener('pagehide',this.pageHidden);this.gpu?.destroy();this.active=false;this.generation++;this.refreshGeneration++;this.canvases.forEach(c=>{c.remove();c.width=c.height=1;});this.labels.clear();this.painted=[];this.pointerStyle?.remove();this.svg.style.opacity=this.originalOpacity||'';delete this.svg.dataset.mapRenderer;this.themeObserver?.disconnect();this.media?.removeEventListener('change',this.themeChanged);}
+ destroy(){if(this.controller.renderer===this)this.controller.renderer=null;window.removeEventListener('pagehide',this.pageHidden);this.gpu?.destroy();this.active=false;this.generation++;this.refreshGeneration++;this.canvases.forEach(c=>{c.remove();c.width=c.height=1;});this.labels.clear();this.painted=[];this.paintedGeometry=[];this.pointerStyle?.remove();this.svg.style.opacity=this.originalOpacity||'';delete this.svg.dataset.mapRenderer;this.themeObserver?.disconnect();this.media?.removeEventListener('change',this.themeChanged);}
  camera(view){
   const r=this.svg.getBoundingClientRect(),m=viewMatrix(view,r),z=this.controller.manifest.map.width/view.w;
   const badge=document.getElementById('zlabel'),text=z.toFixed(1)+'× · contours '+((this.controller.manifest.map.contourIntervalsFeet||[250,100,50])[z>=4.5?2:z>=2?1:0])+' ft';if(badge&&badge.textContent!==text)badge.textContent=text;
@@ -148,19 +148,23 @@ export class CanvasMapRenderer{
   for(const ctx of (foregroundOnly?[this.fg]:[this.bg,this.contourContext,this.fg]).filter(Boolean)){ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,width,height);}
   const contours=l.preview.contours;
   if(!foregroundOnly){
+  this.paintedGeometry=[];
   this.bg.setTransform(...matrixArray(world));this.bg.globalAlpha=1;
-  for(const item of this.scene.images)if(this.scene.visible(item,l.layers,z)){this.bg.globalAlpha=item.opacity??1;this.bg.drawImage(item.image,item.x,item.y,item.width,item.height);}this.bg.globalAlpha=1;
+  for(const item of this.scene.images)if(this.scene.visible(item,l.layers,z)){this.bg.globalAlpha=item.opacity??1;this.bg.drawImage(item.image,item.x,item.y,item.width,item.height);this.paintedGeometry.push(item);}this.bg.globalAlpha=1;
   if(this.gpu){try{this.gpu.render(l.view,world,z,l.layers.contours);}catch(error){this.useCanvas(error);return;}}
   else if(l.layers.contours)contours.render(l.view,r,l.preview.maxBytes/3,{hidden:false});
   if(!this.gpu&&l.layers.contours&&contours.cached){const c=contours.cached;this.contourContext.setTransform(...matrixArray(world));this.contourContext.globalAlpha=1;this.contourContext.drawImage(contours.canvas,c.x,c.y,c.w,c.h);}
   }
-  this.painted=[];
+  this.painted=[];this.paintedGeometry=this.paintedGeometry.filter(item=>item.kind==='image');
   const placementsByLayer=new Map();
   for(const p of result.placements){const record=this.labels.get(p.id);if(!record)continue;let entries=placementsByLayer.get(record.layer);if(!entries){entries=[];placementsByLayer.set(record.layer,entries);}entries.push([p,record]);}
   const deviceValues=matrixArray(device),paintState=createPaintState(this.fg);
   const view={x:-world.e/world.a,y:-world.f/world.d,w:width/world.a,h:height/world.d};
   for(const layer of ORDER){
-   for(const item of this.scene.byLayer.get(layer)||[])if(this.scene.visible(item,l.layers,z,view))paintCommands(this.fg,item.commands,world,{state:paintState,strokeFactor:item.constantStroke?1/z:1,opacity:layer==='trails'&&this.highlighted&&(this.highlighted instanceof Set?!this.highlighted.has(item.element.dataset.sourceId||item.element.dataset.featureId||item.element.id):item.name!==this.highlighted)?0.25:1});
+   for(const item of this.scene.byLayer.get(layer)||[])if(this.scene.visible(item,l.layers,z,view)){
+    paintCommands(this.fg,item.commands,world,{state:paintState,strokeFactor:item.constantStroke?1/z:1,opacity:layer==='trails'&&this.highlighted&&(this.highlighted instanceof Set?!this.highlighted.has(item.element.dataset.sourceId||item.element.dataset.featureId||item.element.id):item.name!==this.highlighted)?0.25:1});
+    this.paintedGeometry.push(item);
+   }
    const entries=placementsByLayer.get(layer);
    if(entries){this.fg.setTransform(...deviceValues);this.fg.globalAlpha=1;}
    for(const [p,record] of entries||[]){

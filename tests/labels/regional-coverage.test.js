@@ -19,6 +19,17 @@ test('source-backed profiles cannot select another feature with the same name',(
  assert.equal(findProfileFeature({name:'Mount Wilson',sourceId:'gnis:missing'},features),undefined);
  assert.equal(findProfileFeature({name:'Mount Wilson'},features).id,'village');
 });
+test('source-backed scenes require their own painted representation and all context kinds',()=>{
+ const peak={name:'Mount Wilson',sourceId:'osm:node:summit',expectedKinds:['poi','trail']};
+ const unrelated={...evidence,geometrySourceIds:{poi:['osm:node:camp'],trail:['osm:way:trail']}};
+ assert.equal(checkProfileEvidence(peak,unrelated).mechanicalStatus,'failed');
+ const painted={...unrelated,geometrySourceIds:{...unrelated.geometrySourceIds,poi:[peak.sourceId]}};
+ assert.equal(checkProfileEvidence(peak,painted).mechanicalStatus,'passed');
+ assert.deepEqual(checkProfileEvidence(peak,{...painted,geometrySourceIds:{poi:[peak.sourceId]}}).missingKinds,['trail']);
+ const river={name:'West Fork',sourceId:'3dhp:river',expectedKinds:['waterway']};
+ assert.equal(checkProfileEvidence(river,{...evidence,geometrySourceIds:{waterway:['3dhp:other']}}).mechanicalStatus,'failed');
+ assert.equal(checkProfileEvidence(river,{...evidence,geometrySourceIds:{waterway:[river.sourceId]}}).mechanicalStatus,'passed');
+});
 test('missing expected feature, geometry and empty runs are mechanical failures',()=>{
  const good=checkProfileEvidence(profile,evidence);
  assert.equal(good.mechanicalStatus,'passed');

@@ -43,7 +43,7 @@ class PartitionedFetchTests(unittest.TestCase):
    queries=[call.kwargs['data']['data'] for call in post.call_args_list]
    self.assertTrue(all('>>' in query for query in queries))
    self.assertTrue(all('[date:"2026-09-22T12:00:00Z"]' in query for query in queries[1:]))
-   self.assertTrue(all('-rel(id:1);' in query for query in queries[1:]))
+   self.assertTrue(all('-rel._(id:1);' in query for query in queries[1:]))
    self.assertEqual(result['acquisition']['bbox'],list(self.spec().overpass_bbox))
    self.assertEqual(len(result['acquisition']['requests']),post.call_count)
    record=json.loads(path.with_name('osm.json.source.json').read_text());self.assertTrue(verify_source(path,record))
@@ -154,3 +154,22 @@ class PartitionedFetchTests(unittest.TestCase):
    record=json.loads((Path(tmp)/'osm-parts/0000.json.source.json').read_text());self.assertEqual(record['url'],ENDPOINTS[1])
    with patch('sources.osm.requests.post',return_value=good) as post:fetch(self.spec(),path)
    self.assertEqual(post.call_args_list[0].args[0],ENDPOINTS[0])
+
+ def test_old_global_exclusion_checkpoints_keep_provenance_without_refetching(self):
+  from sources.osm import fetch,query_bounds
+  from unittest.mock import patch
+  import tempfile,requests,itertools,json,re
+  elements=[{'type':'node','id':1,'lat':.01,'lon':.01},{'type':'relation','id':5,'members':[{'type':'node','ref':1,'role':''}]}]
+  good=self.response(elements)
+  with tempfile.TemporaryDirectory() as tmp:
+   path=Path(tmp)/'osm.json'
+   with patch('sources.osm.requests.post',side_effect=itertools.chain([good,good],itertools.repeat(requests.Timeout('stop after two checkpoints')))):
+    with self.assertRaises(RuntimeError):fetch(self.spec(),path)
+   for metadata in (Path(tmp)/'osm-parts').glob('*.json'):
+    if not metadata.name.endswith(('.source.json','.split.json')):continue
+    record=json.loads(metadata.read_text());record['query']=record['query'].replace('(._;-rel._(id:','(._;-rel(id:');metadata.write_text(json.dumps(record))
+   with patch('sources.osm.requests.post',return_value=good) as post:result=fetch(self.spec(),path)
+   self.assertEqual(post.call_count,len(result['acquisition']['requests'])-2)
+   first_bounds=tuple(map(float,re.search(r'nwr\["highway"\]\(([^)]+)\)',post.call_args_list[0].kwargs['data']['data'])[1].split(',')))
+   self.assertNotEqual(first_bounds,query_bounds(self.spec())[2])
+   self.assertIn('(._;-rel(id:',result['acquisition']['requests'][1]['query'])

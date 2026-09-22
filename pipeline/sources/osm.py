@@ -17,8 +17,12 @@ def query_bounds(spec):
 def overpass_query(spec,*,bbox=None,snapshot=None,exclude_relations=()):
  bbox=','.join(str(v) for v in (bbox or spec.overpass_bbox))
  selectors=['["highway"]','["ford"]','["waterway"]','["natural"]','["landuse"~"^(forest|meadow|grass|recreation_ground)$"]','["building"]','["amenity"]','["tourism"]','["shop"]','["leisure"]','["historic"]','["place"]','["barrier"]','["railway"]','["public_transport"]','["boundary"~"^(national_park|protected_area)$"]','["type"="route"]["route"~"^(hiking|foot|bicycle|bus)$"]']
- excluded='(._;-rel(id:'+','.join(map(str,exclude_relations))+'););' if exclude_relations else ''
+ excluded='(._;-rel._(id:'+','.join(map(str,exclude_relations))+'););' if exclude_relations else ''
  return '[out:json][timeout:180]'+(f'[date:"{snapshot}"]' if snapshot else '')+';('+''.join(f'nwr{tag}({bbox});' for tag in selectors)+');'+excluded+'(._;>>;);out body qt;'
+def same_query(stored,current):
+ # A minus B equals A minus (A intersect B); retain old request provenance.
+ return isinstance(stored,str) and stored.replace('(._;-rel(id:','(._;-rel._(id:')==current
+
 def fetch(spec,path):
  path=Path(path);parts=path.with_name(path.stem+'-parts')
  bounds=query_bounds(spec);merged={};requests_used=[];snapshot=None;first=None;preferred=ENDPOINTS[0];unavailable=set()
@@ -29,10 +33,10 @@ def fetch(spec,path):
   print(f'OSM partition {name}: {bbox}',flush=True)
   part=parts/(name+'.json');metadata=part.with_name(part.name+'.source.json');split=parts/(name+'.split.json')
   split_record=json.loads(split.read_text()) if split.exists() else {}
-  divided=split_record.get('query')==query and split_record.get('fullBbox')==list(spec.overpass_bbox)
+  divided=same_query(split_record.get('query'),query) and split_record.get('fullBbox')==list(spec.overpass_bbox)
   if not divided:
    record=json.loads(metadata.read_text()) if part.exists() and metadata.exists() else {}
-   if record.get('query')==query and record.get('fullBbox')==list(spec.overpass_bbox):
+   if same_query(record.get('query'),query) and record.get('fullBbox')==list(spec.overpass_bbox):
     if not verify_source(part,record):raise ValueError('OSM checkpoint hash mismatch: '+str(part))
     data=json.loads(part.read_text())
     if datetime.fromisoformat(data['osm3s']['timestamp_osm_base'].replace('Z','+00:00'))<datetime.fromisoformat(record['datasetVersion'].replace('Z','+00:00')):raise ValueError('OSM checkpoint predates requested snapshot: '+str(part))
@@ -61,7 +65,9 @@ def fetch(spec,path):
       raise ValueError('OSM endpoint snapshot '+stamp+' predates requested snapshot '+snapshot)
      break
     except (requests.RequestException,ValueError) as error:
-     errors.append(endpoint+': '+str(error));print(errors[-1],flush=True)
+     detail=getattr(error,'response',None)
+     body=' '+detail.text[:2000] if detail is not None and isinstance(detail.text,str) else ''
+     errors.append(endpoint+': '+str(error)+body);print(errors[-1],flush=True)
      if endpoint not in unavailable:overloaded.append(isinstance(error,requests.Timeout) or getattr(getattr(error,'response',None),'status_code',None) in (429,502,503,504) or 'timed out' in str(error).lower() or 'out of memory' in str(error).lower())
    else:
     if depth>=2 or not overloaded or not all(overloaded):raise RuntimeError('OSM acquisition failed in partition '+name+': '+'; '.join(errors))

@@ -36,6 +36,16 @@ function geometry(path,matrix,pathScale){
   return save(points);
 }
 
+// Glyph centers differ between engines. A short backwards source segment can
+// fall between Chromium's centers but carry a Firefox/WebKit glyph. Check only
+// the occupied arc (including existing ink/font reserve), not the whole path.
+function uprightWindow({segments},start,end){
+  let low=0,high=segments.length;
+  while(low<high){const middle=(low+high)>>>1;if(segments[middle].end<start)low=middle+1;else high=middle;}
+  for(let i=low;i<segments.length&&segments[i].start<=end;i++)if(Math.abs(segments[i].angle)>90+1e-5)return false;
+  return true;
+}
+
 /** Apply before showing the annotation. Transform is absolute in wrapper-parent SVG
  * coordinates, already accounting for screen scale and existing nested rotation.
  * Pure camera pan preserves this transform; reprojectLineCandidate shifts cached
@@ -87,6 +97,8 @@ export function buildLineCandidates({annotation,element,policy={},diagnostics={}
       const pm=path.getScreenCTM(),pathScale=Math.hypot(pm.a,pm.b);
       const {length,points,index}=geometry(path,pm,pathScale);
       const style=getComputedStyle(text),fontPixels=parseFloat(style.fontSize)*scale,halo=style.stroke==='none'?0:parseFloat(style.strokeWidth)*scale/2;
+      const reserve=policy.measurementReserves?.[annotation.id]??0;
+      const inkReserve=halo+(typeof reserve==='number'?reserve:Math.max(...['left','top','right','bottom'].map(edge=>reserve[edge]??0)));
       // Glyph rectangles at diagonal angles need more room than baseline distance.
       // Keep association close to the real path and let hard obstacles reject any
       // case where even this bounded side offset cannot fit.
@@ -113,6 +125,7 @@ export function buildLineCandidates({annotation,element,policy={},diagnostics={}
       for(const window of indexedLineWindows(index,advance,options)){
         diagnostics.windows++;
         if(tp&&window.reverse){diagnostics.reverseWindows++;continue;}
+        if(tp&&!uprightWindow(index,window.start-inkReserve,window.end+inkReserve)){diagnostics.uprightRejected++;continue;}
         if(!tp&&options.lineOffset<32){
           const radians=window.angle*Math.PI/180;
           for(const sign of [1,-1])window.sideCandidates.push({dx:-Math.sin(radians)*32*sign,dy:Math.cos(radians)*32*sign});

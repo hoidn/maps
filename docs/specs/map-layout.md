@@ -470,7 +470,11 @@ work. Static placement remains the existing exhaustive single pass. This changes
 progress visibility; it does not establish an end-to-end speedup.
 
 Candidate diagnostics distinguish path/window, reverse-direction, upright-glyph
-and overflow rejection. Curved waterways with no readable path window may use a
+and overflow rejection. Curved candidates reject backwards source segments within
+their occupied arc plus the existing halo and maximum font-measurement reserve,
+as glyph centers can differ across engines. Backwards segments elsewhere on the
+path do not exclude that window. The actual browser glyph check retains the
+strict ±90° reading limit. Curved waterways with no readable path window may use a
 measured straight name beside the same geometry; source paths are unchanged.
 
 Interactive typography uses semantic minimum sizes, modest bounded growth with

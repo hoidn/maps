@@ -1,5 +1,5 @@
 import {indexLinePath,indexedLineWindows} from './candidates.js';
-import {measureElement} from './measure.js';
+import {measureElement,measureTextAdvance} from './measure.js';
 import {moveShape} from './geometry.js';
 import {measurePointVariants} from './point-variants.js';
 const matrixString=m=>`matrix(${m.a} ${m.b} ${m.c} ${m.d} ${m.e} ${m.f})`;
@@ -71,17 +71,8 @@ export function buildLineCandidates({annotation,element,policy={},diagnostics={}
   // like their inverse-scaled glyphs. Leave other SVG length/list syntax intact.
   const scalarDy=authoredDy!==null&&/^[-+]?(?:\d*\.\d+|\d+\.?\d*)(?:[eE][-+]?\d+)?(?:px)?$/.test(authoredDy.trim());
   const offsetApplication=tp&&scalarDy?{textDy:String(parseFloat(authoredDy)/scale),authoredTextDy:authoredDy}:{};
-  let advance=text.getComputedTextLength()*scale;
+  let advance=(tp?measureTextAdvance(text):text.getComputedTextLength())*scale;
   if(!tp&&text.querySelector('[data-layout-primary]'))advance=text.getBBox().width*scale;
-  if(tp){
-    // Some engines return only the on-path advance, possibly zero for an invalid
-    // original offset. An unconstrained copy discovers all usable alternatives.
-    const plain=element.ownerDocument.createElementNS('http://www.w3.org/2000/svg','text'),style=getComputedStyle(tp);
-    for(const property of ['fontFamily','fontSize','fontWeight','fontStyle','letterSpacing'])plain.style[property]=style[property];
-    for(const name of ['textLength','lengthAdjust'])if(text.hasAttribute(name))plain.setAttribute(name,text.getAttribute(name));
-    plain.textContent=tp.textContent;plain.style.visibility='hidden';element.ownerSVGElement.append(plain);
-    try{advance=plain.getComputedTextLength()*scale;}finally{plain.remove();}
-  }
   const textAngle=Math.atan2(tm.b,tm.a)*180/Math.PI;
   const ids=tp?[annotation.geometryId??(tp.getAttribute('href')||'').slice(1)]:(annotation.geometryIds??[]);
   const output=[];const straightMetric=tp?null:measureElement(element,0,measurement);

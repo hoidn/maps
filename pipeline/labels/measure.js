@@ -1,5 +1,32 @@
 const advanceCache = new Map();
+const advanceProbes=new WeakMap();
 const canvasInkCache=new Map(),canvasContexts=new WeakMap();
+/** Full textPath advance, including glyphs clipped by the current path offset.
+ * A separate SVG keeps probe changes out of the geographic scene's layout.
+ * Match the source SVG's viewport and viewBox: fractional scale affects shaping.
+ */
+export function measureTextAdvance(text) {
+  const source=text.querySelector('textPath')||text,style=getComputedStyle(source),svg=text.ownerSVGElement,viewport=svg.getBoundingClientRect();
+  const viewBox=svg.getAttribute('viewBox'),view=svg.viewBox.baseVal,aspect=svg.getAttribute('preserveAspectRatio');
+  const properties=['fontFamily','fontSize','fontWeight','fontStyle','letterSpacing'];
+  const key=JSON.stringify([source.textContent,...properties.map(name=>style[name]),text.getAttribute('textLength'),text.getAttribute('lengthAdjust'),view.width,view.height,aspect,viewport.width,viewport.height]);
+  if(!advanceCache.has(key)){
+    const doc=text.ownerDocument;let probe=advanceProbes.get(doc);
+    if(!probe?.svg.isConnected){
+      const svg=doc.createElementNS('http://www.w3.org/2000/svg','svg'),plain=doc.createElementNS(svg.namespaceURI,'text');
+      svg.dataset.layoutRuntime='';
+      svg.style.cssText='position:fixed;left:0;top:0;visibility:hidden;pointer-events:none;overflow:hidden';
+      svg.append(plain);doc.body.append(svg);probe={svg,plain};advanceProbes.set(doc,probe);
+    }
+    probe.svg.style.width=viewport.width+'px';probe.svg.style.height=viewport.height+'px';
+    for(const [name,value] of [['viewBox',viewBox],['preserveAspectRatio',aspect]])if(value===null)probe.svg.removeAttribute(name);else probe.svg.setAttribute(name,value);
+    for(const property of properties)probe.plain.style[property]=style[property];
+    for(const name of ['textLength','lengthAdjust']){const value=text.getAttribute(name);if(value===null)probe.plain.removeAttribute(name);else probe.plain.setAttribute(name,value);}
+    probe.plain.textContent=source.textContent;
+    advanceCache.set(key,probe.plain.getComputedTextLength());
+  }
+  return advanceCache.get(key);
+}
 /** Conservative painted footprints in CSS screen pixels, including SVG ancestors. */
 export function measureElement(element, padding=0, {canvasInk=false}={}) {
   if(!element) throw new Error('Missing annotation element');
@@ -23,18 +50,7 @@ export function measureElement(element, padding=0, {canvasInk=false}={}) {
       const length=path.getTotalLength(), raw=textPath.getAttribute('startOffset')||'0';
       const offset=raw.endsWith('%')?parseFloat(raw)*length/100:parseFloat(raw);
       const pathStyle=getComputedStyle(textPath), anchor=pathStyle.textAnchor;
-      const fontKey=[textPath.textContent,pathStyle.fontFamily,pathStyle.fontSize,pathStyle.fontWeight,pathStyle.fontStyle,pathStyle.letterSpacing,text.getAttribute('textLength'),text.getAttribute('lengthAdjust')].join('|');
-      // Firefox/WebKit can report only the portion that fit on the path. Measure
-      // an unconstrained copy so clipped characters cannot disappear from the test.
-      if(!advanceCache.has(fontKey)) {
-        const plain=document.createElementNS('http://www.w3.org/2000/svg','text');
-        for(const property of ['fontFamily','fontSize','fontWeight','fontStyle','letterSpacing'])plain.style[property]=pathStyle[property];
-        plain.style.visibility='hidden';plain.textContent=textPath.textContent;
-        for(const attribute of ['textLength','lengthAdjust'])if(text.hasAttribute(attribute))plain.setAttribute(attribute,text.getAttribute(attribute));
-        text.ownerSVGElement.append(plain);
-        try {advanceCache.set(fontKey,plain.getComputedTextLength());} finally {plain.remove();}
-      }
-      const advance=advanceCache.get(fontKey);
+      const advance=measureTextAdvance(text);
       const start=offset-(anchor==='middle'?advance/2:anchor==='end'?advance:0);
       if(start < -1e-4 || start+advance > length+1e-4) throw new Error('Text path overflow');
       const n=text.getNumberOfChars();

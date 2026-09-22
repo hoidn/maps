@@ -1,5 +1,6 @@
 import sys, unittest, json, xml.etree.ElementTree as ET
 from pathlib import Path
+from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'pipeline'))
 from label_manifest import Manifest, embedded_fonts
 
@@ -52,6 +53,35 @@ class ManifestTests(unittest.TestCase):
         self.assertIn('data-layout-id',result)
         self.assertTrue(m.data()['annotations'][0]['geometryId'].startswith('geometry-'))
         self.assertEqual(m.data()['annotations'][0]['kind'],'line-label')
+    def test_geometry_lookup_does_not_rescan_the_scene_for_each_contour(self):
+        count=160;visits=[0];parse=ET.fromstring
+        class CountingElement(ET.Element):
+            def iter(self, tag=None):
+                for element in super().iter(tag):
+                    visits[0]+=1
+                    yield element
+        def counted_parse(text):
+            return parse(text,parser=ET.XMLParser(target=ET.TreeBuilder(element_factory=CountingElement)))
+        paths=''.join(f'<path id="c{i}" d="M{i},0 L{i+1},80"/>' for i in range(count))
+        texts=''.join(f'<text class="l-contour"><textPath href="#c{i}">{i}</textPath></text>' for i in range(count))
+        m=Manifest()
+        with patch('label_manifest.ET.fromstring',side_effect=counted_parse):
+            m.finalize('<svg xmlns="http://www.w3.org/2000/svg"><defs>'+paths+'</defs><g>'+texts+'</g></svg>')
+        self.assertEqual(len(m.annotations),count)
+        self.assertEqual(m.annotations[-1]['geometryBounds'],[count-1,0,count,80])
+        self.assertLess(visits[0],50*count,'Geometry lookup must use a bounded number of scene traversals')
+    def test_geometry_lookup_preserves_first_match_and_unknown_path_error(self):
+        m=Manifest()
+        m.finalize('<svg xmlns="http://www.w3.org/2000/svg"><path id="same" d="M4,9 L14,19"/><path id="same" d="M40,90 L140,190"/><text class="l-contour"><textPath href="#same">1,000</textPath></text></svg>')
+        self.assertEqual(m.annotations[0]['anchor'],[4,9])
+        self.assertEqual(m.annotations[0]['geometryBounds'],[4,9,14,19])
+        with self.assertRaisesRegex(ValueError,'Unknown text path: missing'):
+            Manifest().finalize('<svg xmlns="http://www.w3.org/2000/svg"><text><textPath href="#missing">1,000</textPath></text></svg>')
+    def test_geometry_lookup_observes_trail_id_changes_before_bounds_lookup(self):
+        m=Manifest()
+        m.finalize('<svg xmlns="http://www.w3.org/2000/svg"><g class="trails"><path id="old" d="M4,9 L14,19"/></g><text class="l-contour"><textPath href="#old">1,000</textPath></text></svg>')
+        self.assertEqual(m.annotations[0]['anchor'],[4,9])
+        self.assertNotIn('geometryBounds',m.annotations[0])
     def test_distinct_source_features_at_identical_coordinates(self):
         m=Manifest()
         for source,name in [(1,'Mencius Temple'),(2,'Twin Buttes')]:

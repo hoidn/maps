@@ -123,9 +123,11 @@ class Manifest:
                 gid=path.get('id')
                 if gid and gid in seen_geometry:defs.remove(path)
                 elif gid:seen_geometry.add(gid)
+        by_id={}
         for e in root.iter():
             href=e.get('href','')
             if href.startswith('#') and href[1:] in remap: e.set('href','#'+remap[href[1:]])
+            if e.get('id'): by_id.setdefault(e.get('id'),e)
         parent={c:p for p in root.iter() for c in p}
         for element in list(root.iter(f'{{{NS}}}text')):
             chain=[]; p=element
@@ -138,7 +140,7 @@ class Manifest:
             path=element.find(f'{{{NS}}}textPath')
             geometry_id=path.get('href','').lstrip('#') if path is not None else None
             if geometry_id:
-                target=next((e for e in root.iter() if e.get('id')==geometry_id),None)
+                target=by_id.get(geometry_id)
                 if target is None: raise ValueError('Unknown text path: '+geometry_id)
                 nums=re.findall(r'-?\d+(?:\.\d+)?',target.get('d',''))
                 xy=tuple(map(float,nums[:2])) if len(nums)>=2 else (0,0)
@@ -159,14 +161,17 @@ class Manifest:
                 if name and not path.get('data-feature-id'):
                     fid=self._feature((0,0),name,'trail')
                     path.set('data-feature-id',fid)
-        paths_by_feature={}
-        for path in root.iter(f'{{{NS}}}path'):
-            if path.get('data-layout-obstacle')=='trail':
+        # Wrapping labels and identifying trails changed IDs; rebuild the same
+        # first-match index before resolving remaining geometry bounds.
+        paths_by_feature={};by_id={}
+        for path in root.iter():
+            if path.get('id'): by_id.setdefault(path.get('id'),path)
+            if path.tag==f'{{{NS}}}path' and path.get('data-layout-obstacle')=='trail':
                 paths_by_feature.setdefault(path.get('data-feature-id'),[]).append(path.get('id'))
         for a in self.annotations:
             if a.get('geometryId') in remap: a['geometryId']=remap[a['geometryId']]
             if a.get('geometryId') and not a.get('geometryBounds'):
-                target=next((e for e in root.iter() if e.get('id')==a['geometryId']),None)
+                target=by_id.get(a['geometryId'])
                 if target is not None:
                     values=list(map(float,re.findall(r'-?\d+(?:\.\d+)?',target.get('d',''))))
                     if len(values)>=4 and len(values)%2==0:a['geometryBounds']=[min(values[::2]),min(values[1::2]),max(values[::2]),max(values[1::2])]

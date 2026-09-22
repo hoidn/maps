@@ -18,8 +18,8 @@ the checked-in Python unittest, Node test and Playwright harnesses.
 
 **Status:** Authorized execution active. Region integration, physical print export and
 bounds-driven generation are implemented. Fixture validation passes; real San Gabriel
-inputs are acquired; the actual build and acceptance are in progress. Nothing has been
-promoted or published.
+inputs are acquired; both real PDFs pass mechanical checks and have visual reviews.
+Interactive matrix acceptance remains in progress. Nothing has been promoted or published.
 
 **User clarification:** New maps start from a selected area/bounding box. A checked-in
 San Gabriel preset alone does not establish automated region setup. The generic command
@@ -151,8 +151,9 @@ is recovered through a verified immutable copy, independent of the mutable
 pipeline candidate. `san-gabriel/fuzz-public-5da66938/first-case-result.json`,
 `first-case-comparison.json` and `first-case-visual-review.json` record the failure,
 comparison and limited six-frame review. `scheduler-pause.json` records the
-paused matrix parent; remaining cases have not run while the isolated 1:50,000
-print retry owns the browser window. Commit `cf1519d` now records the primary
+pause for isolated print validation. `scheduler-resume.json` records resumption
+of the same parent at 21:37:11 UTC after the print browser closed; remaining
+cases run sequentially. Commit `cf1519d` now records the primary
 failure before copying evidence, reports copy errors separately and closes
 browser/server resources even if report or contact-sheet writes fail. Three
 actual CLI write-failure regressions and seven initialization/pan checks pass;
@@ -276,11 +277,20 @@ Its one 5,436 × 3,136.08 point page passes physical-size checks, embeds all fon
 retains 159,140 map-interior vector paths and 16,248 text operations, and preserves
 terrain source pixels/statistics. The 100 mm calibration bar measures 100.189 mm
 after PDF rasterization. Relief is approximately 35 × 29 DPI and land cover
-17 DPI; full-resolution visual review remains pending. The sibling
+17 DPI. The whole poster and all thirteen 300 DPI crops are reviewed in
+`san-gabriel/pdf-50k-visual/review.json`: the complete collar, vector text and dense
+trails are readable; land-cover cells remain visibly coarse. Antonio and
+Baden-Powell summit names/elevations/symbols are visible. Wilson's summit symbol
+is visible but its summit name is omitted; the bold name is the distinct settlement.
+The audit identifies 42 visible contour labels out of 122. These reviews are
+digital evidence, not physical printer proofs. The sibling
 `san-gabriel-50k.print.json`, finalization reports, `five-point-outcomes.json` and
 `mechanical-summary.json` record these claims and their limits. Storage was
 redirected before serialization with verified copies and preserved open logs;
-`environment.json` records the logical/physical path mapping.
+`environment.json` records that historical mapping. Completed evidence is now
+retained in ignored workspace paths; `point-envelope-50k-retention.json` and
+`point-envelope-50k-retention-archives.json` record verified repatriation and
+compressed audit inventories. Logical artifact paths remain stable.
 The later `b6a3bfc` correction makes font probes use the immutable original name
 after an initial wrapped placement; three focused differential checks pass.
 That correction is absent from this completed run; its exact-byte audits prove
@@ -290,7 +300,8 @@ A shared
 finalizer fix now closes a crashed renderer and records failure promptly instead
 of waiting on DOM diagnostics from the dead page. Its real renderer-crash test
 and eight static-workflow checks pass. No heap override or geometric/rendering
-gate relaxation has been applied. Real 1:50,000 PDF visual acceptance remains pending.
+gate relaxation has been applied. Both actual PDF sizes have separate, hash-bound
+visual reviews with recorded label and raster limits.
 
 The inert-JSON consumer run passed 62 browser checks with 24 intentional skips.
 One Firefox corrupt-contour teardown reported the fixture's deliberate checksum
@@ -777,7 +788,7 @@ missing scenes, empty output and backend fallback cannot masquerade as coverage.
 `docs/LAYOUT_VALIDATION.md`, the two owning contracts and this plan's checkboxes.
 Print operating instructions belong in the existing layout guide.
 
-- [ ] Export actual San Gabriel PDFs at 36 × 24 inches and nominal 1:50,000 using
+- [x] Export actual San Gabriel PDFs at 36 × 24 inches and nominal 1:50,000 using
   task 8's command. Review the complete poster and full-resolution crops of the
   collar, dense trails, labels and terrain. Record effective raster DPI; reject
   unreadable output rather than calling a successful PDF write print readiness.

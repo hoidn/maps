@@ -562,6 +562,14 @@ margin or `{left, top, right, bottom}` margins. The solver expands that annotati
 candidate footprints before collision/frame checks, including lazy alternatives.
 Untransformed font probes only justify directional margins for unit-scale,
 unrotated point labels; other text retains a conservative scalar margin.
+For point displacement, finalization also supplies measured
+`pointPaintInsets[id]` as `{left, top, right, bottom}` inward edge differences.
+Removing these insets from reference paint bounds gives a conservative maximum
+anchor distance across engines; outward collision reserves remain separate.
+Insets include declared wrap probes, are rounded outward to 1/64 CSS px, and
+use the measured axis-difference vector length uniformly for transformed points.
+Ordinary, required and lazy fallback candidates retain annotation identity and
+apply the same insets in candidate filtering and solver distance checks.
 The finalizer keeps measured probe evidence and reaudits exact serialized bytes in
 all three browser engines and both themes. Font padding is not an audit exemption.
 
@@ -578,10 +586,11 @@ restart repair budgets or omit final label/repeat blockers. Custom fallback
 functions without that recipe retain their one-shot behavior. Interactive solves
 with `exhaustiveDiagnostics: false` retain their existing cache and fallback path.
 
-Interactive point candidate preparation reserves 0.125 CSS px inside the declared
-maximum displacement for cross-backend subpixel glyph rounding. The independent
-paint audit retains the full 32 px limit; static required-point grids retain their
-existing radius. `pointPaintReserve` applies to candidate filtering, including
+Interactive and physical-print point preparation reserves 0.125 CSS px inside
+the declared maximum displacement for cross-backend subpixel glyph rounding. The independent
+paint audit retains the configured displacement limit; static required-point
+grids retain their existing radius. `pointPaintReserve` applies to candidate
+filtering, including
 serialized lazy fallbacks, and does not relax geometry or typography checks.
 
 A measured shape may carry `paintInset` (CSS px) when its collision envelope

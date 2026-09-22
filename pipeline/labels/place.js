@@ -100,7 +100,7 @@ function* layoutSteps({annotations,obstacles=[],viewport,previous,policy={},quer
     let hard=cache.candidate===c?cache.hard:cache.others?.get(c);
     if(!hard){hard=[];
     if(!validShape(c.shape)) return {hard:['invalid-geometry'],labels,repeat};
-    if(a.kind==='point-label'&&a.anchor&&pointPaintDistance(unreservedShapes.get(c)??c.shape,a.anchor)>pointDisplacementLimit(a,policy)+1e-7)hard.push('feature-distance');
+    if(a.kind==='point-label'&&a.anchor&&pointPaintDistance(unreservedShapes.get(c)??c.shape,a.anchor,policy.pointPaintInsets?.[a.id])>pointDisplacementLimit(a,policy)+1e-7)hard.push('feature-distance');
     if(!contains(frame,c.shape.bounds,padding))hard.push('frame');
     if(a.areaPolygons&&!shapeInsidePolygons(c.shape,a.areaPolygons,a.areaTransform))hard.push('area-boundary');
     if(placementDiagnostics&&hard.length){if(cache.candidate===c)cache.hard=hard;else(cache.others??=new Map()).set(c,hard);return {hard,labels,repeat};}

@@ -37,8 +37,8 @@ async function measureControlProbes(page, probes) {
     }finally{holder.remove();}
   },probes);
 }
-async function staticMeasurementEnvelope(page, viewport, referenceSize) {
-  const {probes,css,directionalOwners,controlProbes}=await page.evaluate(async(referenceSize)=>{
+export async function staticMeasurementEnvelope(page, viewport, referenceSize) {
+  const {probes,css,directionalOwners,pointOwners,controlProbes}=await page.evaluate(async(referenceSize)=>{
     const controller=window.mapLayout,svg=document.getElementById('mapsvg');
     if(!controller||!svg)throw new Error('Static layout runtime missing');
     try{await controller.ready;await controller.whenSettled();}catch(error){throw new Error('Static layout/font initialization failed: '+error.message);}
@@ -73,12 +73,12 @@ async function staticMeasurementEnvelope(page, viewport, referenceSize) {
       for(const defs of svg.querySelectorAll(':scope > defs'))root.append(defs.cloneNode(true));
       root.append(content);return root.outerHTML;
     });
-    return {probes:[...probes.values()],css:[...document.querySelectorAll('style')].map(s=>s.textContent).join('\n'),directionalOwners:[...directional].filter(([,aligned])=>aligned).map(([id])=>id),controlProbes};
+    return {probes:[...probes.values()],css:[...document.querySelectorAll('style')].map(s=>s.textContent).join('\n'),directionalOwners:[...directional].filter(([,aligned])=>aligned).map(([id])=>id),pointOwners:[...annotations.values()].filter(a=>a.kind==='point-label').map(a=>a.id),controlProbes};
   },referenceSize);
   if(!probes.length)throw new Error('Static typography probes missing');
   const reference=await measureFontProbes(page,probes),profiles=[{browser:'chromium',probeCount:probes.length,maxOutwardPx:0}];
   const controlReference=await measureControlProbes(page,controlProbes),fixedControlReserves=controlReference.map(()=>({left:0,top:0,right:0,bottom:0}));
-  let reservePx=0;const byAnnotation={};
+  let reservePx=0;const byAnnotation={},pointPaintInsets={},points=new Set(pointOwners);
   for(const [name,engine] of [['firefox',firefox],['webkit',webkit]]){
     const browser=await engine.launch();
     try{
@@ -95,10 +95,13 @@ async function staticMeasurementEnvelope(page, viewport, referenceSize) {
         const a=reference[i],b=measured[i];
         if(!Object.values(b).every(Number.isFinite))throw new Error('Non-finite static font measurement');
         const edges={left:Math.max(0,a.x-b.x),top:Math.max(0,a.y-b.y),right:Math.max(0,b.x+b.width-a.x-a.width),bottom:Math.max(0,b.y+b.height-a.y-a.height)};
+        const inward={left:Math.max(0,b.x-a.x),top:Math.max(0,b.y-a.y),right:Math.max(0,a.x+a.width-b.x-b.width),bottom:Math.max(0,a.y+a.height-b.y-b.height)};
         for(const edge of Object.keys(edges))edges[edge]*=probes[i].scale;
+        for(const edge of Object.keys(inward))inward[edge]*=probes[i].scale;
         const outward=Math.max(...Object.values(edges));
         maxOutwardPx=Math.max(maxOutwardPx,outward);
         for(const id of probes[i].owners){const reserve=byAnnotation[id]??={left:0,top:0,right:0,bottom:0};for(const key of Object.keys(edges))reserve[key]=Math.max(reserve[key],edges[key]);}
+        for(const id of probes[i].owners)if(points.has(id)){const inset=pointPaintInsets[id]??={left:0,top:0,right:0,bottom:0};for(const key of Object.keys(inward))inset[key]=Math.max(inset[key],inward[key]);}
       }
       profiles.push({browser:name,probeCount:probes.length,maxOutwardPx});reservePx=Math.max(reservePx,maxOutwardPx);
     }finally{await browser.close();}
@@ -111,7 +114,13 @@ async function staticMeasurementEnvelope(page, viewport, referenceSize) {
     for(const key of Object.keys(edges))edges[key]=Math.ceil(edges[key]*64)/64;
     if(!directional.has(id))byAnnotation[id]=Math.max(...Object.values(edges));
   }
-  return {method:'per-edge outward SVG text-bound differences shaped at actual screen scale for unrotated unit-scale point labels; uniform maxima for other annotations, across embedded-font and declared-wrap probes; per-edge bounds for fixed SVG controls',reservePx,byAnnotation,fixedControlReserves,profiles};
+  for(const [id,edges] of Object.entries(pointPaintInsets)){
+    // A transformed point can turn either local-axis difference toward its
+    // anchor. The measured vector length bounds that change in any direction.
+    const uniform=Math.hypot(Math.max(edges.left,edges.right),Math.max(edges.top,edges.bottom));
+    for(const key of Object.keys(edges))edges[key]=Math.ceil((directional.has(id)?edges[key]:uniform)*64)/64;
+  }
+  return {method:'per-edge outward SVG text-bound differences shaped at actual screen scale for unrotated unit-scale point labels; uniform maxima for other annotations, across embedded-font and declared-wrap probes; inward point bounds for maximum anchor distance; per-edge bounds for fixed SVG controls',reservePx,byAnnotation,pointPaintInsets,fixedControlReserves,profiles};
 }
 /** Finalize only after reopening the exact serialized bytes in every audit engine. */
 export async function finalizeStatic({
@@ -205,7 +214,7 @@ export async function finalizeStatic({
         // Keep the release clearance unchanged. The solver receives an additional
         // per-annotation measured envelope around candidate footprints. Other
         // labels do not inherit the font variance of a long region heading.
-        controller.policy={...controller.policy,clearance:Math.max(controller.policy.clearance??2,auditPolicy.clearance??2),edgePadding:Math.max(controller.policy.edgePadding??4,auditPolicy.edgePadding??4),measurementReserves:measurementEnvelope.byAnnotation,fixedControlReserves:measurementEnvelope.fixedControlReserves};
+        controller.policy={...controller.policy,clearance:Math.max(controller.policy.clearance??2,auditPolicy.clearance??2),edgePadding:Math.max(controller.policy.edgePadding??4,auditPolicy.edgePadding??4),measurementReserves:measurementEnvelope.byAnnotation,pointPaintInsets:measurementEnvelope.pointPaintInsets,fixedControlReserves:measurementEnvelope.fixedControlReserves};
         controller.invalidateLayout();controller.previous=null;controller.cache.invalidate();controller.lineCache.clear();
         const reference=referenceSize||{width,height};
         // Placement uses natural map size or the declared physical print reference.

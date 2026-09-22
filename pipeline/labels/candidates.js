@@ -39,7 +39,7 @@ export function pointCandidates(annotation,metric,policy={}) {
   // Keep the declared paint limit strict even when a backend rounds glyph
   // extents slightly differently from the SVG preparation measurement.
   const maximum=Math.max(0,pointDisplacementLimit(annotation,policy,32)-(policy.pointPaintReserve??0));
-  return result.filter(c=>pointPaintDistance(c.shape,annotation.anchor)<=maximum+1e-7);
+  return result.filter(c=>pointPaintDistance(c.shape,annotation.anchor,policy.pointPaintInsets?.[annotation.id])<=maximum+1e-7);
 }
 
 /** Conservative translations of an already measured region name. No invented region

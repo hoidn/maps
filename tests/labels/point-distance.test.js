@@ -49,6 +49,22 @@ test('collision padding preserves generated paint positions and narrow boundary 
 });
 
 const closePolicy={maxPointDisplacement:32,maxOptionalPointDisplacement:16,edgePadding:0};
+test('measured inward font edges constrain point distance without discarding the opposite side',()=>{
+ // Carl's Jr. in the failed 1:50k sheet: Chromium's right ink edge is14px
+ // from the anchor; WebKit's measured box is2.796875px narrower.
+ const annotation={id:'name',kind:'point-label',anchor:[0,0]},policy={...closePolicy,pointPaintInsets:{name:{left:0,top:0,right:2.796875,bottom:0}}};
+ for(const paintInset of [0,.35]){
+  const metric=x=>{const bounds={x:x-paintInset,y:2-paintInset,width:54.8+2*paintInset,height:21.8+2*paintInset};return {bounds,parts:[bounds],paintInset};};
+  const west=metric(-68.8),east=metric(14);
+  assert(!pointCandidates(annotation,west,policy).some(c=>c.id==='preferred'));
+  assert(pointCandidates(annotation,east,policy).some(c=>c.id==='preferred'),'right-edge shrinkage does not change the nearest left edge');
+  const retained={...annotation,candidates:[{id:'retained',shape:west}]};
+  for(const measurementReserves of [undefined,{name:{left:4,top:2,right:4,bottom:2}}]){
+   const result=solveLayout({annotations:[retained],viewport:{x:-100,y:-100,width:300,height:300},policy:{...policy,measurementReserves}});
+   assert.deepEqual(result.placements,[]);assert.equal(result.outcomes[0].reason,'feature-distance');
+  }
+ }
+});
 test('optional points cannot use an old far slot while required static names retain it',()=>{
  const bounds={x:24,y:0,width:20,height:10},anchor=[0,0],metric={bounds,parts:[bounds]};
  const annotation={kind:'point-label',anchor};

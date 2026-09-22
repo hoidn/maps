@@ -535,7 +535,7 @@ export class LayoutController {
                 const policy={...this.policy,densePointCandidates:item.required,pointPaintReserve:(this.mode==='interactive'||this.manifest.map.print)?.125:0};item.candidates=pointCandidates(item,metric,policy);
                 for(const v of cached.pointVariants||[])item.candidates.push(...pointCandidates(item,moveShape(v.shape,dx,dy),policy).map(c=>({...c,id:v.id+'-'+c.id,textHTML:v.textHTML})));
                 if(a.kind==='point-label'&&!policy.densePointCandidates){
-                  item.fallbackData={annotation:{kind:item.kind,anchor:item.anchor},metric,variants:(cached.pointVariants||[]).map(v=>({...v,shape:moveShape(v.shape,dx,dy)})),policy};
+                  item.fallbackData={annotation:{id:item.id,kind:item.kind,anchor:item.anchor},metric,variants:(cached.pointVariants||[]).map(v=>({...v,shape:moveShape(v.shape,dx,dy)})),policy};
                   item.fallbackCandidates=()=>pointFallback(item.fallbackData);
                 }
               }

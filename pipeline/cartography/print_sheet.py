@@ -90,12 +90,16 @@ def make_print_sheet(svg, manifest, context, spec, profile):
     tree.set('data-print-map', '')
     # Report the actual embedded raster resolution, including resampled land cover.
     profile['rasters'] = []
+    active_cover = {}
     for element in tree.iter('{'+NS+'}image'):
         href = element.get('href', '')
         if 't-dark' in element.get('class', '') or not href.startswith('data:image/'):
             continue
         image = Image.open(io.BytesIO(base64.b64decode(href.split(',', 1)[1])))
         kind = 'landcover' if 'landcover' in element.get('class', '') else 'relief'
+        if kind == 'landcover':
+            colors = {rgba[:3]:rgba[3]/255 for rgba in set(image.convert('RGBA').getdata()) if rgba[3]}
+            active_cover.update((code,colors[tuple(bytes.fromhex(color[1:]))]) for code,color in COVER.items() if tuple(bytes.fromhex(color[1:])) in colors)
         info = {'layer': kind, 'pixels': list(image.size), 'normalizedSampleSpacingMeters': None, 'nativePixelMeters': None}
         stats=ImageStat.Stat(image.convert('RGB'))
         info['pixelStatistics']={'mean':stats.mean,'stddev':stats.stddev}
@@ -120,20 +124,12 @@ def make_print_sheet(svg, manifest, context, spec, profile):
     for item in list(legend):
         if 'lg-title' not in item.get('class', '') and not list(item):
             legend.remove(item)
-    land_path = Path('cache')/spec.id/'landcover.npy'
-    if land_path.exists():
-        cover = Image.fromarray(np.load(land_path, allow_pickle=False).astype('uint8')).resize((spec.width, spec.height),Image.Resampling.NEAREST)
-        active_cover = set(np.unique(cover).tolist())
-    else:
-        tags = [f.get('tags', {}) for f in context['catalog']['features'] if f['kind']=='landcover']
-        lookup = {'wood':42,'forest':42,'grassland':71,'grass':71,'meadow':71,'scrub':52,'wetland':90,'glacier':12,'bare_rock':31,'sand':31}
-        active_cover = {lookup.get(t.get('natural'),lookup.get(t.get('landuse'))) for t in tags}
     # Use the same palette and alpha as the printed raster, including distinct NLCD classes.
     for item in list(legend):
         if item.find('i') is not None: legend.remove(item)
     heading = next(item for item in legend if item.text == 'Land cover')
-    for code in sorted(active_cover & COVER.keys(),reverse=True):
-        legend.insert(list(legend).index(heading)+1,ET.fromstring(f'<span class="lg-item"><i class="cover-swatch" style="background:{COVER[code]};opacity:{190/255}"/>{COVER_LABELS[code]}</span>'))
+    for code in sorted(active_cover,reverse=True):
+        legend.insert(list(legend).index(heading)+1,ET.fromstring(f'<span class="lg-item"><i class="cover-swatch" data-cover-alpha="{active_cover[code]}" style="background:{COVER[code]};opacity:{active_cover[code]}"/>{COVER_LABELS[code]}</span>'))
     # Resolve these swatches from actual visible map paint after physical sizing.
     def paint_key(selector, label, area=False):
         item=ET.SubElement(legend,'span',{'class':'lg-item'})

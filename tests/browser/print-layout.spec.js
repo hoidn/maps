@@ -103,7 +103,8 @@ p=Path('cache/sequoia/features.json');data=json.loads(p.read_text())
 data['features']=[f for f in data['features'] if f['kind']!='waterway']
 next(f for f in data['features'] if f['kind']=='trail')['tags']['access']='private'
 polygon={'type':'Polygon','coordinates':[[[-118.195,34.13],[-118.195,34.16],[-118.17,34.16],[-118.17,34.13],[-118.195,34.13]]]}
-for identity,kind,geometry,tags,props in [('forest','landcover',polygon,{'natural':'wood'},{}),('scrub','landcover',polygon,{'natural':'scrub'},{}),('boundary','boundary',polygon,{}, {'Category':'Fee'}),('bench','poi',{'type':'Point','coordinates':[-118.12,34.105]},{'amenity':'bench'},{})]:
+east_polygon={'type':'Polygon','coordinates':[[[x+.04,y] for x,y in polygon['coordinates'][0]]]}
+for identity,kind,geometry,tags,props in [('covered','landcover',polygon,{'natural':'grassland'},{}),('forest','landcover',polygon,{'natural':'wood'},{}),('scrub','landcover',east_polygon,{'natural':'scrub'},{}),('boundary','boundary',polygon,{}, {'Category':'Fee'}),('bench','poi',{'type':'Point','coordinates':[-118.12,34.105]},{'amenity':'bench'},{})]:
  data['features'].append({'id':'osm:synthetic:'+identity,'provider':'osm','kind':kind,'name':None,'geometry':geometry,'tags':tags,'properties':props,'routeIds':[]})
 p.write_text(json.dumps(data))
 for record in p.parent.glob('*.source.json'):record.unlink()`],{cwd:dir});
@@ -118,6 +119,7 @@ for record in p.parent.glob('*.source.json'):record.unlink()`],{cwd:dir});
   const symbols=manifest.annotations.filter(a=>a.kind==='symbol'),placed=new Set(report.outcomes.filter(o=>o.reason==='placed').map(o=>o.id));
   return {water:legend.querySelectorAll('[data-print-match^=".water"]').length,
    cover:[...legend.querySelectorAll('.cover-swatch')].map(e=>e.parentElement.textContent),
+   coverOpacity:Number(getComputedStyle(legend.querySelector('.cover-swatch')).opacity),imageOpacity:Number(getComputedStyle(document.querySelector('#mapsvg .landcover.t-light')).opacity),
    restricted:[...legend.querySelectorAll('[data-transport-key]')].some(e=>visible(e)&&e.dataset.transportKey.includes(':restricted:')),
    boundaries:[...legend.querySelectorAll('[data-boundary-key]')].filter(visible).map(e=>e.dataset.boundaryKey),
    hiddenKinds:[...new Set(symbols.filter(a=>!placed.has(a.id)).map(a=>a.symbolKind))].filter(kind=>!symbols.some(a=>a.symbolKind===kind&&placed.has(a.id))),
@@ -126,6 +128,7 @@ for record in p.parent.glob('*.source.json'):record.unlink()`],{cwd:dir});
   };
  });
  expect(evidence.water).toBe(0);expect(evidence.cover.sort()).toEqual(['Evergreen forest','Shrub / scrub']);
+ expect(evidence.coverOpacity).toBeCloseTo(190/255*evidence.imageOpacity,5);
  expect(evidence.restricted).toBe(true);expect(evidence.boundaries).toEqual(['ownership']);
  expect(evidence.hiddenKinds.length).toBeGreaterThan(0);expect(evidence.hiddenKinds.some(kind=>evidence.legendKinds.includes(kind))).toBe(false);
  expect(evidence.text).toContain('Source dates not supplied');expect(evidence.text).not.toContain('NAVD88');

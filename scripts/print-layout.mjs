@@ -74,6 +74,8 @@ export async function finishPrint(page) {
     const visible=e=>{for(let n=e;n&&n!==c.svg.parentElement;n=n.parentElement){const s=getComputedStyle(n);if(s.display==='none'||s.visibility==='hidden')return false;}return true;};
     const legend=document.querySelector('.print-legend'),before=legend.getBoundingClientRect();
     legend.style.minHeight=before.height+'px';
+    const landcover=c.svg.querySelector('.landcover.t-light');
+    for(const swatch of legend.querySelectorAll('[data-cover-alpha]'))swatch.style.opacity=Number(swatch.dataset.coverAlpha)*(landcover?Number(getComputedStyle(landcover).opacity):1);
     const copyPaint=(path,ink)=>{
       const style=getComputedStyle(path),s=Math.hypot(path.getScreenCTM().a,path.getScreenCTM().b);
       for(const key of ['stroke','fill','opacity','strokeLinecap','strokeLinejoin'])ink.style[key]=style[key];

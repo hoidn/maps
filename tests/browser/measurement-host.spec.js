@@ -10,21 +10,21 @@ test('cooperative measurement stays outside source paint and follows resized cam
  await page.setContent(await fixtureHTML());
  await page.evaluate(()=>{
   const svg=document.getElementById('mapsvg'),append=Element.prototype.append;
-  window.measuringContexts=[];
+  window.measuringContexts=[];window.measurementContainers=new Set();
   Element.prototype.append=function(...nodes){
    const result=append.apply(this,nodes);
    for(const node of nodes)if(node instanceof Element&&node.hasAttribute('data-layout-measurement')){
-    const owner=node.ownerSVGElement,m=owner.getScreenCTM(),source=svg.getScreenCTM();
+    const owner=node.ownerSVGElement,m=owner.getScreenCTM(),source=svg.getScreenCTM();measurementContainers.add(owner.parentElement);
     measuringContexts.push({liveClones:owner.querySelectorAll('[data-layout-measurement]').length,inSource:svg.contains(node),sameCamera:['a','b','c','d','e','f'].every(k=>Math.abs(m[k]-source[k])<1e-6),duplicateBindings:owner===svg?0:owner.querySelectorAll('[id],[data-layout-id]').length});
    }
    return result;
   };
  });
  await page.addScriptTag({content:bundle});
- await page.evaluate(async()=>{await mapLayout.ready;await mapLayout.whenSettled();document.querySelector('.map-wrap').style.width='623.375px';mapLayout.requestView({x:12.25,y:7.5,w:300.5,h:240.4});await mapLayout.whenSettled();});
- const result=await page.evaluate(()=>({contexts:measuringContexts,status:mapLayout.status,placements:mapLayout.result.placements.length,leftovers:document.querySelectorAll('[data-layout-measurement],[data-layout-measurement-host]').length}));
+ await page.evaluate(async()=>{await mapLayout.ready;await mapLayout.whenSettled();document.querySelector('.map-wrap').style.cssText='width:623.375px;margin-top:500px';document.body.style.minHeight='2400px';scrollTo(0,400);mapLayout.requestView({x:12.25,y:7.5,w:300.5,h:240.4});await mapLayout.whenSettled();});
+ const result=await page.evaluate(()=>({contexts:measuringContexts,connectedContainers:[...measurementContainers].filter(e=>e.isConnected).length,status:mapLayout.status,placements:mapLayout.result.placements.length,leftovers:document.querySelectorAll('[data-layout-measurement],[data-layout-measurement-host]').length}));
  expect(result.contexts.length).toBeGreaterThan(3);expect(result.contexts.filter(c=>c.inSource)).toEqual([]);
- expect(result.contexts.every(c=>c.sameCamera&&!c.duplicateBindings)).toBe(true);expect(Math.max(...result.contexts.map(c=>c.liveClones))).toBe(1);expect(result.status).toBe('ready');expect(result.placements).toBeGreaterThan(0);expect(result.leftovers).toBe(0);
+ expect(result.contexts.every(c=>c.sameCamera&&!c.duplicateBindings)).toBe(true);expect(Math.max(...result.contexts.map(c=>c.liveClones))).toBe(1);expect(result.status).toBe('ready');expect(result.placements).toBeGreaterThan(0);expect(result.leftovers).toBe(0);expect(result.connectedContainers).toBe(0);
 });
 
 test('isolated native metrics equal source metrics for variants, path references and physical sizes',async({page})=>{
@@ -87,4 +87,25 @@ for(const interruption of ['camera','error','pagehide'])test(`measurement hosts 
  expect(result.interrupted).toBe(true);expect(result.leftovers).toBe(0);
  if(interruption==='camera'){expect(result.status).toBe('ready');expect(result.width).toBe(250);}
  if(interruption==='error'){expect(result.status).toBe('error');expect(result.error).toBe('Intentional measurement error');}
+});
+
+test('mutable text advance stays inside the measurement layout boundary',async({page,browserName})=>{
+ test.skip(browserName!=='chromium','Chromium exposes native layout roots through CDP');
+ await page.setContent(await fixtureHTML());await page.evaluate(()=>document.getElementById('map-label-manifest').remove());
+ await page.addScriptTag({content:bundle});await page.evaluate(async()=>{
+  await measurementTest.ensureFonts();const original=document.getElementById('curve');
+  window.probeHost=measurementTest.createMeasurementHost(original.ownerSVGElement);
+  const clone=original.cloneNode(true);clone.removeAttribute('id');clone.removeAttribute('data-layout-id');probeHost.parentFor(original.parentElement).append(clone);
+  window.probeText=clone.querySelector('text');measurementTest.measureTextAdvance(probeText);
+ });
+ const cdp=await page.context().newCDPSession(page),events=[];
+ cdp.on('Tracing.dataCollected',({value})=>events.push(...value));
+ await cdp.send('Tracing.start',{categories:'devtools.timeline',transferMode:'ReportEvents'});
+ await page.evaluate(()=>{for(let i=0;i<8;i++){probeText.querySelector('textPath').textContent='Mountain Road '+i;measurementTest.measureTextAdvance(probeText);}});
+ const finished=new Promise(resolve=>cdp.once('Tracing.tracingComplete',resolve));await cdp.send('Tracing.end');await finished;
+ await page.evaluate(()=>probeHost.remove());await cdp.detach();
+ const layouts=events.filter(e=>e.name==='Layout'&&e.ph==='X');
+ expect(layouts.length).toBeGreaterThan(0);
+ expect(layouts.flatMap(e=>e.args.endData.layoutRoots).filter(root=>root.nodeName==='#document')).toEqual([]);
+ expect(layouts.every(e=>e.args.beginData.partialLayout)).toBe(true);
 });

@@ -24,6 +24,23 @@ export function checkProfileEvidence(profile,evidence){
 export function coverageStatus(scenes,errors=[],reviewed=false){
  return !scenes.length||errors.length||scenes.some(scene=>scene.mechanicalStatus!=='passed')?'failed':reviewed?'passed':'review-required';
 }
+// Keep each complete outcome inventory on disk before visiting the next scene.
+// The index preserves paint/coverage evidence without accumulating every label's
+// blocker inventory or serializing it all into one V8 string at completion.
+export async function writeCoverageScene(output,index,scene){
+ const reportPath=resolve(output+'.scenes',index+'.json');
+ await mkdir(dirname(reportPath),{recursive:true});await writeFile(reportPath,JSON.stringify(scene,null,2)+'\n');
+ const {outcomes,...summary}=scene;
+ return {...summary,outcomeCount:outcomes?.length??0,reportPath};
+}
+export async function finishCoverageAudit(output,report,browser,server){
+ try{
+  await mkdir(dirname(output),{recursive:true});await writeFile(output,JSON.stringify(report,null,2)+'\n');
+  console.log(JSON.stringify({status:report.status,scenes:report.scenes.length,errors:report.errors}));
+ }finally{
+  try{await browser?.close();}finally{await new Promise(resolve=>server.close(resolve));}
+ }
+}
 // Serialized into the page. Canvas/WebGL paint evidence belongs to the
 // completed draw; native SVG evidence comes from its visible paint elements.
 export function collectProfileEvidence(){
@@ -54,8 +71,9 @@ const [file,output,engine='chromium']=process.argv.slice(2);
 if(!file||!output||!['chromium','firefox','webkit'].includes(engine))throw Error('Usage: audit-cartography.mjs FILE OUTPUT.json [chromium|firefox|webkit]');
 const bytes=await readFile(file),profiles=JSON.parse(await readFile('tests/fixtures/cartography-scenes.json'));
 const server=createServer((q,r)=>{r.setHeader('Content-Type','text/html; charset=utf-8');r.end(bytes)});await new Promise(r=>server.listen(0,'127.0.0.1',r));
-const browser=await({chromium,firefox,webkit}[engine]).launch(),report={file,sha256:createHash('sha256').update(bytes).digest('hex'),browser:engine,version:browser.version(),profilesStatus:profiles.status,scenes:[],errors:[]};
+let browser;const report={schemaVersion:2,file,sha256:createHash('sha256').update(bytes).digest('hex'),browser:engine,profilesStatus:profiles.status,scenes:[],errors:[]};
 try{
+ browser=await({chromium,firefox,webkit}[engine]).launch();report.version=browser.version();
  const page=await browser.newPage({viewport:{width:1440,height:1200}});page.on('pageerror',e=>report.errors.push(e.message));await page.goto(`http://127.0.0.1:${server.address().port}`,{timeout:120000});await page.evaluate(()=>mapLayout.ready);await page.locator('.map-wrap').scrollIntoViewIfNeeded();
  const info=await page.evaluate(()=>({map:mapLayout.manifest.map,features:mapLayout.manifest.features,catalog:JSON.parse(document.getElementById('map-cartography-catalog').textContent),requestedBackend:mapLayout.svg.dataset.renderer||'svg',renderer:mapLayout.getReport().renderer}));report.map=info.map;report.catalogCounts=info.catalog.counts;report.sources=info.catalog.sources;report.sceneOmissions=info.catalog.omissions;
  report.backend={...info.renderer,requested:info.requestedBackend};
@@ -66,7 +84,8 @@ try{
   for(const mpp of profiles.groundScalesMetersPerPixel){
    await page.evaluate(async({anchor,mpp})=>{const l=mapLayout,W=l.manifest.map.width,H=l.manifest.map.height,r=l.svg.getBoundingClientRect(),w=Math.min(W,Math.max(W/14,r.width*mpp/l.manifest.map.metersPerMapUnit)),h=w*H/W;l.requestView({x:Math.max(0,Math.min(W-w,anchor[0]-w/2)),y:Math.max(0,Math.min(H-h,anchor[1]-h/2)),w,h});await Promise.race([l.whenSettled(),new Promise((_,reject)=>setTimeout(()=>reject(Error('Idle completion timeout')),90000))]);},{anchor:f.anchor,mpp});
    const evidence=await page.evaluate(collectProfileEvidence);
-   const scene={profile:profile.name,featureId:f.id,sourceId:f.sourceId,anchor:f.anchor,expectedKinds:profile.expectedKinds,targetMetersPerPixel:mpp,...evidence,...checkProfileEvidence(profile,{...evidence,featureFound:true,targetMetersPerPixel:mpp})};report.scenes.push(scene);
+   const scene={profile:profile.name,featureId:f.id,sourceId:f.sourceId,anchor:f.anchor,expectedKinds:profile.expectedKinds,targetMetersPerPixel:mpp,...evidence,...checkProfileEvidence(profile,{...evidence,featureFound:true,targetMetersPerPixel:mpp})};
+   report.scenes.push(await writeCoverageScene(output,report.scenes.length+1,scene));
    await mkdir(dirname(output),{recursive:true});await page.screenshot({path:output.replace(/\.json$/,`-${report.scenes.length}.png`),fullPage:false});
   }
  }
@@ -74,7 +93,7 @@ try{
  report.review={status:review?.status||'pending',artifactSha256:review?.artifactSha256||null};
  report.status=coverageStatus(report.scenes,report.errors,review?.status==='reviewed'&&review.artifactSha256===report.sha256);if(report.status==='failed')process.exitCode=1;
 }catch(e){report.status='failed';report.errors.push(e.message);process.exitCode=1;}
-finally{await mkdir(dirname(output),{recursive:true});await writeFile(output,JSON.stringify(report,null,2));console.log(JSON.stringify({status:report.status,scenes:report.scenes.length,errors:report.errors}));await browser.close();await new Promise(r=>server.close(r));}
+finally{await finishCoverageAudit(output,report,browser,server);}
 
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(resolve(process.argv[1])).href)await main().catch(error=>{console.error(error.message);process.exitCode=1;});

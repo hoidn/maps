@@ -15,7 +15,8 @@ records execution steps, not release evidence.
 ## Annotation identity and ownership
 
 The [manifest producer](../../pipeline/label_manifest.py) embeds a version-1 JSON
-manifest in `script#map-label-manifest`. The manifest identifies map dimensions
+manifest under `#map-label-manifest`, using the inert JSON representation below.
+The manifest identifies map dimensions
 and mode, features, and annotations. A feature has a stable `id`, an `anchor`,
 a display name, and directory eligibility. An annotation has a unique `id`, an
 identical `elementId`, a known `featureId`, a typed `kind`, and an `anchor`.
@@ -34,6 +35,24 @@ Moving an annotation changes its rendered placement, not the geographic feature
 anchor. Shared ownership or a geometry reference alone never permits arbitrary
 annotation overlap. Feature names remain available through the interactive
 directory even when their optional map labels cannot fit.
+
+### Inert JSON embedding
+
+Named JSON payloads are read through `document.getElementById(id).textContent`.
+The shared producer in `label_manifest.py` emits a single `application/json` script
+for payloads up to 65,536 UTF-8 bytes. Larger payloads use a hidden
+`div[data-json-chunks]` with the same ID and adjacent inert child scripts, each at
+most 65,536 bytes. There is no added whitespace between children; the container's
+text content reconstructs the complete serialized JSON. Chunk boundaries preserve
+Unicode characters. JSON escaping protects `<`, Unicode line/paragraph separators
+and isolated surrogate code units. No JavaScript or decompression is needed to read
+the payload.
+
+This representation applies to the label manifest, cartography catalog, packed
+contour payload, print source evidence and frozen layout report. Finalization accepts
+both root representations and restores bounded chunks after browser metadata rewrites.
+Existing single-script artifacts remain supported. Consumers must use the ID/text
+interface rather than a script-qualified selector or single-script-body assumption.
 
 ## Measurement and policy boundary
 

@@ -127,10 +127,11 @@ export async function finalizeStatic({
   const match = source
     .toString()
     .match(
-      /<script\b[^>]*id=["']map-label-manifest["'][^>]*>([\s\S]*?)<\/script>/i,
+      /<(script|div)\b(?=[^>]*\sid=["']map-label-manifest["'])[^>]*>([\s\S]*?)<\/\1>/i,
     );
   if (!match) throw new Error("Static manifest missing");
-  const manifest = JSON.parse(match[1]);
+  const manifestText=match[1].toLowerCase()==='script'?match[2]:[...match[2].matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)].map(chunk=>chunk[1]).join('');
+  const manifest = JSON.parse(manifestText);
   if (manifest.map.mode !== "static")
     throw new Error("Static finalizer requires static manifest mode");
   viewport ??= {
@@ -303,6 +304,23 @@ export async function finalizeStatic({
         if(a.requiredProfiles?.length||a.requiredGroup||!outcomes.has(a.id)||outcomes.get(a.id)==='placed')continue;
         const e=document.getElementById(a.elementId);
         if(e&&svg.contains(e)&&e.dataset.layoutId===a.id&&e.dataset.featureId===a.featureId&&e.style.display==='none'&&!e.querySelector('[data-layout-id]'))e.remove();
+      }
+      // Print sizing rewrites ID.textContent; restore bounded raw-text nodes before parsing elsewhere.
+      // A JSON string's U+FEFF may start a chunk; decoding must retain it.
+      const encoder=new TextEncoder(),decoder=new TextDecoder('utf-8',{ignoreBOM:true}),limit=65536;
+      for(const node of document.querySelectorAll('script[type="application/json"][id],[data-json-chunks][id]')){
+        const text=node.textContent.replaceAll('<','\\u003c').replaceAll('\u2028','\\u2028').replaceAll('\u2029','\\u2029'),bytes=encoder.encode(text);
+        if(bytes.length<=limit&&node.tagName==='SCRIPT'){node.textContent=text;continue;}
+        const replacement=document.createElement(bytes.length>limit?'div':'script');replacement.id=node.id;
+        if(bytes.length<=limit){replacement.type='application/json';replacement.textContent=text;}
+        else{
+          replacement.hidden=true;replacement.dataset.jsonChunks='';
+          for(let start=0;start<bytes.length;){
+            let end=Math.min(start+limit,bytes.length);while(end<bytes.length&&(bytes[end]&0xc0)===0x80)end--;
+            const chunk=document.createElement('script');chunk.type='application/json';chunk.textContent=decoder.decode(bytes.subarray(start,end));replacement.append(chunk);start=end;
+          }
+        }
+        node.replaceWith(replacement);
       }
       return '<!doctype html>\n'+document.documentElement.outerHTML;
     });

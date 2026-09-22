@@ -5,10 +5,10 @@ retained byte-for-byte for the existing native renderer/fallback.
 """
 import base64
 import hashlib
-import json
 import re
 import zlib
 from html.parser import HTMLParser
+from label_manifest import json_script
 
 _SCALE = 1000
 _NUMBER = r'-?\d+\.\d{3}'
@@ -88,5 +88,5 @@ def pack_contours(svg,mode='interactive'):
  for start,end,replacement in parser.edits:parts.extend((svg[cursor:start],replacement));cursor=end
  parts.append(svg[cursor:]);svg=''.join(parts)
  manifest={'version':1,'encoding':'delta2-varint','scale':_SCALE,'pathCount':parser.count,'tiers':tiers}
- script='<script id="map-contour-payload" type="application/json">'+json.dumps(manifest,separators=(',',':'))+'</script>'
+ script=json_script('map-contour-payload',manifest)
  return svg,script

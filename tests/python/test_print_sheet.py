@@ -1,5 +1,6 @@
 import sys, unittest
 from pathlib import Path
+from html_json import read_json
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'pipeline'))
 from map_spec import MapSpec
 from cartography import print_sheet
@@ -35,7 +36,7 @@ class PrintSheetTests(unittest.TestCase):
                 print_sheet.print_profile(MapSpec.load('sequoia'), scale=scale)
 
     def test_regional_print_sheet_contains_collar_and_preserves_geometry(self):
-        import importlib.util, json, re, subprocess, tempfile
+        import importlib.util, subprocess, tempfile
         root = Path(__file__).resolve().parents[2]
         loader = importlib.util.spec_from_file_location('fixture', root/'tests/support/build-fixture.py')
         fixture = importlib.util.module_from_spec(loader); loader.loader.exec_module(fixture)
@@ -46,7 +47,7 @@ class PrintSheetTests(unittest.TestCase):
             html = (Path(tmp)/'sequoia_trails_static.html').read_text()
             for token in ('print-collar', 'print-calibration', 'print-north', 'print-ticks', 'Synthetic Camp', 'synthetic-test-only', 'not for navigation', 'Nominal scale', 'Contour interval', 'WGS84'):
                 self.assertIn(token, html)
-            m = json.loads(re.search(r'id="map-label-manifest">(.*?)</script>',html,re.S)[1])
+            m = read_json(html,'map-label-manifest')
             self.assertEqual(m['map']['width'],800)
             self.assertEqual(m['map']['print']['paperMm'],[914.4,609.6])
             self.assertNotIn('Drag to pan',html)

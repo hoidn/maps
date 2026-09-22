@@ -196,7 +196,8 @@ rounded readout is not the full-resolution bilinear sampler used by the tables.
 ## Embedded interactive contour geometry
 
 Interactive builders may replace exactly representable contour `d` attributes
-with empty source-path shells and an inert `map-contour-payload` JSON script.
+with empty source-path shells and an inert `map-contour-payload` JSON payload,
+using the shared [ID/text interface](map-layout.md#inert-json-embedding).
 Static output keeps contour paths inline; permitted scale-based omissions follow the
 [frozen static contract](map-layout.md#frozen-static-artifact). Interactive packing preserves
 path identity, attributes, group order, source attribution and map coordinates; it

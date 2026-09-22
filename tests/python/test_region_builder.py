@@ -1,5 +1,6 @@
 import unittest,tempfile,subprocess,sys,json,re,importlib.util
 from pathlib import Path
+from html_json import read_json
 ROOT=Path(__file__).resolve().parents[2]
 loader=importlib.util.spec_from_file_location('fixture',ROOT/'tests/support/build-fixture.py')
 fixture=importlib.util.module_from_spec(loader);loader.loader.exec_module(fixture)
@@ -27,7 +28,7 @@ build_region.build(spec,mode='static',print_request=build_region.print_profile(s
      run=subprocess.run([sys.executable,str(ROOT/'pipeline/build_region.py'),'--map',str(config),'--mode',mode],cwd=tmp,capture_output=True,text=True)
      self.assertEqual(run.returncode,0,run.stderr)
      html=(Path(tmp)/f'sequoia_trails_{mode}.html').read_text()
-     manifest=json.loads(re.search(r'id="map-label-manifest">(.*?)</script>',html,re.S)[1])
+     manifest=read_json(html,'map-label-manifest')
      self.assertEqual(manifest['map']['frame']['bbox'],json.loads(config.read_text())['bbox'])
      self.assertEqual(manifest['map']['requiredRoutes'],[])
      self.assertEqual(len(re.findall('data-layout-id=',html)),len(manifest['annotations']))

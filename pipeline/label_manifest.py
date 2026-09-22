@@ -27,7 +27,21 @@ def stable_id(prefix, value):
     return prefix + '-' + hashlib.sha256(json.dumps(value, sort_keys=True, ensure_ascii=False).encode()).hexdigest()[:16]
 
 def safe_json(value):
-    return json.dumps(value, ensure_ascii=False, allow_nan=False, separators=(',', ':')).replace('<', '\\u003c').replace('\u2028','\\u2028').replace('\u2029','\\u2029')
+    text=json.dumps(value, ensure_ascii=False, allow_nan=False, separators=(',', ':')).replace('<', '\\u003c').replace('\u2028','\\u2028').replace('\u2029','\\u2029')
+    return re.sub(r'[\ud800-\udfff]',lambda m:f'\\u{ord(m[0]):04x}',text)
+
+def json_script(identity, value):
+    """Bound HTML raw-text nodes while retaining the exact ID.textContent JSON."""
+    payload=safe_json(value).encode('utf8');identity=html.escape(identity,quote=True);limit=65536
+    if len(payload)<=limit:
+        return f'<script type="application/json" id="{identity}">'+payload.decode('utf8')+'</script>'
+    parts=[f'<div hidden data-json-chunks id="{identity}">'];start=0
+    while start<len(payload):
+        end=min(start+limit,len(payload))
+        while end<len(payload) and payload[end]&0xc0==0x80:end-=1
+        parts.extend(('<script type="application/json">',payload[start:end].decode('utf8'),'</script>'));start=end
+    parts.append('</div>')
+    return ''.join(parts)
 
 VULGAR_FRACTIONS = '¼½¾⅐⅑⅒⅓⅔⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞'
 
@@ -227,7 +241,7 @@ class Manifest:
     def json(self): return safe_json(self.data())
 
     def script(self):
-        return '<script type="application/json" id="map-label-manifest">'+self.json()+'</script>'
+        return json_script('map-label-manifest',self.data())
 
 def embedded_fonts():
     """Return local hash-verified font faces as single-file CSS data URLs."""

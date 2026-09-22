@@ -73,7 +73,7 @@ def make_print_sheet(svg, manifest, context, spec, profile):
     from pathlib import Path
     from PIL import Image, ImageStat
     import numpy as np
-    from label_manifest import NS, embedded_fonts, layout_script, safe_json
+    from label_manifest import NS, embedded_fonts, layout_script, json_script
     from .integration import transport_legend
     from .terrain import COVER, COVER_LABELS
     from .furniture import coordinate_ticks
@@ -178,4 +178,4 @@ def make_print_sheet(svg, manifest, context, spec, profile):
 <p class="print-notice">Schematic reference, not for navigation. Use official trail guides and current conditions for planning.</p>
 </footer>'''
     source_evidence={'records':sources,'inventory':context['catalog'].get('sourceInventory',{}),'issues':{'osm':context['catalog'].get('issues',[]),**context['catalog'].get('sourceIssues',{})}}
-    return '<!doctype html><html lang="en" data-theme="light"><meta charset="utf-8"><title>'+escape(spec.title)+' — Print map</title><style>'+css+'</style><main class="print-sheet"><header class="print-title"><div><h1>'+escape(spec.title)+'</h1><p>'+escape(spec.subtitle)+'</p></div><small>TRAILS &amp; TERRAIN · '+date+'</small></header><div class="print-map-frame"><div class="map-wrap">'+ET.tostring(tree,encoding='unicode')+'</div><div class="print-ticks">'+''.join(ticks)+'</div></div>'+collar+'</main>'+manifest.script()+'<script type="application/json" id="print-sources">'+safe_json(source_evidence)+'</script>'+layout_script()+'</html>'
+    return '<!doctype html><html lang="en" data-theme="light"><meta charset="utf-8"><title>'+escape(spec.title)+' — Print map</title><style>'+css+'</style><main class="print-sheet"><header class="print-title"><div><h1>'+escape(spec.title)+'</h1><p>'+escape(spec.subtitle)+'</p></div><small>TRAILS &amp; TERRAIN · '+date+'</small></header><div class="print-map-frame"><div class="map-wrap">'+ET.tostring(tree,encoding='unicode')+'</div><div class="print-ticks">'+''.join(ticks)+'</div></div>'+collar+'</main>'+manifest.script()+json_script('print-sources',source_evidence)+layout_script()+'</html>'

@@ -1,8 +1,9 @@
 """Lossless interactive contour packing preserves the authored SVG boundary."""
-import base64, json, re, sys, unittest, zlib
+import base64, sys, unittest, zlib
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[2]/'pipeline'))
 from cartography.contour_payload import pack_contours
+from html_json import read_json
 
 class ContourPayloadTests(unittest.TestCase):
  def test_tiers_pack_exact_polylines_without_changing_identity_or_style(self):
@@ -11,7 +12,7 @@ class ContourPayloadTests(unittest.TestCase):
   self.assertIn('id="fine" class="ci cff" d="" data-packed-contour="0"',packed)
   self.assertIn('id="coarse" class="cx" stroke="red" d="" data-packed-contour="1"',packed)
   self.assertIn('<defs><path id="unrelated" d="M0.000,0.000 1.000,1.000"/></defs>',packed)
-  manifest=json.loads(re.search(r'<script[^>]*>(.*?)</script>',script,re.S)[1])
+  manifest=read_json(script,'map-contour-payload')
   self.assertEqual(manifest['version'],1);self.assertEqual(manifest['encoding'],'delta2-varint');self.assertEqual(manifest['scale'],1000)
   self.assertEqual([t['zoom'] for t in manifest['tiers']],[0,4.5])
   self.assertEqual([t['ids'] for t in manifest['tiers']],[[1],[0]])

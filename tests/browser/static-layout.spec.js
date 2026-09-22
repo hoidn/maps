@@ -3,6 +3,7 @@ import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { build } from "esbuild";
+import {execFileSync} from 'node:child_process';
 import { fixtureHTML } from "../support/browser-fixture.js";
 const policy = {
   version: 1,
@@ -136,6 +137,37 @@ test("frozen subtraction preserves placed paint and the full audit inventory", a
     expect(audit.views[0].outcomes.find(o=>o.id==="hidden-optional").reason).toBe("missing-element");
     expect(audit.views[0].visible).toEqual(expect.arrayContaining(placed));
   }
+});
+test('finalization accepts chunked staging and re-chunks rewritten metadata without losing inventory',async({browserName,browser})=>{
+  test.skip(browserName!=='chromium','Finalization audits all engines and both themes.');
+  const {finalizeStatic}=await import('../../scripts/finalize-static.mjs');
+  const paths=await inputFile(),source=await readFile(paths.input,'utf8');
+  const original=source.match(/<script[^>]*id="map-label-manifest"[^>]*>[\s\S]*?<\/script>/)[0];
+  const manifest=JSON.parse(original.slice(original.indexOf('>')+1,-9));
+  manifest.map.note='';
+  const prefix=JSON.stringify(manifest).split('"note":"')[0]+'"note":"';
+  manifest.map.note='a'.repeat(65536-Buffer.byteLength(prefix))+'\ufeff😀漢é<&</script>\u2028\u2029'+'z'.repeat(65536);
+  const wrappers=[];
+  for(let i=0;i<1200;i++){
+    const id='omitted-'+i,featureId='f-'+id,anchor=[10000,10000];
+    manifest.features.push({id:featureId,name:'Outside',anchor,directory:false});
+    manifest.annotations.push({id,elementId:id,featureId,kind:'point-label',layer:'places',anchor,text:'Outside',style:'l-place',priority:100,requiredProfiles:[]});
+    wrappers.push(`<g id="${id}" data-layout-id="${id}" data-feature-id="${featureId}"><text class="l-place" x="10000" y="10000">Outside</text></g>`);
+  }
+  const embedded=execFileSync(resolve('.venv/bin/python'),['-c',"import json,sys;sys.path.insert(0,'pipeline');from label_manifest import json_script;print(json_script('map-label-manifest',json.load(sys.stdin)),end='')"],{input:JSON.stringify(manifest),encoding:'utf8'});
+  expect(embedded).toContain('data-json-chunks');
+  // Print sizing performs this same ID.textContent rewrite before freezing.
+  const rewrite='<script data-layout-runtime>const data=document.getElementById("map-label-manifest");data.textContent=JSON.stringify(JSON.parse(data.textContent));</script>';
+  await writeFile(paths.input,source.replace(original,embedded+rewrite).replace('<g class="labels">','<g class="labels">'+wrappers.join('')));
+  const result=await finalizeStatic({...paths,policy,reportDir:join(paths.dir,'reports')});
+  const page=await browser.newPage({javaScriptEnabled:false});await page.setContent(await readFile(paths.output,'utf8'));
+  const frozen=await page.evaluate(()=>Object.fromEntries(['map-label-manifest','map-layout-frozen-report'].map(id=>{const e=document.getElementById(id);return [id,{tag:e.tagName,hidden:e.hidden,value:JSON.parse(e.textContent),bytes:[...e.children].map(child=>new TextEncoder().encode(child.textContent).length)}];})));
+  await page.close();
+  for(const data of Object.values(frozen)){expect(data.tag).toBe('DIV');expect(data.hidden).toBe(true);expect(data.bytes.length).toBeGreaterThan(1);expect(Math.max(...data.bytes)).toBeLessThanOrEqual(65536);}
+  expect(frozen['map-label-manifest'].value).toEqual(manifest);
+  expect(frozen['map-layout-frozen-report'].value.outcomes).toHaveLength(manifest.annotations.length);
+  expect(result.audits).toHaveLength(6);
+  for(const audit of result.audits){expect(audit.status).toBe('pass');expect(audit.views[0].manifest).toEqual(manifest);expect(audit.views[0].outcomes).toHaveLength(manifest.annotations.length);}
 });
 test("serialization-only collision prevents output replacement", async ({
   browserName,

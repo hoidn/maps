@@ -1,10 +1,23 @@
-import sys, unittest, json, xml.etree.ElementTree as ET
+import sys, unittest, json, re, xml.etree.ElementTree as ET
 from pathlib import Path
 from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'pipeline'))
 from label_manifest import Manifest, embedded_fonts, stable_id
+from html_json import read_json
 
 class ManifestTests(unittest.TestCase):
+    def test_large_manifest_uses_bounded_inert_chunks_without_changing_json(self):
+        m=Manifest('static');m.map_metadata={'note':'a'*65520+'😀漢é</script><script>alert(1)</script>\u2028\u2029'+'z'*65536}
+        m.label('<text>A</text>','A','l-place',(10,20))
+        markup=m.script()
+        self.assertTrue(markup.startswith('<div hidden data-json-chunks id="map-label-manifest">'))
+        self.assertEqual(read_json(markup,'map-label-manifest'),m.data())
+        self.assertNotIn('<script>alert',markup)
+        chunks=re.findall(r'<script type="application/json">(.*?)</script>',markup)
+        self.assertGreater(len(chunks),1)
+        self.assertTrue(all(len(chunk.encode('utf8'))<=65536 for chunk in chunks))
+        self.assertEqual(''.join(chunks),m.json())
+
     def test_static_preparation_removes_only_unreferenced_path_definitions(self):
         svg='''<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><defs>
         <path id="unused" d="M0,0 L2,2"/>

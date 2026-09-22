@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, chromium } from "@playwright/test";
 import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
@@ -96,6 +96,38 @@ test("static finalizer preserves destination when required placement is impossib
     finalizeStatic({ ...paths, policy, reportDir: join(paths.dir, "reports") }),
   ).rejects.toThrow(/required/i);
   expect(await readFile(paths.output, "utf8")).toBe("prior output");
+});
+test('renderer crash fails finalization without hanging in diagnostic evaluation',async({browserName})=>{
+  test.skip(browserName!=='chromium','Workflow regression deliberately crashes its staging Chromium renderer.');
+  const {finalizeStatic}=await import('../../scripts/finalize-static.mjs');
+  const paths=await inputFile();
+  await writeFile(paths.input,(await readFile(paths.input,'utf8'))+'<script>Object.defineProperty(mapLayout,"ready",{get(){window.awaitingStaticLayout=true;return new Promise(()=>{});}});</script>');
+  await writeFile(paths.output,'prior output');
+  const launch=chromium.launch;let stagingBrowser,crashTask,timer,finalizing;
+  chromium.launch=async(...args)=>{
+    stagingBrowser=await launch.apply(chromium,args);
+    const newPage=stagingBrowser.newPage.bind(stagingBrowser);
+    stagingBrowser.newPage=async(...options)=>{
+      const page=await newPage(...options);
+      page.once('load',()=>{crashTask=(async()=>{
+        await page.waitForFunction(()=>window.awaitingStaticLayout);
+        const session=await page.context().newCDPSession(page);
+        await session.send('Page.crash').catch(()=>{});
+      })().catch(()=>{});});
+      return page;
+    };
+    return stagingBrowser;
+  };
+  try{
+    finalizing=finalizeStatic({...paths,policy,reportDir:join(paths.dir,'reports')}).then(()=>null,error=>error);
+    const error=await Promise.race([finalizing,new Promise(resolve=>{timer=setTimeout(()=>resolve(new Error('Finalizer hung after renderer crash')),7000);})]);
+    expect(error?.message).toMatch(/Static layout renderer crashed/);
+    expect(stagingBrowser.isConnected()).toBe(false);
+    expect(await readFile(paths.output,'utf8')).toBe('prior output');
+    expect(JSON.parse(await readFile(join(paths.dir,'reports/failure.json'),'utf8')).message).toMatch(/renderer crashed/);
+  }finally{
+    clearTimeout(timer);chromium.launch=launch;await stagingBrowser?.close();await crashTask;await finalizing;
+  }
 });
 test("frozen subtraction preserves placed paint and the full audit inventory", async ({browserName,browser}) => {
   test.skip(browserName !== "chromium", "Finalization audits all three engines and both themes.");

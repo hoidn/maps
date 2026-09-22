@@ -161,10 +161,15 @@ export async function finalizeStatic({
     server.once("error", fail);
     server.listen(0, "127.0.0.1", ok);
   });
-  let browser, page;
+  let browser, page, rendererCrashed=false;
   try {
     browser = await chromium.launch();
     page = await browser.newPage({ viewport, colorScheme: "light" });
+    page.once('crash',()=>{
+      rendererCrashed=true;
+      // Closing the browser rejects pending protocol calls, including evaluation.
+      void browser?.close().catch(()=>{});
+    });
     const url = `http://127.0.0.1:${server.address().port}/`;
     await page.route("**/*", (r) =>
       r.request().isNavigationRequest() && r.request().url() === url
@@ -386,11 +391,12 @@ export async function finalizeStatic({
     await rename(candidate, destination);
     return result;
   } catch(error) {
+    if(rendererCrashed)error=new Error('Static layout renderer crashed',{cause:error});
     let candidateEvidence,evidence;
     const failedCandidate=join(reportDir,"failed-candidate.html");
     try{await copyFile(candidate,failedCandidate);candidateEvidence=resolve(failedCandidate);}
     catch(copyError){if(copyError.code!=="ENOENT")throw copyError;}
-    if(page&&!page.isClosed()){
+    if(page&&!rendererCrashed&&browser?.isConnected()&&!page.isClosed()){
       evidence=await page.evaluate(()=>({report:window.mapLayout?.getReport(),prepared:window.mapLayout?.prepared.map(a=>({id:a.id,text:a.text,candidateCount:a.candidates.length,eligibleReason:a.eligibleReason,required:a.required}))})).catch(()=>null);
       await page.screenshot({path:join(reportDir,"failure.png"),fullPage:true}).catch(()=>{});
     }

@@ -45,7 +45,7 @@ edition. The [portable cartography plan](docs/plans/2026-09-09-portable-cartogra
 tracks implementation and validation, while the [startup investigation](docs/STARTUP_INVESTIGATION.md)
 tracks the still-unproven 3× initial-responsiveness target.
 
-Generate any selected area without editing a region file:
+Generate a selected area within the configured US providers’ coverage without editing a region file:
 
 ```bash
 npm run generate:map -- --title "San Gabriel Mountains" --bbox=-118.45,34.10,-117.42,34.55 --id san_gabriel

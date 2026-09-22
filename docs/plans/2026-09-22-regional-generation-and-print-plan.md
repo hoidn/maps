@@ -25,8 +25,9 @@ promoted or published.
 San Gabriel preset alone does not establish automated region setup. The generic command
 derives its specification and dimensions; the real third-map proof must use this path.
 
-**Current evidence:** `artifacts/regional-print/` records 196 passing Python and
-196 passing Node checks. The latest print/PDF fixture run passes 14 checks (10
+**Current evidence:** `artifacts/regional-print/` records full-suite runs with
+196 passing Python and 197 passing Node checks. The later terrain-provenance
+correction has 19 focused Python passes. The latest print/PDF fixture run passes 14 checks (10
 intentional duplicate skips), including inspected 36 × 24 and 96 × 60 inch PDFs,
 unregistered-area generation, the authored adapter, actual legend selection,
 physical calibration and rollback. Shared runtime fixes have 176 focused browser
@@ -123,7 +124,16 @@ specification completed with SHA
 Full selected-matrix acceptance remains pending. The bounds-driven cached command
 also completed all six audits of its refreshed native frozen HTML, SHA
 `66b5de5267db2aa379db509facece0344c2d1ce7d71dc8889c764ad4d9c2c8fa`;
-its physical 36-inch export remains in progress.
+its physical 36-inch export completed successfully. The public command exits 0,
+producing `artifacts/print/san-gabriel-current.pdf`, SHA
+`1e187b4432676813a5959cf58ecfef94946cb057eb9d4d5f4ee71891da5b8b40`,
+from frozen print SHA
+`f0583c6f7b29f1a13045ad8ce0207f65e2e773d905ea9a077f59b748875af59a`.
+All six static audits and independent PDF checks pass. The current whole poster
+is reviewed; all six new 300 DPI crops exactly match the earlier accepted crops.
+`san-gabriel/pdf-36-current-visual/review.json` records the unchanged raster and
+label-coverage limits, with current annotation evidence. The selected nine-case
+matrix is now running on the rebuilt interactive SHA above.
 Shared comparison scales are 32, 12 and
 6 m/pixel, because the existing 14× zoom cap cannot reach 3 m/pixel in this frame;
 the audit rejects clamped requested scales.
@@ -459,7 +469,7 @@ command, and existing Grand Canyon behavior is retained.
   the ignored region cache and accept explicit spec paths in build/print commands.
 - [x] Exercise an unregistered area end to end with explicitly synthetic provider caches;
   validate its interactive HTML, frozen static HTML, frozen print HTML and PDF.
-- [ ] Run actual San Gabriel through this command with its original approved bounds and
+- [x] Run actual San Gabriel through this command with its original approved bounds and
   retained source caches. Update the workflow documentation and artifact evidence.
 
 ## Task 5: Define physical print geometry and its static profile

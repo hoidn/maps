@@ -261,6 +261,18 @@ in millimetres or a nominal scale denominator, trim/tick margins, the point-size
 available contour intervals and geodesic ground dimensions. The geographic viewBox and
 feature anchors remain unchanged. A print request cannot select interactive mode.
 
+Static preparation may omit paint and optional annotations that the existing ground-scale
+limits make ineligible throughout the requested sheet's possible size range. Natural static
+sheets use their native size; print preparation uses an upper bound on map width before the
+collar is measured, with one CSS pixel reserved for dimension rounding. It retains source
+feature records and all required annotations. `map.staticPreparation` records the resulting
+minimum metres per pixel and counts of removed geometry elements and optional annotations.
+Thus preparation cannot hide a required-content failure or remove detail that could fit.
+
+Staging SVGs carry `data-layout-pending` to defer layout during HTML parsing. Browser bootstrap
+removes it before constructing the controller or measuring geometry. Frozen output retains
+the restored visible state and requires no bootstrap code.
+
 The composer gives authored and portable annotations the same anchor-relative physical
 sizing. The finalizer measures the complete potential collar, resolves the map rectangle,
 then measures fonts and places labels at that reference transform. It compensates text,

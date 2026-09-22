@@ -5,6 +5,28 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'pipeline'))
 from label_manifest import Manifest, embedded_fonts
 
 class ManifestTests(unittest.TestCase):
+    def test_static_scale_preparation_keeps_sources_required_labels_and_visible_detail(self):
+        for mode,profile,removed in [('interactive',None,False),('static',None,True),('static',{'mapWidthMm':1000,'paperMm':None},True),('static',{'mapWidthMm':2000,'paperMm':None},False),('static',{'mapWidthMm':None,'paperMm':[1022,1600],'marginMm':6,'tickMarginMm':5},True)]:
+            with self.subTest(mode=mode,profile=profile):
+                m=Manifest(mode,width=1300);m.map_metadata={'metersPerMapUnit':40};m.print_profile=profile
+                labels=[]
+                for name,limit,required in [('Optional',8,False),('Distance',3,False),('Required',8,True),('Route',8,False),('Visible',64,False)]:
+                    labels.append(m.label('<text>'+name+'</text>',name,'l-place',(10,len(labels)*20),source_id=name))
+                    m.annotations[-1]['textMaxMetersPerPixel' if name=='Distance' else 'maxMetersPerPixel']=limit
+                    if required:m.annotations[-1]['requiredProfiles']=['static-default']
+                    if name=='Route':m.annotations[-1]['requiredGroup']='Route'
+                features=json.loads(json.dumps(m.data()['features']))
+                result=m.finalize('<svg xmlns="http://www.w3.org/2000/svg"><g class="buildings"><path data-source-id="building" data-max-mpp="8" d="M0,0 L1,1"/></g>'+''.join(labels)+'</svg>')
+                self.assertEqual(m.data()['features'],features)
+                self.assertEqual('data-source-id="building"' not in result,removed)
+                names={a['text'] for a in m.annotations}
+                self.assertEqual('Optional' not in names,removed)
+                self.assertIn('Required',names);self.assertIn('Route',names);self.assertIn('Visible',names)
+                if mode=='static':self.assertNotIn('Distance',names)
+                else:self.assertIn('Distance',names)
+                if removed:self.assertEqual(m.map_metadata['staticPreparation']['removedGeometryElements'],1)
+                self.assertIn('data-layout-pending=""',result)
+
     def test_stable_ids_and_complete_symbol_inventory(self):
         def build(order):
             m = Manifest()

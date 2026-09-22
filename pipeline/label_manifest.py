@@ -107,7 +107,30 @@ class Manifest:
         return self._wrap(raw,record)
 
     def finalize(self, svg):
-        root=ET.fromstring(svg); root.set('id','mapsvg')
+        root=ET.fromstring(svg); root.set('id','mapsvg'); root.set('data-layout-pending','')
+        metadata=getattr(self,'map_metadata',{})
+        if self.mode=='static' and metadata.get('metersPerMapUnit'):
+            scale=1;profile=getattr(self,'print_profile',None)
+            if profile:
+                width=profile['mapWidthMm']
+                if width is None:width=profile['paperMm'][0]-2*(profile['marginMm']+profile.get('tickMarginMm',0))
+                # The collar can only reduce this width. One CSS pixel allows
+                # browser dimension rounding while conservatively retaining detail.
+                scale=(width*96/25.4+1)/self.width
+            minimum_mpp=metadata['metersPerMapUnit']/scale
+            removed={a['id'] for a in self.annotations if not a.get('requiredProfiles') and not a.get('requiredGroup')
+                     and any(isinstance(a.get(key),(int,float)) and 0<a[key]<minimum_mpp for key in ('maxMetersPerPixel','textMaxMetersPerPixel'))}
+            self.annotations=[a for a in self.annotations if a['id'] not in removed];self.ids-=removed
+            geometry_count=0
+            for parent in root.iter():
+                keep=[]
+                for child in parent:
+                    limit=float(child.get('data-max-mpp','0'))
+                    if child.get('data-layout-id') in removed:continue
+                    if 0<limit<minimum_mpp:geometry_count+=1;continue
+                    keep.append(child)
+                parent[:]=keep
+            metadata['staticPreparation']={'minimumMetersPerPixel':minimum_mpp,'removedGeometryElements':geometry_count,'removedOptionalAnnotations':len(removed)}
         # Normalize historical hN/cN references before deriving annotation identities.
         remap={}
         for defs in root.findall(f'{{{NS}}}defs'):

@@ -185,6 +185,14 @@ settled result. `setLayer(layer, visible)` and `select(featureId)` coordinate
 layer visibility and directory selection. `getReport()` returns current status,
 view, outcomes, placements, missing required content, and timing samples.
 
+Directory selection owns the details text until another explicit selection.
+A trail hover, including one caused by a camera move beneath a stationary pointer,
+does not replace those details. An explicit trail click may take ownership;
+selecting a directory feature clears a previously pinned trail. `select(featureId)`
+sets the selected feature/details and invokes the optional adapter `onSelect(feature)`
+callback before requesting its camera, so programmatic and directory selection
+share the same behavior.
+
 Interactive startup measures private annotation clones in cooperative main-thread
 slices and sends plain geometry and fallback-candidate inputs to an embedded worker.
 Canvas/WebGL scene decoding and contour preparation proceed together. Contour
@@ -369,8 +377,9 @@ release validation remains pending.
 
 ## Interactive Canvas and WebGL paint boundary
 
-Interactive candidates default to persistent Canvas paint. `?renderer=svg` retains
-SVG mode; `?renderer=webgl` selects the experimental GPU contour surface. The
+Interactive Canvas/WebGL candidates use persistent Canvas surfaces for foreground
+paint. `?renderer=svg` selects SVG mode; `?renderer=webgl` selects the experimental
+GPU contour surface. The
 [backend guide](../RENDERING_BACKENDS.md) owns operation, implementation explanation,
 measured comparison and prototype fidelity limits.
 
@@ -380,6 +389,13 @@ accepted glyph/shape commands; visibility is established by the painted inventor
 not the hidden measurement SVG. Pure pan translates accepted screen-size text
 without relayout. Fast camera frames do not mutate the measurement SVG camera.
 Settled layout can update it to obtain fresh typography metrics after zoom.
+
+While accelerated rendering is active, one nonpainting SVG rectangle spans the
+map frame and receives pointer input before the retained source geometry. Its
+`data-layout-runtime` ownership excludes it from scene recapture; it is removed
+on renderer destruction or native fallback. Events still bubble to the map SVG,
+and trail picking continues through the renderer's source-backed hit inventory.
+The rectangle does not alter source paths, annotation measurements or paint.
 
 `whenSettled()` also waits for asynchronous Canvas/WebGL theme scene preparation
 and the resulting scheduled paint. The renderer counts all pending refresh

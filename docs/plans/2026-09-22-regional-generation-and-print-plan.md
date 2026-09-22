@@ -26,7 +26,7 @@ San Gabriel preset alone does not establish automated region setup. The generic 
 derives its specification and dimensions; the real third-map proof must use this path.
 
 **Current evidence:** `artifacts/regional-print/` records 196 passing Python and
-193 passing Node checks. The latest print/PDF fixture run passes 14 checks (10
+196 passing Node checks. The latest print/PDF fixture run passes 14 checks (10
 intentional duplicate skips), including inspected 36 × 24 and 96 × 60 inch PDFs,
 unregistered-area generation, the authored adapter, actual legend selection,
 physical calibration and rollback. Shared runtime fixes have 176 focused browser
@@ -81,7 +81,15 @@ establish the separate 8 ms/33 ms warm-camera or 3× startup targets.
 The phased actual preflight passed navigation (35.087 seconds), readiness
 (71.290 seconds) and initial checks (50.969 seconds). Initial, zoom and pan
 captures passed independent paint checks with WebGL active; wheel input then hit
-the unchanged 120-second action watchdog. Its replay is under investigation.
+the unchanged 120-second action watchdog. An exact three-action replay attributes
+36.960 seconds to native hit testing over the inactive source SVG; gestures clear
+normally, but label preparation misses the deadline. One nonpainting input rectangle
+now short-circuits those hit tests while retaining source geometry for measurement.
+Six three-engine interaction/measurement/paint regressions pass. The actual replay
+with only the equivalent rectangle injected passes: 52.020-second settlement and
+90.165-second complete wheel action, zero paint findings and active WebGL. Hit-test
+cost falls to 0.014 seconds; limits remain unchanged. Evidence and explicit derivative
+provenance are in `san-gabriel/input-target-actual-comparison.json`.
 The derivative coverage run reached all 12 screenshots at the declared scales,
 but aggregate report serialization exceeded Node's maximum string length. Full
 mechanical results were not saved, so those screenshots establish only reviewed
@@ -97,6 +105,20 @@ Its coverage run is saving full scene evidence. Mount Wilson's summit symbol
 loses collision checks at 32/12/6 m/pixel, so those source-marker expectations fail;
 the summit name itself is placed at 6 m/pixel. These are preserved coverage gaps,
 not missing source data or a substitute settlement counted as the summit.
+The complete public audit saves all 12 scenes: nine pass and those three fail,
+with no browser errors. Every new screenshot is byte-identical to its previously
+reviewed counterpart; `san-gabriel/coverage-visual-review.json` records this review
+and its limits. The exact public Chromium/SVG preflight passes initial capture and
+12 actions with zero paint findings, then fails place selection: the selected
+La Junta Drive camera is correct, but a stationary-pointer trail hover overwrites
+its details. Shared selection ownership now keeps explicit directory details
+through hover, lets a deliberate trail click take ownership, and clears previous
+trail pins on both directory/programmatic selection. A native captured click uses
+the actual hit element when capture retargets it to the SVG root. Eighteen focused
+browser checks pass across all three engines. Bundle SHA
+`3dad47c93266489c561d5f01064bdd75a4764b0811bd9e1174539aa35c3f7645`
+contains both fixes; a public Python interactive rebuild from the same generated
+specification is running. Full selected-matrix acceptance remains pending.
 Shared comparison scales are 32, 12 and
 6 m/pixel, because the existing 14× zoom cap cannot reach 3 m/pixel in this frame;
 the audit rejects clamped requested scales.

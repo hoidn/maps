@@ -1,6 +1,20 @@
 import {test,expect} from '@playwright/test';
 import {fixtureHTML} from '../support/browser-fixture.js';
 import fs from 'node:fs/promises';
+for(const mode of ['interactive','static'])test(`${mode} staged SVG is revealed before geometry measurement`,async({page})=>{
+ let html=(await fixtureHTML(mode)).replace('id="mapsvg"','id="mapsvg" data-layout-pending=""').replace('"width":500,"height":400,"mode"','"width":500,"height":400,"metersPerMapUnit":30,"mode"');
+ html=html.replace('</style>',(await fs.readFile('pipeline/cartography/styles.css','utf8'))+'</style>').replace('<defs>','<g class="roads"><path id="early-road" data-max-mpp="64" d="M10,350 H490" stroke="black"/></g><g class="buildings"><path id="early-building" data-max-mpp="8" d="M200,180 H220 V200 H200 Z" fill="gray"/></g><defs>');
+ await page.setContent(html);
+ expect(await page.locator('#mapsvg').evaluate(e=>getComputedStyle(e).display)).toBe('none');
+ await page.evaluate(()=>{window.hiddenMapMeasurements=0;const original=SVGGraphicsElement.prototype.getScreenCTM;SVGGraphicsElement.prototype.getScreenCTM=function(...args){if(this.id==='mapsvg'&&getComputedStyle(this).display==='none')hiddenMapMeasurements++;return original.apply(this,args);};});
+ await page.addScriptTag({content:await fs.readFile('pipeline/labels/dist/browser.js','utf8')});await page.evaluate(()=>mapLayout.ready);
+ const result=await page.evaluate(()=>({pending:mapLayout.svg.hasAttribute('data-layout-pending'),display:getComputedStyle(mapLayout.svg).display,width:mapLayout.svg.getBoundingClientRect().width,hiddenMeasurements:hiddenMapMeasurements,status:mapLayout.status,road:getComputedStyle(document.getElementById('early-road')).visibility,building:getComputedStyle(document.getElementById('early-building')).visibility}));
+ expect(result).toEqual({pending:false,display:'inline',width:500,hiddenMeasurements:0,status:'ready',road:'visible',building:'hidden'});
+ if(mode==='interactive'){
+  await page.evaluate(async()=>{mapLayout.requestView({x:150,y:140,w:100,h:80});await mapLayout.whenSettled();});
+  expect(await page.locator('#early-building').evaluate(e=>getComputedStyle(e).visibility)).toBe('visible');
+ }
+});
 test('early camera input is displayed while initial placement waits and stale work cannot commit',async({page})=>{
  await page.setContent(await fixtureHTML());
  await page.addScriptTag({content:`window.pendingStartup=[];window.holdStartup=true;const NativeWorker=window.Worker;window.Worker=function(...args){const worker=new NativeWorker(...args),send=worker.postMessage.bind(worker);worker.postMessage=(message,...rest)=>{if(window.holdStartup&&message.kind==='solve-initial')window.pendingStartup.push(()=>send(message,...rest));else send(message,...rest);};return worker;};`});

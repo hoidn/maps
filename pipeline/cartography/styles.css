@@ -1,3 +1,5 @@
+/* Avoid repeatedly laying out a partial scene while the standalone page parses. */
+#mapsvg[data-layout-pending]{display:none}
 :root{--road-case:var(--road);--trail-ink:#984a32;--restricted-ink:#846d81;--water-fill:#b5d4df;--building-fill:#c7bcac;--building-edge:#8b8174;--boundary-ink:#816789}
 :root[data-theme="dark"]{--trail-ink:#e8ab87;--restricted-ink:#c4a4c1;--water-fill:#31596d;--building-fill:#68645c;--building-edge:#a09a8b;--boundary-ink:#c5a4cb}
 @media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--trail-ink:#e8ab87;--restricted-ink:#c4a4c1;--water-fill:#31596d;--building-fill:#68645c;--building-edge:#a09a8b;--boundary-ink:#c5a4cb}}

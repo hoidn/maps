@@ -1,7 +1,6 @@
 let textGroup=0;
 const SHAPES='path,rect,circle,ellipse,line,polygon,polyline';
 export const matrixArray=m=>[m.a,m.b,m.c,m.d,m.e,m.f];
-export const matrix=a=>new DOMMatrix(a);
 export function viewMatrix(view,r){const s=Math.min(r.width/view.w,r.height/view.h);return new DOMMatrix([s,0,0,s,r.x+(r.width-view.w*s)/2-view.x*s,r.y+(r.height-view.h*s)/2-view.y*s]);}
 export function paintStyle(e,svg){
  const s=getComputedStyle(e);let opacity=1;
@@ -87,9 +86,9 @@ export function paintCommands(ctx,commands,outer=new DOMMatrix(),{strokeFactor=1
 }
 export function commandBounds(commands){
  let x=Infinity,y=Infinity,right=-Infinity,bottom=-Infinity,pad=0;
- for(const c of commands){if(!c.bounds)return null;const b=c.bounds,m=matrix(c.matrix);
-  for(const px of [b.x,b.x+b.width])for(const py of [b.y,b.y+b.height]){const p=new DOMPoint(px,py).matrixTransform(m);x=Math.min(x,p.x);y=Math.min(y,p.y);right=Math.max(right,p.x);bottom=Math.max(bottom,p.y);}
-  const s=c.style;pad=Math.max(pad,s.stroke==='none'?0:s.width/2*Math.max(1,s.join==='miter'?s.miter:1)*Math.max(Math.hypot(m.a,m.b),Math.hypot(m.c,m.d)));
+ for(const c of commands){if(!c.bounds)return null;const b=c.bounds,m=c.matrix;
+  for(const px of [b.x,b.x+b.width])for(const py of [b.y,b.y+b.height]){const tx=m[0]*px+m[2]*py+m[4],ty=m[1]*px+m[3]*py+m[5];x=Math.min(x,tx);y=Math.min(y,ty);right=Math.max(right,tx);bottom=Math.max(bottom,ty);}
+  const s=c.style;pad=Math.max(pad,s.stroke==='none'?0:s.width/2*Math.max(1,s.join==='miter'?s.miter:1)*Math.max(Math.hypot(m[0],m[1]),Math.hypot(m[2],m[3])));
  }
  return {x,y,right,bottom,pad};
 }

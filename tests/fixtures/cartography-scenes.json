@@ -12,6 +12,11 @@
       {"name":"General Sherman Tree","expectedKinds":["trail","poi"]},
       {"name":"Pear Lake","expectedKinds":["waterbody","trail"]},
       {"name":"Alta Peak","expectedKinds":["trail","poi"]}
+    ],
+    "san_gabriel":[
+      {"name":"Mount Wilson","expectedKinds":["poi"],"sourceEvidence":{"provider":"GNIS","sourceId":"gnis:251702","reviewStatus":"pending-real-artifact-review"}},
+      {"name":"Mount San Antonio","expectedKinds":["poi"],"sourceEvidence":{"provider":"GNIS","sourceId":"gnis:273439","reviewStatus":"pending-real-artifact-review"}},
+      {"name":"West Fork San Gabriel River","expectedKinds":["waterway"],"sourceEvidence":{"provider":"USGS 3DHP","sourceId":"3dhp:50:11UZK","reviewStatus":"pending-real-artifact-review"}}
     ]
   }
 }

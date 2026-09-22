@@ -145,7 +145,7 @@ export class LayoutController {
   }
   requestView(view){if(this.panLayout&&view.w===this.view.w&&view.h===this.view.h&&(view.x!==this.view.x||view.y!==this.view.y))this.panLayout.provisional=false;this.revision++;this.cancelSettling();if(view.w!==this.view.w||view.h!==this.view.h)this.panLayout=null;this.view={...view};this.onCameraChange?.(this.view);this.schedule();}
   setLayer(layer,visible){if(!(layer in this.layers))throw new Error('Unknown layer');this.invalidateLayout();this.layers[layer]=visible;this.preview?.restore();this.preview?.release();this.previewDirty=true;this.schedule();}
-  select(id){const f=this.manifest.features.find(f=>f.id===id);if(!f)throw new Error('Unknown feature');this.details.textContent=f.name;this.selected=id;
+  select(id){const f=this.manifest.features.find(f=>f.id===id);if(!f)throw new Error('Unknown feature');this.details.textContent=f.name;this.selected=id;this.onSelect?.(f);
     if(this.mode==='interactive'){const w=this.manifest.map.width/4.5,h=this.manifest.map.height/4.5;this.requestView({x:Math.max(0,Math.min(this.manifest.map.width-w,f.anchor[0]-w/2)),y:Math.max(0,Math.min(this.manifest.map.height-h,f.anchor[1]-h/2)),w,h});}
   }
   startupSnapshot(){const r=this.svg.getBoundingClientRect();return JSON.stringify([this.view,this.layers,this.textScale,this.revision,r.x,r.y,r.width,r.height,this.controls()]);}

@@ -112,13 +112,18 @@
     if(window.mapLayout.renderer?.active){window.mapLayout.renderer.highlight(selection?.sourceIds||null);return;}
     trailRows.forEach(function(row){var selected=!!selection&&selection.sourceIds.has(row.id);row.element.classList.toggle('lit',selected);row.element.classList.toggle('dim',!!selection&&!selected);});
   }
-  function showTip(p, e, selection){var n=p.dataset.name,text=n+' · '+(p.dataset.info||(CLS[p.dataset.cls]||p.dataset.cls.replaceAll('_',' ')))+' · '+selection.miles.toFixed(1)+' mi on this sheet';ttip.textContent=text;ttip.hidden=true;window.mapLayout.details.textContent=text;}
+  // Explicit directory and trail selections share the details panel. Camera
+  // changes can deliver native pointerover without any new pointer movement.
+  window.mapLayout.onSelect=function(){pinned=null;light(null);ttip.hidden=true;};
+  function showTip(p, e, selection){var n=p.dataset.name,text=n+' · '+(p.dataset.info||(CLS[p.dataset.cls]||p.dataset.cls.replaceAll('_',' ')))+' · '+selection.miles.toFixed(1)+' mi on this sheet';ttip.textContent=text;ttip.hidden=true;if(!window.mapLayout.selected)window.mapLayout.details.textContent=text;}
   svg.addEventListener('pointerover', function(e){ var p=window.mapLayout.renderer?.active?window.mapLayout.pickTrail(e.clientX,e.clientY):(e.target.closest && e.target.closest('.hit')); if(!p||pinned) return; var selection=selectionFor(p);light(selection);showTip(p,e,selection); });
   svg.addEventListener('pointermove', function(e){ if(ptrs.size){ttip.hidden=true;return;} var p=window.mapLayout.renderer?.active?window.mapLayout.pickTrail(e.clientX,e.clientY):(e.target.closest && e.target.closest('.hit'));var selection=p?selectionFor(p):null;if(!pinned&&window.mapLayout.renderer?.active)light(selection);if(p&&!pinned)showTip(p,e,selection);else if(!pinned)ttip.hidden=true;if(pinned&&!p)ttip.hidden=true; });
   svg.addEventListener('mouseleave', function(){if(!pinned)light(null);});
   svg.addEventListener('pointerout', function(e){ if(!pinned && e.target.closest && e.target.closest('.hit')){ light(null); ttip.hidden=true; } });
+  // Pointer capture can retarget a native click to the SVG root after release.
   svg.addEventListener('click', function(e){ if(moved) return; var p=window.mapLayout.renderer?.active?window.mapLayout.pickTrail(e.clientX,e.clientY):(e.target.closest && e.target.closest('.hit'));
-    if(p){var selection=selectionFor(p);if(pinned?.key===selection.key){pinned=null;light(null);ttip.hidden=true;}else{pinned=selection;light(pinned);showTip(p,e,pinned);}}
+    if(!p&&!window.mapLayout.renderer?.active){var target=document.elementFromPoint(e.clientX,e.clientY);if(svg.contains(target))p=target.closest('.hit');}
+    if(p){window.mapLayout.selected=null;var selection=selectionFor(p);if(pinned?.key===selection.key){pinned=null;light(null);ttip.hidden=true;}else{pinned=selection;light(pinned);showTip(p,e,pinned);}}
     else if(pinned){ pinned=null; light(null); ttip.hidden=true; } });
   apply();
 })();

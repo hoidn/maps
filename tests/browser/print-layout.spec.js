@@ -4,7 +4,24 @@ import {tmpdir} from 'node:os';
 import {join,resolve} from 'node:path';
 import {execFileSync} from 'node:child_process';
 import {finalizeStatic} from '../../scripts/finalize-static.mjs';
+import {preparePrint} from '../../scripts/print-layout.mjs';
 import {fixtureHTML} from '../support/browser-fixture.js';
+
+test('print sizing does not solve at intermediate dimensions',async({page})=>{
+ const dir=await mkdtemp(join(tmpdir(),'map-print-sizing-')),python=resolve('.venv/bin/python'),input=join(dir,'print.html');
+ execFileSync(python,['tests/support/build-fixture.py',dir,'--regional']);
+ execFileSync(python,[resolve('pipeline/build_region.py'),'--map',join(dir,'custom-region.json'),'--mode','static','--print','--paper','36x24in','--output',input],{cwd:dir});
+ await page.setContent(await readFile(input,'utf8'));
+ const initial=await page.evaluate(async()=>{const c=mapLayout;await c.ready;await c.whenSettled();window.sizingPasses=[];const render=c.renderPass.bind(c);c.renderPass=(...args)=>{sizingPasses.push([c.svg.clientWidth,c.svg.clientHeight]);return render(...args);};return [c.svg.clientWidth,c.svg.clientHeight];});
+ const setViewport=page.setViewportSize.bind(page);
+ page.setViewportSize=async size=>{await setViewport(size);await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));};
+ const print=await preparePrint(page);
+ await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+ for(const size of await page.evaluate(()=>sizingPasses))expect(size).toEqual(initial);
+ const passes=await page.evaluate(async()=>{sizingPasses=[];const c=mapLayout;c.requestView({...c.view});await c.whenSettled();return sizingPasses;});
+ expect(passes.length).toBeGreaterThan(0);
+ for(const [width,height] of passes){expect(width).toBeCloseTo(print.referenceSize.width,0);expect(height).toBeCloseTo(print.referenceSize.height,0);}
+});
 
 test('authored print placement survives serialized fractional page dimensions',async({browserName})=>{
  test.skip(browserName!=='chromium','Finalization audits all three engines with JavaScript disabled');

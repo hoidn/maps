@@ -22,6 +22,9 @@ export async function preparePrint(page) {
     const controller = window.mapLayout, p = controller?.manifest.map.print;
     if (!p) return null;
     await controller.ready; await controller.whenSettled(); await document.fonts.ready;
+    // Printing owns a fixed reference size. Temporary collar measurements must
+    // not launch label solves at a collapsed SVG or an intermediate viewport.
+    controller.observer.disconnect();
     const sheet = document.querySelector('.print-sheet'), frame = document.querySelector('.print-map-frame');
     const mm = 96 / 25.4, outer = 2 * (p.marginMm + (p.tickMarginMm || 0));
     const width = p.paperMm?.[0] ?? p.mapWidthMm + outer;

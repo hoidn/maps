@@ -86,6 +86,13 @@ NLCD land cover. `fetch_region.py` refreshes providers explicitly; cached builds
 verify retained raw hashes. See the [data contract](specs/map-data.md#portable-region-catalogs-2026-09-09)
 for identities, axis order, raster registration and provenance fields.
 
+Large OSM areas use verified request checkpoints and subdivide overloaded sections.
+Retry the same provider command to resume retained parts; do not edit checkpoints
+or combine snapshots manually. Route and boundary dependencies can extend far outside
+the selected frame, so dense regions may take substantial time and storage. Acquisition
+rejects a fallback server whose dataset predates the pinned snapshot. The reported
+snapshot date can be older than the retrieval date.
+
 National feature names are transferred by explicit GNIS ID. Geometry-based hydro
 coverage deduplication requires strong correspondence and compatible names;
 crossing or differently named streams are retained. Current flow, potable water,

@@ -87,7 +87,8 @@ the previous sibling report. Printing does not fetch, replace files under `outpu
 `npm run generate:map` accepts selected WGS84 bounds and a title. It derives a validated
 specification, including a central-geodesic aspect ratio and current portable source
 defaults, and writes `pipeline/cache/ID/map.json`. A default ID combines a safe title slug
-with a bounds hash; an explicit safe ID can retain an existing cache namespace. This is
+with a bounds hash; an explicit safe ID can retain an existing cache namespace. A
+configured ID with a different frame is rejected before writing or fetching. This is
 generated configuration, not a new required entry in `pipeline/maps/`. The command fetches,
 builds and prints; `--cached` skips acquisition. Every consumer receives that actual spec,
 and existing frame/hash checks still reject incompatible caches.
@@ -258,9 +259,9 @@ not a live water-level measurement. The 2026-09-08 cache contains OSM relations
 
 ## Portable region catalogs (2026-09-09)
 
-`pipeline/maps/*.json` and `MapSpec` own the geographic frame for the portable
-path. Grand Canyon retains the authored page and legacy profile adapter; Sequoia
-uses `build_region.py`. Both geographic renderers consume the same feature and
+`MapSpec` owns the geographic frame for the portable path, loaded from a preset,
+explicit JSON file or generated bounds. Grand Canyon retains the authored page
+and legacy profile adapter; other regions use `build_region.py`. The builders consume the same feature and
 style catalog. Geographic SVG coordinates remain affine longitude/latitude;
 metric geometry operations use a local WGS84 azimuthal-equidistant CRS centered
 on the configured frame. GeoJSON catalogs use longitude/latitude, unlike the
@@ -280,6 +281,13 @@ version, retrieval timestamp, AOI, attribution, bytes and SHA-256. Retrieval is
 not survey currency. Derived raster metadata includes frame, shape, registration
 and array hash. Portable terrain caches additionally depend on DEM hash and
 contour-generator version. A same-frame DEM refresh invalidates its contours.
+
+Portable OSM acquisition partitions the buffered frame and preserves complete way
+and recursive relation dependencies. Every part uses the first response's declared
+snapshot; older endpoint datasets, conflicting objects and missing dependencies
+fail acquisition. Verified part checkpoints can resume an interrupted request at
+that same snapshot. The final raw cache records every request and replaces a prior
+cache only after the complete merge passes validation.
 
 Portable DEM and Annual NLCD arrays are north-up PixelIsArea grids sampled at
 cell centers. Terrain contours use `(column + .5) * mapWidth / rasterWidth` and

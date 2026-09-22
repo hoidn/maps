@@ -14,9 +14,10 @@
       {"name":"Alta Peak","expectedKinds":["trail","poi"]}
     ],
     "san_gabriel":[
-      {"name":"Mount Wilson","expectedKinds":["poi"],"sourceEvidence":{"provider":"GNIS","sourceId":"gnis:251702","reviewStatus":"pending-real-artifact-review"}},
-      {"name":"Mount San Antonio","expectedKinds":["poi"],"sourceEvidence":{"provider":"GNIS","sourceId":"gnis:273439","reviewStatus":"pending-real-artifact-review"}},
-      {"name":"West Fork San Gabriel River","expectedKinds":["waterway"],"sourceEvidence":{"provider":"USGS 3DHP","sourceId":"3dhp:50:11UZK","reviewStatus":"pending-real-artifact-review"}}
+      {"name":"Mount Wilson","expectedKinds":["poi"],"sourceEvidence":{"provider":"GNIS","sourceId":"gnis:251702","reviewStatus":"pending-real-artifact-review","catalogSourceId":"osm:node:358794822","identity":"OSM gnis:feature_id=251702 identifies the summit, not the Mount Wilson settlement."},"sourceId":"osm:node:358794822"},
+      {"name":"Mount San Antonio","expectedKinds":["poi"],"sourceEvidence":{"provider":"GNIS","sourceId":"gnis:273439","reviewStatus":"pending-real-artifact-review","catalogSourceId":"osm:node:348272990","identity":"Named OSM summit; nearby GNIS coordinate is corroborating source context, not an asserted identity merge."},"sourceId":"osm:node:348272990"},
+      {"name":"Mount Baden-Powell","sourceId":"osm:node:358796353","expectedKinds":["poi"],"sourceEvidence":{"provider":"OSM / GNIS","sourceId":"gnis:255344","catalogSourceId":"osm:node:358796353","identity":"OSM gnis:feature_id=255344 identifies the summit.","reviewStatus":"pending-real-artifact-review"}},
+      {"name":"West Fork San Gabriel River","expectedKinds":["waterway"],"sourceEvidence":{"provider":"USGS 3DHP","sourceId":"3dhp:50:11UZK","reviewStatus":"pending-real-artifact-review"},"sourceId":"3dhp:50:11UZK"}
     ]
   }
 }

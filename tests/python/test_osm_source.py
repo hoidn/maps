@@ -96,3 +96,28 @@ class PartitionedFetchTests(unittest.TestCase):
    tiles=[box(w,s,e,n) for s,w,n,e in (part['bbox'] for part in result['acquisition']['requests'])]
    self.assertEqual(len(tiles),4);self.assertTrue(unary_union(tiles).equals(box(*spec.bbox)))
    self.assertAlmostEqual(sum(tile.area for tile in tiles),box(*spec.bbox).area)
+
+ def test_older_endpoint_snapshot_is_rejected_before_checkpointing(self):
+  from sources.osm import fetch,query_bounds
+  from unittest.mock import patch
+  import tempfile,itertools
+  current=self.response([{'type':'node','id':1,'lat':.01,'lon':.01}])
+  stale=self.response([{'type':'node','id':2,'lat':.02,'lon':.02}],timestamp='2026-09-21T12:00:00Z')
+  with tempfile.TemporaryDirectory() as tmp,patch('sources.osm.requests.post',side_effect=itertools.chain([current,stale],itertools.repeat(current))) as post:
+   result=fetch(self.spec(),Path(tmp)/'osm.json')
+   self.assertEqual([element['id'] for element in result['elements']],[1])
+   self.assertEqual(post.call_count,len(query_bounds(self.spec()))+1)
+   self.assertTrue(all(part['serverSnapshot']>='2026-09-22T12:00:00Z' for part in result['acquisition']['requests']))
+
+ def test_rate_limit_retries_after_bounded_delay_on_the_same_endpoint(self):
+  from sources.osm import fetch
+  from unittest.mock import patch,Mock
+  import tempfile,requests
+  spec=MapSpec.from_dict({'id':'rate_limited','title':'Rate Limited','bbox':[0,0,.04,.04],'bufferDegrees':0})
+  busy=Mock(status_code=429,headers={'Retry-After':'2'})
+  busy.raise_for_status.side_effect=requests.HTTPError('rate limited',response=busy)
+  good=self.response([{'type':'node','id':1,'lat':.01,'lon':.01}])
+  with tempfile.TemporaryDirectory() as tmp,patch('sources.osm.requests.post',side_effect=[busy,good]) as post,patch('time.sleep') as sleep:
+   fetch(spec,Path(tmp)/'osm.json')
+   sleep.assert_called_once_with(2)
+   self.assertEqual(post.call_args_list[0].args[0],post.call_args_list[1].args[0])

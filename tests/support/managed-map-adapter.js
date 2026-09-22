@@ -432,7 +432,9 @@ export function checkManagedInventory(data, policy = {}) {
     clearance = policy.clearance ?? 2,
     padding = policy.edgePadding ?? 4;
   const visible = new Set(data.visible),
-    annotations = data.manifest.annotations;
+    annotations = data.manifest.annotations,
+    requiredRoutes = Object.hasOwn(data.manifest.map, "requiredRoutes")
+      ? data.manifest.map.requiredRoutes : policy.requiredRoutes || [];
   for (const item of data.inventory) {
     const b = bounds(item.polygons.flat());
     if (
@@ -542,7 +544,7 @@ export function checkManagedInventory(data, policy = {}) {
         !visible.has(a.id)
       )
         missingRequired.push(a.id);
-    for (const group of policy.requiredRoutes || [])
+    for (const group of requiredRoutes)
       if (
         !annotations.some((a) => a.requiredGroup === group && visible.has(a.id))
       )
@@ -551,7 +553,7 @@ export function checkManagedInventory(data, policy = {}) {
   // Anchor/scale eligibility does not prove that optional text fits around the
   // frame and controls. Interactive coverage belongs to declared scene minima;
   // arbitrary-view point-name omissions are retained as review diagnostics.
-  return { overlaps, clipped, missingRequired, unknown, unresolved: unknown };
+  return { overlaps, clipped, missingRequired, requiredRoutes, unknown, unresolved: unknown };
 }
 
 // Independent reference construction: project the circle center onto the unit

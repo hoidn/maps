@@ -324,3 +324,20 @@ test('coverage eligibility excludes names below their declared ground-scale deta
  await mountFixture(page);await page.evaluate(()=>{mapLayout.manifest.map.metersPerMapUnit=30;mapLayout.manifest.annotations.find(a=>a.id==='label-1').maxMetersPerPixel=5;document.getElementById('map-label-manifest').textContent=JSON.stringify(mapLayout.manifest)});
  const data=await page.evaluate(collectManagedInventory);expect(data.outcomes.find(o=>o.id==='label-0').eligible).toBe(true);expect(data.outcomes.find(o=>o.id==='label-1').eligible).toBe(false);
 });
+test('static route requirements belong to each manifest with legacy policy fallback',async({page})=>{
+ const {checkManagedInventory}=await import('../support/managed-map-adapter.js');
+ const {readFile}=await import('node:fs/promises');
+ const defaults=JSON.parse(await readFile('pipeline/labels/policy.json','utf8'));
+ await page.setContent(html());
+ const data=await page.evaluate(collectManagedInventory);
+ const legacy=checkManagedInventory(data,defaults);
+ expect(legacy.missingRequired).toEqual(defaults.requiredRoutes.map(route=>'route:'+route));
+ data.manifest.map.requiredRoutes=[];
+ const regional=checkManagedInventory(data,defaults);
+ expect(regional.missingRequired).toEqual([]);
+ expect(regional.requiredRoutes).toEqual([]);
+ data.manifest.map.requiredRoutes=['Regional Trail'];
+ expect(checkManagedInventory(data,defaults).missingRequired).toEqual(['route:Regional Trail']);
+ data.manifest.map.requiredRoutes=defaults.requiredRoutes;
+ expect(checkManagedInventory(data,defaults).missingRequired).toEqual(legacy.missingRequired);
+});

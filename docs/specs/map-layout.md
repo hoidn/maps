@@ -263,6 +263,10 @@ acceptance logic. It checks ownership inventory, collisions, clipping, required
 content, and typography. Hidden annotations remain in the outcome inventory.
 Static required profiles and required route groups must have their required
 visible names; a symbol does not substitute for a required name.
+The manifest's `map.requiredRoutes` owns regional route requirements for solving
+and independent static auditing. An explicit empty array requires no route names;
+the global policy is a compatibility fallback only when the field is absent.
+Independent audit views record the effective `requiredRoutes` list.
 
 Reports identify candidate bytes, policy, fonts, browser, theme, and view. Legacy
 mode records baseline failures and cannot serve as a managed-release allowlist.

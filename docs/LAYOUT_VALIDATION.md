@@ -145,8 +145,10 @@ resolution. Low DPI terrain is not converted into high-resolution terrain by enl
 the page. Source retrieval dates do not establish survey currency or current access.
 
 Regional coverage uses `scripts/audit-cartography.mjs` and
-`scripts/fuzz-cartography-matrix.mjs --map san_gabriel`. Coverage marked pending requires
-visual review; an unavailable requested backend is reported as incomplete. Printing never
+`scripts/fuzz-cartography-matrix.mjs --map san_gabriel`. The shared comparison scenes
+use 32, 12 and 6 m/pixel. The audit rejects a clamped requested scale; the San Gabriel
+frame cannot reach 3 m/pixel within the existing 14× zoom limit. Coverage marked pending
+requires visual review; an unavailable requested backend is reported as incomplete. Printing never
 promotes tracked HTML or publishes hosted pages.
 
 ## What the gates establish

@@ -263,7 +263,8 @@ feature anchors remain unchanged. A print request cannot select interactive mode
 
 Static preparation may omit paint and optional annotations that the existing ground-scale
 limits make ineligible throughout the requested sheet's possible size range. Natural static
-sheets use their native size; print preparation uses an upper bound on map width before the
+sheets use the finalizer's fixed native reference size; a staging preview's responsive width
+does not change that artifact boundary. Print preparation uses an upper bound on map width before the
 collar is measured, with one CSS pixel reserved for dimension rounding. It retains source
 feature records and all required annotations. `map.staticPreparation` records the resulting
 minimum metres per pixel and counts of removed geometry elements and optional annotations.

@@ -197,8 +197,9 @@ rounded readout is not the full-resolution bilinear sampler used by the tables.
 
 Interactive builders may replace exactly representable contour `d` attributes
 with empty source-path shells and an inert `map-contour-payload` JSON script.
-Frozen static output keeps the complete authored SVG. Packing preserves path
-identity, attributes, group order, source attribution and map coordinates; it
+Static output keeps contour paths inline; permitted scale-based omissions follow the
+[frozen static contract](map-layout.md#frozen-static-artifact). Interactive packing preserves
+path identity, attributes, group order, source attribution and map coordinates; it
 does not simplify geometry. Unsupported path syntax remains inline unchanged.
 The current encoder accepts absolute `M` polyline runs with exactly three decimal
 places whose coordinates round-trip lexically at scale 1000 within signed int32.

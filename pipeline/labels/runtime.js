@@ -539,7 +539,7 @@ export class LayoutController {
               if(a.kind==='region-label')item.candidates=regionCandidates(item,metric,this.policy);
               else {
                 if(a.kind==='symbol'&&facilityCounts.get(a.featureId)>1)item.facilityOffsets=[[16,0],[-16,0],[0,16],[0,-16],[12,12],[-12,12],[12,-12],[-12,-12]];
-                const policy={...this.policy,densePointCandidates:item.required,pointPaintReserve:this.mode==='interactive'?.125:0};item.candidates=pointCandidates(item,metric,policy);
+                const policy={...this.policy,densePointCandidates:item.required,pointPaintReserve:(this.mode==='interactive'||this.manifest.map.print)?.125:0};item.candidates=pointCandidates(item,metric,policy);
                 for(const v of cached.pointVariants||[])item.candidates.push(...pointCandidates(item,moveShape(v.shape,dx,dy),policy).map(c=>({...c,id:v.id+'-'+c.id,textHTML:v.textHTML})));
                 if(a.kind==='point-label'&&!policy.densePointCandidates){
                   item.fallbackData={annotation:{kind:item.kind,anchor:item.anchor},metric,variants:(cached.pointVariants||[]).map(v=>({...v,shape:moveShape(v.shape,dx,dy)})),policy};

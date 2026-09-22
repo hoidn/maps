@@ -51,3 +51,43 @@ class PrintSheetTests(unittest.TestCase):
             self.assertEqual(m['map']['width'],800)
             self.assertEqual(m['map']['print']['paperMm'],[914.4,609.6])
             self.assertNotIn('Drag to pan',html)
+
+    def test_relief_metadata_follows_the_builder_not_the_region_id(self):
+        import importlib.util, json, subprocess, tempfile
+        import numpy as np
+        from features import catalog_from_osm
+        from sources.catalog import atomic_json
+        root = Path(__file__).resolve().parents[2]
+        loader = importlib.util.spec_from_file_location('fixture', root/'tests/support/build-fixture.py')
+        fixture = importlib.util.module_from_spec(loader); loader.loader.exec_module(fixture)
+        for authored in (False, True):
+            with self.subTest(authored=authored), tempfile.TemporaryDirectory() as tmp:
+                directory=Path(tmp);fixture.create(directory) # Legacy DEM: 80 by 80.
+                config=fixture.create_region(directory) # Registered regional DEM: 48 by 64.
+                cache=directory/'cache/grand_canyon';(directory/'cache/sequoia').rename(cache)
+                values=json.loads(config.read_text());values['id']='grand_canyon';atomic_json(config,values)
+                spec=MapSpec.load('grand_canyon') if authored else MapSpec.load(config)
+                if authored:
+                    elements=json.loads((directory/'osm.json').read_text())['elements']
+                    atomic_json(cache/'features.json',catalog_from_osm(elements,spec))
+                    # These test-only source records belonged to the other frame.
+                    for path in cache.glob('*.source.json'):path.unlink()
+                metadata=json.loads((cache/'dem.json').read_text())
+                metadata.update(frame=spec.frame,source={'provider':'Synthetic registered regional DEM'},nativeRegistration={'test':'registered regional export'})
+                atomic_json(cache/'dem.json',metadata)
+                output=directory/'print.html'
+                args=['build_static.py'] if authored else ['build_region.py','--map',str(config),'--mode','static']
+                result=subprocess.run([sys.executable,str(root/'pipeline'/args[0]),*args[1:],'--print','--output',str(output)],cwd=tmp,capture_output=True,text=True)
+                self.assertEqual(result.returncode,0,result.stderr)
+                profile=read_json(output.read_text(),'map-label-manifest')['map']['print']
+                relief=next(r for r in profile['rasters'] if r['layer']=='relief')
+                h,w=np.load(directory/'dem.npy' if authored else cache/'dem.npy').shape
+                self.assertEqual(relief['normalizedSampleSpacingMeters'],[profile['groundMeters']['width']/w,profile['groundMeters']['height']/h])
+                self.assertIsNone(relief['nativePixelMeters'])
+                if authored:
+                    self.assertIn('Legacy dem.npy',relief['provenance'])
+                    self.assertNotIn('source',relief)
+                else:
+                    self.assertNotIn('provenance',relief)
+                    self.assertEqual(relief['source'],metadata['source'])
+                    self.assertEqual(relief['sourceExportRegistration'],metadata['nativeRegistration'])

@@ -436,7 +436,7 @@ from cartography.integration import improve, catalog_panel, transport_legend
 svg, cartography_context = improve(svg, M, DEM / 3.28084, o.SPEC)
 svg = M.finalize(svg)
 if args.print_map:
-    Path(args.output).write_text(make_print_sheet(svg,M,cartography_context,o.SPEC,M.print_profile))
+    Path(args.output).write_text(make_print_sheet(svg,M,cartography_context,o.SPEC,M.print_profile,legacy_terrain=True))
     print("wrote",args.output,flush=True)
     raise SystemExit(0)
 

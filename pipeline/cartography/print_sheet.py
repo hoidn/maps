@@ -62,7 +62,7 @@ def physical_annotations(tree, manifest):
         element.append(content)
 
 
-def make_print_sheet(svg, manifest, context, spec, profile):
+def make_print_sheet(svg, manifest, context, spec, profile, *, legacy_terrain=False):
     """Compose one self-contained print sheet; finalization measures its collar."""
     import base64
     import io
@@ -104,8 +104,9 @@ def make_print_sheet(svg, manifest, context, spec, profile):
         stats=ImageStat.Stat(image.convert('RGB'))
         info['pixelStatistics']={'mean':stats.mean,'stddev':stats.stddev}
         metadata = Path('cache')/spec.id/('landcover.json' if kind == 'landcover' else 'dem.json')
-        # Integration shades the legacy DEM, not the separate regional DEM cache.
-        if kind=='relief' and spec.id=='grand_canyon':
+        # The authored adapter shades its legacy DEM; explicit regional specs
+        # can use the same region ID with a different registered raster.
+        if kind=='relief' and legacy_terrain:
             info['provenance']='Legacy dem.npy relief; native sampling metadata unavailable'
             if Path('dem.npy').exists():
                 h,w=np.load('dem.npy',mmap_mode='r',allow_pickle=False).shape

@@ -287,6 +287,13 @@ map size, or an explicit physical print profile below, is the static layout boun
 not established by that validation. See the owning [artifact mapping](map-data.md#artifacts-and-ownership)
 for staging, finalized, and delivered filenames.
 
+The returned `audits` and persisted `finalization.json` retain each audit's result,
+counts, browser settings, font/network evidence and provenance hashes, with an
+absolute `reportPath` to its complete `report.json`. They omit the large `views`
+inventories so successive browser audits do not retain six copies in host memory.
+Consumers needing manifests, per-annotation outcomes or painted geometry read
+`reportPath`; those full reports remain unchanged on disk.
+
 ### Physical print profile
 
 Static manifests may carry `map.print` version 1. It declares physical paper dimensions

@@ -348,13 +348,16 @@ export async function finalizeStatic({
           theme,
           javaScriptEnabled: false,
         });
-        audits.push(report);
         if (report.status !== "pass")
           throw new Error(
             `Serialized static audit failed (${browserName}/${theme}): ${JSON.stringify(report.counts)}`,
           );
         if (report.artifactSha256 !== artifactSha256)
           throw new Error("Serialized candidate changed during static audit");
+        // Full view inventories are already persisted by runAudit. Retaining all
+        // six duplicates can exhaust the host heap on a large regional sheet.
+        const {views, ...summary}=report;
+        audits.push({...summary,reportPath:resolve(reportDir,browserName+"-"+theme,"report.json")});
       }
     if (sha(await readFile(candidate)) !== artifactSha256)
       throw new Error("Static candidate changed before replacement");
@@ -369,26 +372,7 @@ export async function finalizeStatic({
     };
     await writeFile(
       join(reportDir, "finalization.json"),
-      JSON.stringify(
-        {
-          output: destination,
-          sourceSha256,
-          artifactSha256,
-          viewport,
-          measurementEnvelope,
-          print:printEvidence,
-          audits: audits.map((a) => ({
-            browser: a.browser,
-            theme: a.theme,
-            status: a.status,
-            artifactSha256: a.artifactSha256,
-            policySha256: a.policySha256,
-            fontSha256: a.fontSha256,
-          })),
-        },
-        null,
-        2,
-      ) + "\n",
+      JSON.stringify(result,null,2) + "\n",
     );
     await rename(candidate, destination);
     return result;

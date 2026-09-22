@@ -76,12 +76,18 @@ test("static finalizer bakes SVG and verifies serialized bytes in three engines 
   expect(result.measurementEnvelope.fixedControlReserves[0].bottom).toBeGreaterThan(0);
   expect(result.measurementEnvelope.profiles.map(p=>p.browser)).toEqual(["chromium","firefox","webkit"]);
   expect(result.audits).toHaveLength(6);
+  expect(result.audits.every(a=>!Object.hasOwn(a,'views'))).toBe(true);
   expect(
     result.audits.every((a) => a.status === "pass" && !a.javaScriptEnabled),
   ).toBe(true);
   expect(new Set(result.audits.map((a) => a.artifactSha256))).toEqual(
     new Set([result.artifactSha256]),
   );
+  for(const audit of result.audits){
+    const {views,...metadata}=JSON.parse(await readFile(audit.reportPath,'utf8'));
+    expect(views).toHaveLength(1);expect(views[0].inventory.length).toBeGreaterThan(0);
+    expect(audit).toEqual({...metadata,reportPath:audit.reportPath});
+  }
 });
 test("static finalizer preserves destination when required placement is impossible", async ({
   browserName,
@@ -164,10 +170,11 @@ test("frozen subtraction preserves placed paint and the full audit inventory", a
   expect(result.audits).toHaveLength(6);
   for(const audit of result.audits){
     expect(audit.status).toBe("pass");
-    expect(audit.views[0].manifest).toEqual(manifest);
-    expect(audit.views[0].outcomes.map(o=>o.id).sort()).toEqual(ids);
-    expect(audit.views[0].outcomes.find(o=>o.id==="hidden-optional").reason).toBe("missing-element");
-    expect(audit.views[0].visible).toEqual(expect.arrayContaining(placed));
+    const report=JSON.parse(await readFile(audit.reportPath,'utf8'));
+    expect(report.views[0].manifest).toEqual(manifest);
+    expect(report.views[0].outcomes.map(o=>o.id).sort()).toEqual(ids);
+    expect(report.views[0].outcomes.find(o=>o.id==="hidden-optional").reason).toBe("missing-element");
+    expect(report.views[0].visible).toEqual(expect.arrayContaining(placed));
   }
 });
 test('finalization accepts chunked staging and re-chunks rewritten metadata without losing inventory',async({browserName,browser})=>{
@@ -199,7 +206,7 @@ test('finalization accepts chunked staging and re-chunks rewritten metadata with
   expect(frozen['map-label-manifest'].value).toEqual(manifest);
   expect(frozen['map-layout-frozen-report'].value.outcomes).toHaveLength(manifest.annotations.length);
   expect(result.audits).toHaveLength(6);
-  for(const audit of result.audits){expect(audit.status).toBe('pass');expect(audit.views[0].manifest).toEqual(manifest);expect(audit.views[0].outcomes).toHaveLength(manifest.annotations.length);}
+  for(const audit of result.audits){const report=JSON.parse(await readFile(audit.reportPath,'utf8'));expect(audit.status).toBe('pass');expect(report.views[0].manifest).toEqual(manifest);expect(report.views[0].outcomes).toHaveLength(manifest.annotations.length);}
 });
 test("serialization-only collision prevents output replacement", async ({
   browserName,

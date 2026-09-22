@@ -241,7 +241,13 @@ missing destinations in a scene with declared expectations.
 
 The [ground-scale audit](../scripts/audit-cartography.mjs) records source/catalog/scene/paint
 coverage for configured scene profiles and produces screenshots for review; unknown or empty profiles fail. Its
-`review-required` status is not a release pass. The [seeded interaction fuzzer](../scripts/fuzz-cartography.mjs)
+`review-required` status is not a release pass. Version 2 coverage reports retain
+scene metadata and paint evidence in the main index; each scene's `reportPath`
+points to its full outcome inventory under `OUTPUT.json.scenes/`. Each inventory
+is saved before the next scene, so large regional audits do not accumulate every
+label's blocker list in one final JSON string. Preserve that directory with the
+index and screenshots when reviewing or archiving evidence.
+The [seeded interaction fuzzer](../scripts/fuzz-cartography.mjs)
 exercises camera gestures, text size, layers, themes and resizing, checks eventual completion
 and painted-camera agreement, and writes a replayable report plus a contact sheet. These
 diagnostics supplement the independent collision audits and release scenes.

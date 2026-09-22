@@ -26,7 +26,7 @@ San Gabriel preset alone does not establish automated region setup. The generic 
 derives its specification and dimensions; the real third-map proof must use this path.
 
 **Current evidence:** `artifacts/regional-print/` records 196 passing Python and
-189 passing Node checks. The latest print/PDF fixture run passes 14 checks (10
+193 passing Node checks. The latest print/PDF fixture run passes 14 checks (10
 intentional duplicate skips), including inspected 36 × 24 and 96 × 60 inch PDFs,
 unregistered-area generation, the authored adapter, actual legend selection,
 physical calibration and rollback. Shared runtime fixes have 176 focused browser
@@ -57,8 +57,46 @@ checks pass, including exact highlight restoration and preserved fallback errors
 A bounded actual diagnostic reached initial ready at 112.7 seconds, but full view
 settlement still exceeded 90 seconds. Hiding the duplicate SVG buildings and roads
 reduced hit-testing time without reducing document paint time, so that experiment
-was not adopted. A separate 185,890-path detail inset is under investigation.
-Further coverage reruns remain pending.
+was not adopted. Paint containment on the separate 185,890-path detail figure reduces actual
+90-second native Paint from 37.361 to 7.027 seconds; that diagnostic fully settles
+in 75.897 seconds with 213 placements. Screen/print geometry and screenshots are
+identical in all three engines at 430/1440 px. Startup still reaches ready at
+112.748 seconds. The single shared CSS rule and its 12-case regression are
+committed. Actual startup profiling identifies 65.2 seconds in scene capture,
+including 10.47 seconds in native matrix/point allocations for command bounds.
+Scalar corner calculations preserve 304 native cases and 21,672 culling decisions
+per engine; 12 focused checks pass and captured-path benchmarks improve in all
+three engines. A same-camera viewBox guard removes redundant layout events;
+40 startup/static/print checks pass. The actual interaction preflight now uses
+these committed changes; a full public rebuild and coverage matrix remain pending.
+The first DPR-2 interaction preflight exhausted the harness's combined 120-second
+initialization watchdog before any action or screenshot. That watchdog was an
+operating bound, not a promised startup-performance threshold. Initialization now
+bounds and records navigation, controller readiness and initial settlement/audit/
+capture separately, each at the existing 120-second limit. The 90-second idle
+limit, subsequent 120-second action limit (including URL reload), and every audit
+remain unchanged. Sixteen focused Node checks and actual CLI success/failure
+fixtures pass; version 3 reports identify the failed phase. This change does not
+establish the separate 8 ms/33 ms warm-camera or 3× startup targets.
+The phased actual preflight passed navigation (35.087 seconds), readiness
+(71.290 seconds) and initial checks (50.969 seconds). Initial, zoom and pan
+captures passed independent paint checks with WebGL active; wheel input then hit
+the unchanged 120-second action watchdog. Its replay is under investigation.
+The derivative coverage run reached all 12 screenshots at the declared scales,
+but aggregate report serialization exceeded Node's maximum string length. Full
+mechanical results were not saved, so those screenshots establish only reviewed
+visual evidence, recorded in `san-gabriel/coverage-current-serialization-failure.json`.
+They show the three summit areas and West Fork; wider views omit some summit names,
+and the nearby Mount Wilson settlement is not counted as the summit. The report
+writer now saves each full scene before advancing and always closes
+browser/server resources, including on report-write failure. Twelve focused checks
+pass. Schema version 2 keeps summary/paint evidence and each scene's `reportPath`
+in the index; full outcomes remain on disk. The fresh public interactive SHA is
+`1408f4196d083a38d6d15bc52f1f0843f1f8ddfd65c5a9e2ba9a46c9c73efc95`.
+Its coverage run is saving full scene evidence. Mount Wilson's summit symbol
+loses collision checks at 32/12/6 m/pixel, so those source-marker expectations fail;
+the summit name itself is placed at 6 m/pixel. These are preserved coverage gaps,
+not missing source data or a substitute settlement counted as the summit.
 Shared comparison scales are 32, 12 and
 6 m/pixel, because the existing 14× zoom cap cannot reach 3 m/pixel in this frame;
 the audit rejects clamped requested scales.
@@ -132,8 +170,19 @@ all three font probes and its reserved physical solve under normal heap limits;
 the latter placed 3,682 annotations and ended at approximately 1.63 GB JS heap.
 Final settlement placed 3,685 annotations; the frozen SHA is
 `8ae0e70a80fd42e61b738769a23909567a2a8de94fffc6165d246f2960f3b810`.
-The first Chromium audit passed; the remaining five audits and PDF export are
-pending. Geography is unchanged.
+Both Chromium audits passed. Firefox/light rejected two text-path labels
+whose measured angles exceed the 90° uprightness limit. The failed candidate is
+preserved; no PDF or frozen destination was replaced. The two exact paths contain
+very short backwards segments that Chromium glyph
+centers miss while Firefox/WebKit glyphs land on them. Shared curved-window
+preparation now rejects such segments only within the occupied span plus existing
+ink/font reserves. The actual-source regression passes across all three engines
+at physical/native scales; 43 browser checks and all 189 Node checks pass. The new
+1:50,000 run completed normal-heap layout with 3,681 placements; frozen SHA
+`53c60614c77c3988feb060acf03dd95226683c42c6551340a60c5e9d29d5d8cd`
+passed Chromium/light with zero findings. Chromium/dark then exceeded the existing
+120-second navigation bound while remaining alive; an isolated same-byte audit
+retry is pending. No PDF has been accepted for this scale.
 A shared
 finalizer fix now closes a crashed renderer and records failure promptly instead
 of waiting on DOM diagnostics from the dead page. Its real renderer-crash test
@@ -151,7 +200,10 @@ paint. Land-cover evidence survives foreground-only redraws. Nine focused Node a
 nine browser checks pass. The existing fuzzer now performs actual place selection
 and reload-based URL restoration, checking the serialized camera's rounding and
 clamping. Thirty focused browser checks and a 14-action synthetic CLI cycle pass;
-these do not establish real San Gabriel interaction acceptance.
+these do not establish real San Gabriel interaction acceptance. The public command
+flow was reviewed from derived specification through fetching, cached building and
+PDF export. Documentation now routes new areas away from the authored Grand Canyon
+constants; all 192 checked local file/heading links resolve.
 
 **Design:** [Regional generation and print design](2026-09-22-regional-generation-and-print-design.md),
 including the user's clarified requirement for a conventional printed map collar.
@@ -636,7 +688,7 @@ Print operating instructions belong in the existing layout guide.
   Broaden checks if failures or touched behavior justify it. Full map promotion
   still requires `npm run verify:maps` and `npm run promote:maps`; those cover the
   established Grand Canyon pair, not automatic approval of a new regional output.
-- [ ] Document one fresh-checkout route through prerequisites, explicit fetch,
+- [x] Document one fresh-checkout route through prerequisites, explicit fetch,
   cached build, print export and inspection, including required PDF tools. State
   verified page limits, nominal-scale meaning, fixed versus available contour
   detail, raster limits, output names and report interpretation. Verify all

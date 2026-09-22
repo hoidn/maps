@@ -121,6 +121,12 @@ browser checks pass across all three engines. Bundle SHA
 contains both fixes. The public Python interactive rebuild from the same generated
 specification completed with SHA
 `5da66938564313e3b7711aefb65d8418c111880c127f50c09c005685fa862eb3`.
+The [byte comparison](../../artifacts/regional-print/san-gabriel/provenance-1408-to-5da/summary.json)
+confirms identical geometry, metadata, source identities, imagery and styles;
+only two executable scripts differ. Source-content review applies to those
+identical data/styles without a fresh 12-scene run solely for that review.
+Mechanical coverage remains bound to `1408f419…`, including its three Mount
+Wilson marker failures; interactive acceptance does not transfer to `5da66938…`.
 Full selected-matrix acceptance remains pending. The bounds-driven cached command
 also completed all six audits of its refreshed native frozen HTML, SHA
 `66b5de5267db2aa379db509facece0344c2d1ce7d71dc8889c764ad4d9c2c8fa`;

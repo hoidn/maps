@@ -1,6 +1,27 @@
 const advanceCache = new Map();
 const advanceProbes=new WeakMap();
 const canvasInkCache=new Map(),canvasContexts=new WeakMap();
+/** Mutable annotation clones share a small SVG, outside the geographic paint
+ * tree. Preserve its camera and shallow ancestor context; textPaths still refer
+ * to the original immutable geometry. One preparation job owns this host. */
+export function createMeasurementHost(source) {
+  const doc=source.ownerDocument,rect=source.getBoundingClientRect(),host=source.cloneNode(false);
+  const inherited=['color','font-family','font-size','font-weight','font-style','font-stretch','font-variant','font-kerning','font-feature-settings','font-variation-settings','letter-spacing','word-spacing','text-anchor','text-rendering','dominant-baseline','direction','writing-mode','fill','stroke','stroke-width','stroke-linejoin','stroke-miterlimit','paint-order'];
+  const copyContext=(from,to)=>{
+    to.removeAttribute('id');to.removeAttribute('data-layout-id');
+    const style=getComputedStyle(from);
+    for(const property of [...inherited,...[...style].filter(p=>p.startsWith('--'))])to.style.setProperty(property,style.getPropertyValue(property));
+  };
+  copyContext(source,host);host.removeAttribute('data-layout-pending');host.dataset.layoutRuntime='';host.dataset.layoutMeasurementHost='';
+  Object.assign(host.style,{position:'fixed',left:rect.x+'px',top:rect.y+'px',width:rect.width+'px',height:rect.height+'px',maxWidth:'none',maxHeight:'none',margin:'0',padding:'0',border:'0',visibility:'hidden',pointerEvents:'none',overflow:'hidden'});
+  const parents=new Map([[source,host]]);
+  const parentFor=original=>{
+    if(parents.has(original))return parents.get(original);
+    const parent=parentFor(original.parentElement),copy=original.cloneNode(false);copyContext(original,copy);parent.append(copy);parents.set(original,copy);return copy;
+  };
+  doc.body.append(host);
+  return {parentFor,remove:()=>host.remove()};
+}
 /** Full textPath advance, including glyphs clipped by the current path offset.
  * A separate SVG keeps probe changes out of the geographic scene's layout.
  * Match the source SVG's viewport and viewBox: fractional scale affects shaping.
@@ -9,7 +30,7 @@ export function measureTextAdvance(text) {
   const source=text.querySelector('textPath')||text,style=getComputedStyle(source),svg=text.ownerSVGElement,viewport=svg.getBoundingClientRect();
   const viewBox=svg.getAttribute('viewBox'),view=svg.viewBox.baseVal,aspect=svg.getAttribute('preserveAspectRatio');
   const properties=['fontFamily','fontSize','fontWeight','fontStyle','letterSpacing'];
-  const key=JSON.stringify([source.textContent,...properties.map(name=>style[name]),text.getAttribute('textLength'),text.getAttribute('lengthAdjust'),view.width,view.height,aspect,viewport.width,viewport.height]);
+  const key=JSON.stringify([source.textContent,...properties.map(name=>style[name]),text.getAttribute('textLength'),text.getAttribute('lengthAdjust'),view?.width??0,view?.height??0,aspect,viewport.width,viewport.height]);
   if(!advanceCache.has(key)){
     const doc=text.ownerDocument;let probe=advanceProbes.get(doc);
     if(!probe?.svg.isConnected){

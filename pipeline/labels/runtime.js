@@ -10,7 +10,7 @@ import {pointFallback} from './point-fallback.js';
 import {MotionPreview} from './motion-preview.js';
 import {CanvasMapRenderer} from '../render/canvas-renderer.js';
 import {validateManifest} from './schema.js';
-import {ensureFonts,measureElement,MetricCache} from './measure.js';
+import {ensureFonts,measureElement,MetricCache,createMeasurementHost} from './measure.js';
 import {moveShape,intersects,anchorDistance} from './geometry.js';
 import {pointCandidates,regionCandidates} from './candidates.js';
 import {measurePointVariants} from './point-variants.js';
@@ -459,7 +459,7 @@ export class LayoutController {
         // scaling. Keep only metrics measured at this exact screen scale.
         const metricScaleKey=s+':'+this.fontScaleValue;
         if(this.metricScaleKey!==metricScaleKey){this.cache.invalidate();this.lineCache.clear();this.metricScaleKey=metricScaleKey;}
-        const measuring=new Map();
+        const measuring=new Map();let measurementHost;
         const measurementElement=a=>{
           if(!cooperative)return this.elements.get(a.id);
           if(measuring.has(a.id))return measuring.get(a.id);
@@ -467,9 +467,9 @@ export class LayoutController {
           for(const child of e.querySelectorAll('[id]'))child.removeAttribute('id');
           e.style.visibility='hidden';e.style.display='inline';e.setAttribute('transform','');
           const text=e.querySelector('text');if(text)text.innerHTML=a.originalTextHTML;
-          original.parentElement.append(e);this.normalize(a,e,s);measuring.set(a.id,e);return e;
+          (measurementHost??=createMeasurementHost(this.svg)).parentFor(original.parentElement).append(e);this.normalize(a,e,s);measuring.set(a.id,e);return e;
         };
-        if(job)job.cleanup=()=>{for(const e of measuring.values())e.remove();measuring.clear();};
+        if(job)job.cleanup=()=>{measurementHost?.remove();measuring.clear();};
         let deadline=performance.now()+8;
         for(const a of this.starting?[]:this.manifest.annotations){
           if(cooperative){

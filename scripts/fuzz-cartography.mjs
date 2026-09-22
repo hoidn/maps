@@ -109,6 +109,21 @@ export async function restoreUrl(page,a){
  if(Object.entries(a.hashRestore.expected).some(([key,value])=>!Number.isFinite(after[key])||Math.abs(value-after[key])>1e-6))throw Error('Hash restore mismatch');
 }
 
+export async function initializeFuzz(page,url,settled,capture,armWatchdog,report){
+ const started=performance.now(),initialization=report.initialization={status:'running',phases:[]};
+ for(const [phase,run] of [
+  ['navigation',()=>page.goto(url,{timeout:120000})],
+  ['readiness',()=>page.evaluate(()=>mapLayout.ready)],
+  ['initial-checks',async()=>{await page.locator('.map-wrap').scrollIntoViewIfNeeded();await settled();await capture(0);}],
+ ]){
+  const phaseStarted=performance.now(),entry={phase,startedMs:phaseStarted-started,status:'running'};initialization.phases.push(entry);armWatchdog(phase);
+  try{await run();entry.status='passed';}
+  catch(error){entry.status='failed';entry.error=error.message;initialization.status='failed';initialization.failedPhase=phase;throw error;}
+  finally{entry.durationMs=performance.now()-phaseStarted;initialization.durationMs=performance.now()-started;}
+ }
+ initialization.status='passed';
+}
+
 async function main(){
 const [file,dir,seedText='73191',stepsText='36',engine='chromium',backend='webgl']=process.argv.slice(2);
 if(!file||!dir)throw Error('Usage: FILE REPORT_DIR [seed] [steps] [engine] [backend] [--headed|--headless]');
@@ -117,7 +132,7 @@ let state=Number(seedText)>>>0;const random=()=>{state=(Math.imul(state,1664525)
 const server=createServer((req,res)=>{res.setHeader('Content-Type','text/html; charset=utf-8');res.end(bytes)});await new Promise(r=>server.listen(0,'127.0.0.1',r));
 const headless=parseHeadless(process.argv.slice(8),{});
 const browser=await({chromium,firefox,webkit}[engine]).launch({headless}),graphics=await collectGraphics(browser,engine);
-const report={harnessVersion:2,file:resolve(file),sha256:createHash('sha256').update(bytes).digest('hex'),seed:Number(seedText),engine,browserVersion:browser.version(),headless,graphics,backend,deviceScaleFactor:Number(seedText)%2?1:2,screenshotScope:'visible viewport; no capture-induced scroll or resize',actions:[],errors:[],checks:[]};
+const report={harnessVersion:3,file:resolve(file),sha256:createHash('sha256').update(bytes).digest('hex'),seed:Number(seedText),engine,browserVersion:browser.version(),headless,graphics,backend,deviceScaleFactor:Number(seedText)%2?1:2,screenshotScope:'visible viewport; no capture-induced scroll or resize',actions:[],errors:[],checks:[]};
 const auditBundle=(await build({entryPoints:['scripts/release-browser-audit.js'],bundle:true,format:'iife',globalName:'releaseAudit',write:false})).outputFiles[0].text;
 const page=await browser.newPage({viewport:{width:1440,height:1200},deviceScaleFactor:report.deviceScaleFactor});
 await page.addInitScript({content:auditBundle+';window.releaseAudit=releaseAudit;'});
@@ -130,7 +145,7 @@ await page.addInitScript(()=>{window.fuzzCaptureState=()=>{
   painted:r?.painted.map(p=>p.id),visible:[...l.visibleIds]});
 };});
 let watchdog;
-function armWatchdog(){clearTimeout(watchdog);watchdog=setTimeout(()=>{report.errors.push({step:report.actions.length,kind:'watchdog',message:'Browser step exceeded 120 seconds'});browser.close().catch(()=>{});},120000);}
+function armWatchdog(initializationPhase){clearTimeout(watchdog);watchdog=setTimeout(()=>{report.errors.push({step:report.actions.length,kind:'watchdog',...(initializationPhase?{initializationPhase}:{}),message:'Browser step exceeded 120 seconds'});browser.close().catch(()=>{});},120000);}
 page.on('pageerror',e=>report.errors.push({step:report.actions.length,kind:'pageerror',message:e.message}));
 page.on('console',m=>{if(m.type()==='error')report.errors.push({step:report.actions.length,kind:'console',message:m.text()})});
 async function settled(){
@@ -167,8 +182,7 @@ async function capture(step){
 }
 
 try{
- armWatchdog();
- await page.goto(`http://127.0.0.1:${server.address().port}/?renderer=${backend}`,{timeout:120000});await page.evaluate(()=>mapLayout.ready);await page.locator('.map-wrap').scrollIntoViewIfNeeded();await settled();await capture(0);
+ await initializeFuzz(page,`http://127.0.0.1:${server.address().port}/?renderer=${backend}`,settled,capture,armWatchdog,report);
  const kinds=['zoom','pan','wheel','drag','font','layer','theme','resize','reset','reverse','interrupt','scroll','place-selection','hash-restore'];
  for(let i=0;i<Number(stepsText);i++){
   armWatchdog();
@@ -193,7 +207,7 @@ try{
  }
  report.status='passed';
 }catch(e){
- await writeFile(join(dir,'failed-input.html'),bytes);report.status='failed';report.failure={step:report.actions.length,message:e.message};
+ await writeFile(join(dir,'failed-input.html'),bytes);report.status='failed';report.failure={step:report.actions.length,...(report.initialization?.failedPhase?{initializationPhase:report.initialization.failedPhase}:{}),message:e.message};
  // Preserve pending lifecycle state as well as the last successful frame.
  // A responsive page may be stuck waiting for a gesture/font/job indefinitely.
  report.failure.state=await page.evaluate(()=>({snapshot:JSON.parse(fuzzCaptureState()),gestures:[...mapLayout.gestures],rendering:mapLayout.rendering,starting:mapLayout.starting,roundJob:mapLayout.roundJob?{revision:mapLayout.roundJob.revision,cancelled:mapLayout.roundJob.cancelled}:null,settleJob:mapLayout.settleJob?{revision:mapLayout.settleJob.revision,cancelled:mapLayout.settleJob.cancelled}:null,samples:mapLayout.samples.slice(-5)})).catch(error=>({unavailable:error.message}));

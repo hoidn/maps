@@ -246,6 +246,17 @@ exercises camera gestures, text size, layers, themes and resizing, checks eventu
 and painted-camera agreement, and writes a replayable report plus a contact sheet. These
 diagnostics supplement the independent collision audits and release scenes.
 
+Fuzzer initialization has separate 120-second watchdogs for navigation, controller
+readiness, and the initial settlement/audit/capture sequence. Version 3 reports
+record each phase's start offset and duration in milliseconds, plus its status,
+under `initialization`, including the
+failed phase when initialization stops. The 90-second idle-completion limit and
+120-second watchdog for each subsequent action are unchanged; a hash-restore
+action still includes its reload within that action's watchdog. These are harness
+operating bounds, not startup-speed acceptance thresholds. A passing fuzz run
+establishes its checked behavior and bounded completion; it does not establish
+the separate 8 ms/33 ms warm-camera limits or the 3× initial-responsiveness target.
+
 Run browser workloads sequentially from the repository root, for example:
 
 ```bash

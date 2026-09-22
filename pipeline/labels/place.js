@@ -3,6 +3,7 @@ import {annotationOrder} from './annotation-order.js';
 import {contains,expand,shapeIntersects,lineHitsRect,lineOutsideCircle,validRect,anchorDistance,shapeInsidePolygons} from './geometry.js';
 import {SpatialIndex} from './spatial-index.js';
 import {pointDisplacementLimit,pointPaintDistance} from './point-limits.js';
+import {pointFallback} from './point-fallback.js';
 const stable=(a,b)=>a<b?-1:a>b?1:0;
 const validShape=s=>{try{return Array.isArray(s?.parts)&&s.parts.length>0&&s.parts.every(r=>contains(validRect(s.bounds),validRect(r)));}catch{return false;}};
 const repeatKey=a=>a.repeatGroup??a.featureId;
@@ -61,8 +62,24 @@ function* layoutSteps({annotations,obstacles=[],viewport,previous,policy={},quer
   const accepted=new Map(),hardCache=new Map(),localQueries=new Map();let placedIndex=new SpatialIndex();
   const indexPlacement=(id,c)=>placedIndex.insert(id,c.shape.bounds);
   const proximity=(a,c)=>a.kind==='point-label'&&a.anchor?Math.floor((anchorDistance(c.shape?.bounds,a.anchor)+1e-6)/(policy.pointDistanceBand??4)):0;
-  const candidateOrder=new Map(),repairBudgets=new Map();
-  const candidates=a=>{if(a.candidates.length<2)return a.candidates;const cached=candidateOrder.get(a.id);if(cached?.length===a.candidates.length)return cached;old??=new Map((Array.isArray(previous)?previous:previous?.placements??[]).map(p=>[p.id,p.candidateId]));const cs=[...(a.candidates??[])];const ix=cs.findIndex(c=>c.id===old.get(a.id));if(ix>0)cs.unshift(...cs.splice(ix,1));cs.sort((c,d)=>proximity(a,c)-proximity(a,d));candidateOrder.set(a.id,cs);return cs;};
+  const candidateOrder=new Map(),repairBudgets=new Map(),fallbacks=new Map();
+  // Static solves can expand millions of point alternatives. Retain their exact
+  // attempted prefix as a count, rebuilding deterministic plain-data fallbacks
+  // only while repair or final diagnostics needs them. Generic functions remain
+  // one-shot, and interactive placement-time diagnostics keep their fast path.
+  const candidates=a=>{
+    const replay=fallbacks.get(a);
+    if(replay?.released){
+      for(const raw of pointFallback(a.fallbackData).slice(0,replay.count))a.candidates.push(reserve(a,raw));
+      replay.released=false;
+    }
+    if(a.candidates.length<2)return a.candidates;const cached=candidateOrder.get(a.id);if(cached?.length===a.candidates.length)return cached;old??=new Map((Array.isArray(previous)?previous:previous?.placements??[]).map(p=>[p.id,p.candidateId]));const cs=[...(a.candidates??[])];const ix=cs.findIndex(c=>c.id===old.get(a.id));if(ix>0)cs.unshift(...cs.splice(ix,1));cs.sort((c,d)=>proximity(a,c)-proximity(a,d));candidateOrder.set(a.id,cs);return cs;
+  };
+  function releaseFallback(a){
+    const replay=fallbacks.get(a);if(!replay)return;
+    a.candidates.length=replay.base;replay.released=true;
+    candidateOrder.delete(a.id);hardCache.delete(a.id);
+  }
   function nearbyTrails(a,rect){
     if(!queryObstacles)return [];
     // A sole candidate without fallback gets one cached hard-obstacle check.
@@ -120,22 +137,26 @@ function* layoutSteps({annotations,obstacles=[],viewport,previous,policy={},quer
   function repair(a,c,blocking,budget){
     if(blocking.hard.length||blocking.repeat.length||blocking.labels.length>(policy.repairMaxNeighbors??2))return false;
     const snapshot=new Map(accepted),neighbors=blocking.labels.map(id=>byId.get(id));
+    try{
     for(const n of neighbors)accepted.delete(n.id);
     accept(a,c);
     function visit(i){if(i===neighbors.length)return true;const n=neighbors[i];for(const alt of candidates(n)){if(budget.remaining--<=0)return false;const b=blockers(n,alt);if(b.hard.length||b.labels.length||b.repeat.length)continue;accept(n,alt);if(visit(i+1))return true;accepted.delete(n.id);}return false;}
     if(visit(0)){rebuild();return true;}
     accepted.clear();for(const [id,v] of snapshot)accepted.set(id,v);rebuild();return false;
+    }finally{for(const n of neighbors)releaseFallback(n);}
   }
-  function* place(a){if(a.eligibleReason||a.cachedFailure||accepted.has(a.id))return;const recorded=[];if(placementDiagnostics)attemptFailures.set(a.id,recorded);for(const c of candidates(a)){yield;const b=blockers(a,c);if(placementDiagnostics)recorded.push(b);if(!b.hard.length&&!b.labels.length&&!b.repeat.length){accept(a,c);break;}}
+  function* place(a){if(a.eligibleReason||a.cachedFailure||accepted.has(a.id))return;try{const recorded=[];if(placementDiagnostics)attemptFailures.set(a.id,recorded);for(const c of candidates(a)){yield;const b=blockers(a,c);if(placementDiagnostics)recorded.push(b);if(!b.hard.length&&!b.labels.length&&!b.repeat.length){accept(a,c);break;}}
     if(a.fallbackCandidates&&(!accepted.has(a.id)||a.kind==='point-label'&&a.anchor&&anchorDistance(accepted.get(a.id).shape.bounds,a.anchor)>(policy.pointPreferredDistance??12))){
       const extra=a.fallbackCandidates();a.fallbackCandidates=null;
-      for(const raw of extra){yield;const c=reserve(a,raw);a.candidates.push(c);const current=accepted.get(a.id);if(current&&proximity(a,c)>=proximity(a,current))continue;
+      if(policy.exhaustiveDiagnostics!==false&&a.fallbackData)fallbacks.set(a,{base:a.candidates.length,count:0,released:false});
+      for(const raw of extra){yield;const c=reserve(a,raw);a.candidates.push(c);const replay=fallbacks.get(a);if(replay)replay.count++;const current=accepted.get(a.id);if(current&&proximity(a,c)>=proximity(a,current))continue;
         const b=blockers(a,c);if(placementDiagnostics)recorded.push(b);if(!b.hard.length&&!b.labels.length&&!b.repeat.length){accept(a,c);if(a.kind!=='point-label'||anchorDistance(c.shape.bounds,a.anchor)<=(policy.pointPreferredDistance??12))break;}}
     }
     if(!accepted.has(a.id)&&(policy.repairMaxNeighbors??2)>0){
       let budget=repairBudgets.get(a.id);if(!budget){budget={remaining:policy.repairBudget??64};repairBudgets.set(a.id,budget);}
       for(const c of candidates(a)){yield;if(budget.remaining<=0)break;const b=blockers(a,c);if(b.labels.length&&repair(a,c,b,budget))break;}
     }
+    }finally{releaseFallback(a);}
   }
   // Reserve just one successfully placed representative of each required group.
   for(const a of ordered)if(a.required)yield* place(a);
@@ -159,6 +180,7 @@ function* layoutSteps({annotations,obstacles=[],viewport,previous,policy={},quer
     const failures=placementDiagnostics?attemptFailures.get(a.id)??[]:candidates(a).map(c=>blockers(a,c)),ids=[...new Set(failures.flatMap(b=>[...b.hard,...b.labels,...b.repeat]))].sort(stable);
     const reason=failures.length&&failures.every(b=>b.hard.includes('invalid-geometry'))?'invalid-geometry':failures.length&&failures.every(b=>b.hard.includes('feature-distance'))?'feature-distance':a.required?'no-valid-candidate':failures.some(b=>b.repeat.length&&!b.hard.length&&!b.labels.length)?'repeat-spacing':failures.some(b=>b.labels.length&&!b.hard.length)?'collision':'no-valid-candidate';
     outcomes.push({id:a.id,reason,blockerIds:ids,...(a.candidateDiagnostics?{candidateDiagnostics:a.candidateDiagnostics}:{})});
+    releaseFallback(a);
   }
   for(const group of [...new Set(policy.requiredGroups??[])].sort(stable))if(!ordered.some(a=>a.requiredGroup===group&&accepted.has(a.id)))missingRequired.push('route:'+group);
   return {diagnostics:placementDiagnostics?'placement-time':'final',placements,outcomes,missingRequired};

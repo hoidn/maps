@@ -550,6 +550,14 @@ passes for each annotation in a solve. Immutable hard-obstacle diagnostics and
 candidate ordering may be cached only within that solve. Protected path queries
 use the same declared `data-max-mpp` detail as painting, including zoom changes.
 
+Exhaustive solves may release expanded point fallbacks between placement attempts,
+neighbor repair and final diagnostics. The existing immutable `fallbackData`
+recipe regenerates the exact attempted prefix, including variant order and font
+reserves; accepted footprints remain retained. Replay does not remove candidates,
+restart repair budgets or omit final label/repeat blockers. Custom fallback
+functions without that recipe retain their one-shot behavior. Interactive solves
+with `exhaustiveDiagnostics: false` retain their existing cache and fallback path.
+
 Interactive point candidate preparation reserves 0.125 CSS px inside the declared
 maximum displacement for cross-backend subpixel glyph rounding. The independent
 paint audit retains the full 32 px limit; static required-point grids retain their

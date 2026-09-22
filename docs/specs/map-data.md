@@ -263,8 +263,11 @@ not a live water-level measurement. The 2026-09-08 cache contains OSM relations
 ## Portable region catalogs (2026-09-09)
 
 `MapSpec` owns the geographic frame for the portable path, loaded from a preset,
-explicit JSON file or generated bounds. Grand Canyon retains the authored page
-and legacy profile adapter; other regions use `build_region.py`. The builders consume the same feature and
+explicit JSON file or generated bounds. Selecting the `grand_canyon` preset ID
+retains the authored page and legacy profile adapter; explicit JSON specifications
+and other region IDs use `build_region.py`. Print raster provenance follows the
+actual terrain adapter, including when an explicit JSON specification has the
+`grand_canyon` ID. The builders consume the same feature and
 style catalog. Geographic SVG coordinates remain affine longitude/latitude;
 metric geometry operations use a local WGS84 azimuthal-equidistant CRS centered
 on the configured frame. GeoJSON catalogs use longitude/latitude, unlike the

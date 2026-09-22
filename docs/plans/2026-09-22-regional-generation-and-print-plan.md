@@ -213,8 +213,14 @@ Chromium/dark and both Firefox themes; Chromium/dark navigation takes 114.850 se
 WebKit/light finds five optional point names at 16.059–16.916 px from their anchors,
 beyond the unchanged 16 px limit. An exact five-label fixture reproduces all five:
 WebKit's narrower ink bounds are already present in the font probes, but the
-distance check currently uses their outward collision envelope. A shared correction
-is being tested; WebKit/dark and PDF export have not run for this candidate.
+distance check used their outward collision envelope. Shared candidate and hard
+checks now use measured inward edge constraints for point distance, preserving
+annotation IDs through lazy fallback replay. The exact five-source regression
+passes across all three engines for ordinary and wrapped candidates; 197 Node
+checks and 15 focused browser checks pass (18 intentional duplicate skips).
+A runtime-only derivative of the original 1:50,000 staging file is ready for
+another full solve and six-audit retry; every byte outside its runtime is unchanged.
+WebKit/dark and PDF export have not run for the failed candidate.
 No PDF has been accepted for this scale.
 A shared
 finalizer fix now closes a crashed renderer and records failure promptly instead
@@ -237,6 +243,13 @@ these do not establish real San Gabriel interaction acceptance. The public comma
 flow was reviewed from derived specification through fetching, cached building and
 PDF export. Documentation now routes new areas away from the authored Grand Canyon
 constants; all 192 checked local file/heading links resolve.
+
+Final interface review found a print-provenance defect when an explicit regional
+JSON file used the `grand_canyon` ID. The composer now receives the actual authored
+terrain-adapter choice instead of inferring it from the region ID. Distinct regional
+and legacy DEM fixtures verify reported sampling and unknown native resolution;
+19 focused Python checks pass. This metadata correction does not alter San Gabriel
+geometry or require its regeneration.
 
 **Design:** [Regional generation and print design](2026-09-22-regional-generation-and-print-design.md),
 including the user's clarified requirement for a conventional printed map collar.

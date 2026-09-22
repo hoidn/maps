@@ -12,6 +12,7 @@ import { checkInventory } from "../tests/support/reference-geometry.js";
 import {
   collectManagedInventory,
   checkManagedInventory,
+  effectiveRequiredRoutes,
 } from "../tests/support/managed-map-adapter.js";
 import {collectTypography,checkTypography} from '../tests/support/typography-audit.js';
 export const legacyPolicy = Object.freeze({
@@ -202,6 +203,7 @@ export async function runAudit({
           : checkManagedInventory(data, auditPolicy);
       if(mode==='managed')checks.typography=checkTypography(await page.evaluate(collectTypography),auditPolicy);
       const view = { zoom, ...data, ...checks };
+      if (mode === "managed") view.effectiveRequiredRoutes = effectiveRequiredRoutes(data.manifest.map, auditPolicy);
       views.push(view);
       const offenders = [
         ...new Set([

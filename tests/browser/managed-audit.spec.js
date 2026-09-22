@@ -117,6 +117,7 @@ test("frozen static map passes with JavaScript disabled and font identity record
   expect(report.fontSha256).toMatch(/^[a-f0-9]{64}$/);
   expect(report.policySha256).toMatch(/^[a-f0-9]{64}$/);
   expect(report.views[0].visible).toEqual(["label-a"]);
+  expect(report.views[0].effectiveRequiredRoutes).toEqual([]);
 });
 test("managed audit enforces two-pixel clearance and four-pixel edge padding", async ({
   page,
@@ -335,9 +336,12 @@ test('static route requirements belong to each manifest with legacy policy fallb
  data.manifest.map.requiredRoutes=[];
  const regional=checkManagedInventory(data,defaults);
  expect(regional.missingRequired).toEqual([]);
- expect(regional.requiredRoutes).toEqual([]);
+ expect(Object.keys(regional)).not.toContain('requiredRoutes');
  data.manifest.map.requiredRoutes=['Regional Trail'];
  expect(checkManagedInventory(data,defaults).missingRequired).toEqual(['route:Regional Trail']);
+ data.manifest.map.requiredRoutes=['Displayed Route'];
+ data.manifest.annotations[0].requiredGroup='Displayed Route';
+ expect(Object.values(checkManagedInventory(data,defaults)).every(issues=>issues.length===0)).toBe(true);
  data.manifest.map.requiredRoutes=defaults.requiredRoutes;
  expect(checkManagedInventory(data,defaults).missingRequired).toEqual(legacy.missingRequired);
 });

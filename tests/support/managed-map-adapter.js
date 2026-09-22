@@ -423,6 +423,9 @@ function nearPolygons(a, b, clearance) {
           return true;
   return false;
 }
+export function effectiveRequiredRoutes(map, policy = {}) {
+  return Object.hasOwn(map, "requiredRoutes") ? map.requiredRoutes : policy.requiredRoutes || [];
+}
 export function checkManagedInventory(data, policy = {}) {
   const overlaps = [],
     clipped = [],
@@ -433,8 +436,7 @@ export function checkManagedInventory(data, policy = {}) {
     padding = policy.edgePadding ?? 4;
   const visible = new Set(data.visible),
     annotations = data.manifest.annotations,
-    requiredRoutes = Object.hasOwn(data.manifest.map, "requiredRoutes")
-      ? data.manifest.map.requiredRoutes : policy.requiredRoutes || [];
+    requiredRoutes = effectiveRequiredRoutes(data.manifest.map, policy);
   for (const item of data.inventory) {
     const b = bounds(item.polygons.flat());
     if (
@@ -553,7 +555,7 @@ export function checkManagedInventory(data, policy = {}) {
   // Anchor/scale eligibility does not prove that optional text fits around the
   // frame and controls. Interactive coverage belongs to declared scene minima;
   // arbitrary-view point-name omissions are retained as review diagnostics.
-  return { overlaps, clipped, missingRequired, requiredRoutes, unknown, unresolved: unknown };
+  return { overlaps, clipped, missingRequired, unknown, unresolved: unknown };
 }
 
 // Independent reference construction: project the circle center onto the unit

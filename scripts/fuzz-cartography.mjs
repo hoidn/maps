@@ -82,6 +82,33 @@ export async function scrollAwayBack(page,a){
  if(Math.abs(a.scroll.returned.x-a.scroll.before.x)>1||Math.abs(a.scroll.returned.y-a.scroll.before.y)>1)throw Error('Scroll return did not restore document position');
 }
 
+export async function selectPlace(page,a){
+ const feature=await page.evaluate(u=>{
+  const l=mapLayout,options=[...l.directory.options].filter(o=>o.value);
+  if(!options.length)throw Error('Place selection has no directory options');
+  const id=options[Math.floor(u*options.length)].value,f=l.manifest.features.find(f=>f.id===id&&f.directory);
+  if(!f)throw Error('Place selection option is not a directory feature');
+  return {featureId:f.id,sourceId:f.sourceId,name:f.name,anchor:f.anchor};
+ },a.u);
+ await page.selectOption('#goto',feature.featureId);await page.evaluate(()=>mapLayout.whenSettled());
+ a.selection={...feature,...await page.evaluate(()=>({selected:mapLayout.selected,details:mapLayout.details.textContent.trim(),view:{...mapLayout.view}}))};
+ const {selected,details,view:v,anchor:[x,y]}=a.selection;
+ if(selected!==feature.featureId||details!==feature.name||!await page.locator('[data-layout-details]').isVisible()||!(x>=v.x&&x<=v.x+v.w&&y>=v.y&&y<=v.y+v.h))throw Error('Place selection did not select and show its feature');
+}
+
+export async function restoreUrl(page,a){
+ // A real zoom control makes an overview reload insufficient evidence.
+ await page.locator('#zin').click();await page.evaluate(()=>mapLayout.whenSettled());
+ await page.waitForFunction(()=>{const l=mapLayout,v=l.view;return location.hash===`#v=${v.x.toFixed(0)},${v.y.toFixed(0)},${(l.manifest.map.width/v.w).toFixed(2)}`;});
+ a.hashRestore=await page.evaluate(()=>{
+  const l=mapLayout,{width:W,height:H}=l.manifest.map,[x,y,zoom]=location.hash.slice(3).split(',').map(Number),z=Math.min(14,Math.max(1,zoom)),w=W/z,h=w*H/W;
+  return {before:{hash:location.hash,view:{...l.view}},expected:{x:Math.max(0,Math.min(W-w,x)),y:Math.max(0,Math.min(H-h,y)),w,h}};
+ });
+ await page.reload({timeout:120000});await page.evaluate(()=>mapLayout.ready);await page.locator('.map-wrap').scrollIntoViewIfNeeded();await page.evaluate(()=>mapLayout.whenSettled());
+ const after=a.hashRestore.after=await page.evaluate(()=>({...mapLayout.view}));
+ if(Object.entries(a.hashRestore.expected).some(([key,value])=>!Number.isFinite(after[key])||Math.abs(value-after[key])>1e-6))throw Error('Hash restore mismatch');
+}
+
 async function main(){
 const [file,dir,seedText='73191',stepsText='36',engine='chromium',backend='webgl']=process.argv.slice(2);
 if(!file||!dir)throw Error('Usage: FILE REPORT_DIR [seed] [steps] [engine] [backend] [--headed|--headless]');
@@ -142,7 +169,7 @@ async function capture(step){
 try{
  armWatchdog();
  await page.goto(`http://127.0.0.1:${server.address().port}/?renderer=${backend}`,{timeout:120000});await page.evaluate(()=>mapLayout.ready);await page.locator('.map-wrap').scrollIntoViewIfNeeded();await settled();await capture(0);
- const kinds=['zoom','pan','wheel','drag','font','layer','theme','resize','reset','reverse','interrupt','scroll'];
+ const kinds=['zoom','pan','wheel','drag','font','layer','theme','resize','reset','reverse','interrupt','scroll','place-selection','hash-restore'];
  for(let i=0;i<Number(stepsText);i++){
   armWatchdog();
   const kind=i<kinds.length?kinds[i]:kinds[Math.floor(random()*kinds.length)],a={kind,u:random(),v:random(),w:random()};report.actions.push(a);
@@ -157,6 +184,8 @@ try{
   else if(kind==='resize'){await page.setViewportSize({width:a.u<.5?430:1440,height:a.v<.5?900:1200});await page.locator('.map-wrap').scrollIntoViewIfNeeded();}
   else if(kind==='interrupt')await lifecycleBurst(page,a);
   else if(kind==='scroll')await scrollAwayBack(page,a);
+  else if(kind==='place-selection')await selectPlace(page,a);
+  else if(kind==='hash-restore')await restoreUrl(page,a);
   await settled();
   if(panBefore)a.panStability=assertStablePan(panBefore,await page.evaluate(snapshotPan));
   await capture(i+1);

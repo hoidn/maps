@@ -4,6 +4,7 @@ import {tmpdir} from 'node:os';
 import {join,resolve} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {execFileSync} from 'node:child_process';
+import {selectPlace,restoreUrl} from '../../scripts/fuzz-cartography.mjs';
 let directory;
 test.beforeAll(async()=>{
  directory=await mkdtemp(join(tmpdir(),'regional-generation-'));
@@ -28,6 +29,34 @@ test('generated regional explorer works offline with its original feature anchor
  await page.locator('#zreset').click();await page.evaluate(()=>mapLayout.whenSettled());
  expect((await page.locator('#mapsvg').getAttribute('viewBox')).split(' ')[2]*1).toBe(800);
  expect(errors).toEqual([]);expect(requests).toEqual([]);
+});
+async function fuzzFixture(page,{brokenRestore=false}={}){
+ let html=await readFile(join(directory,'sequoia_trails_interactive.html'),'utf8');
+ if(brokenRestore){expect(html).toContain('if(m){ var z=');html=html.replace('if(m){ var z=','if(false){ var z=');}
+ await page.route('http://regional.test/**',route=>route.fulfill({contentType:'text/html',body:html}));
+ await page.goto('http://regional.test/?renderer=svg');await page.evaluate(()=>mapLayout.whenSettled());
+}
+test('regional fuzz uses the real directory and restores the serialized camera',async({page})=>{
+ await fuzzFixture(page);
+ const selected={u:.99};await selectPlace(page,selected);
+ expect(selected.selection).toMatchObject({sourceId:'osm:synthetic:peak',selected:selected.selection.featureId,name:'Synthetic Summit',details:'Synthetic Summit'});
+ for(const zoom of [3.3373,14]){
+  await page.evaluate(z=>{const l=mapLayout,{width:W,height:H}=l.manifest.map,w=W/z,h=w*H/W;l.requestView({x:W-w,y:H-h,w,h});return l.whenSettled();},zoom);
+  const restored={};await restoreUrl(page,restored);
+  expect(restored.hashRestore.before.hash).toMatch(/^#v=/);
+  expect(restored.hashRestore.after).toEqual(restored.hashRestore.expected);
+  expect(restored.hashRestore.after).not.toEqual(restored.hashRestore.before.view);
+  expect(new URL(page.url()).search).toBe('?renderer=svg');
+ }
+});
+test('regional fuzz rejects a directory event that does not select its feature',async({page})=>{
+ await fuzzFixture(page);
+ await page.evaluate(()=>mapLayout.select=()=>{});
+ await expect(selectPlace(page,{u:.99})).rejects.toThrow(/Place selection/);
+});
+test('regional fuzz rejects a reload that loses the saved camera',async({page})=>{
+ await fuzzFixture(page,{brokenRestore:true});
+ await expect(restoreUrl(page,{})).rejects.toThrow(/Hash restore mismatch/);
 });
 test('regional static finalizes with the normal policy and opens without JavaScript',async({browserName,browser})=>{
  test.skip(browserName!=='chromium','One finalization checks all three browser engines');

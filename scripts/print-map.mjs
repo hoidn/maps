@@ -49,7 +49,7 @@ export async function exportPdf({input,output,finalization,python=join(root,'.ve
  try{
   browser=await chromium.launch();const browserVersion=browser.version();
   const page=await browser.newPage({javaScriptEnabled:false,viewport:finalization.viewport,colorScheme:'light'});
-  await page.route('**/*',r=>r.abort('blockedbyclient'));await page.setContent(bytes.toString(),{waitUntil:'load'});await page.emulateMedia({media:'print'});
+  await page.route('**/*',r=>r.abort('blockedbyclient'));await page.setContent(bytes.toString(),{waitUntil:'load',timeout:120000});await page.emulateMedia({media:'print'});
   const data=await page.evaluate(async()=>{
    await Promise.all([...document.fonts].map(f=>f.load()));await document.fonts.ready;
    const manifest=JSON.parse(document.getElementById('map-label-manifest').textContent),p=manifest.map.print;

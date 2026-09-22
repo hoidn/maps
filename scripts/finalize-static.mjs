@@ -170,7 +170,7 @@ export async function finalizeStatic({
         ? r.continue()
         : r.abort("blockedbyclient"),
     );
-    await page.goto(url, { waitUntil: "load" });
+    await page.goto(url, { waitUntil: "load", timeout: 120000 });
     const print = await preparePrint(page);
     if(print)viewport=print.viewport;
     const referenceSize=print?.referenceSize;

@@ -127,7 +127,7 @@ export async function runAudit({
     });
     await page.goto(`http://127.0.0.1:${server.address().port}/`, {
       waitUntil: "load",
-      timeout: 30000,
+      timeout: 120000,
     });
     if (mode === "managed" && !javaScriptEnabled)
       await page.evaluate((theme) => {

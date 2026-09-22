@@ -136,6 +136,9 @@ Replace it with `--scale 50000` for a derived nominal 1:50,000 sheet. Supplying 
 the map and measured collar to fit; the exporter rejects overflow instead of shrinking.
 The tested page cap is 96 inches per side; the fixture checks include 96 × 60 inches.
 Home-printer tiling is not implemented.
+Static finalization, frozen audits and PDF loading allow up to 120 seconds per document
+load, matching the regional browser tools. This loading allowance does not change the
+interactive performance limits or any geometry, font or coverage acceptance checks.
 
 Scale is nominal east–west at the frame's centre latitude. The geographic affine frame is
 preserved; the report gives north/south and north–south variation. Regional contour detail

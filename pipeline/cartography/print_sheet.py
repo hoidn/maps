@@ -76,6 +76,7 @@ def make_print_sheet(svg, manifest, context, spec, profile):
     from label_manifest import NS, embedded_fonts, layout_script, safe_json
     from .integration import transport_legend
     from .terrain import COVER, COVER_LABELS
+    from .furniture import coordinate_ticks
 
     if context is None:
         raise ValueError('Printing requires the regional source catalog; fetch this map\'s sources first')
@@ -99,9 +100,12 @@ def make_print_sheet(svg, manifest, context, spec, profile):
         stats=ImageStat.Stat(image.convert('RGB'))
         info['pixelStatistics']={'mean':stats.mean,'stddev':stats.stddev}
         metadata = Path('cache')/spec.id/('landcover.json' if kind == 'landcover' else 'dem.json')
-        # Authored relief comes from legacy terrain.json, not the regional DEM cache.
+        # Integration shades the legacy DEM, not the separate regional DEM cache.
         if kind=='relief' and spec.id=='grand_canyon':
-            info['provenance']='Legacy terrain.json relief; native sampling metadata unavailable'
+            info['provenance']='Legacy dem.npy relief; native sampling metadata unavailable'
+            if Path('dem.npy').exists():
+                h,w=np.load('dem.npy',mmap_mode='r',allow_pickle=False).shape
+                info['normalizedSampleSpacingMeters']=[profile['groundMeters']['width']/w,profile['groundMeters']['height']/h]
         elif metadata.exists():
             data = json.loads(metadata.read_text()); shape = data.get('shape')
             if shape:
@@ -152,12 +156,11 @@ def make_print_sheet(svg, manifest, context, spec, profile):
 
     ticks = []
     west,south,east,north = spec.bbox
-    for i in range(1,6):
-        f=i/6;lon=west+(east-west)*f;lat=north-(north-south)*f
-        for edge in ('top','bottom'):
-            ticks.append(f'<span class="tick {edge}" style="left:{f*100}%">{abs(lon):.3f}° {"W" if lon<0 else "E"}</span>')
-        for edge in ('left','right'):
-            ticks.append(f'<span class="tick {edge}" style="top:{f*100}%">{abs(lat):.3f}° {"S" if lat<0 else "N"}</span>')
+    for axis,value,label in coordinate_ticks(spec):
+        f=(value-west)/(east-west) if axis=='lon' else (north-value)/(north-south)
+        if not .04<f<.96:continue  # Keep corner labels clear of the trim-safe margin.
+        for edge in (('top','bottom') if axis=='lon' else ('left','right')):
+            ticks.append(f'<span class="tick {edge}" style="{"left" if axis=="lon" else "top"}:{f*100}%">{label}</span>')
     sources = context['catalog']['sources']
     dates = '; '.join(f'{s.get("provider", "Unknown provider")}: {s.get("datasetVersion") or "version unknown"}, retrieved {(s.get("retrievedAt") or "date unknown")[:10]}' for s in sources)
     gaps = context['catalog'].get('sourceInventory',{}).get('missing',[])
@@ -177,5 +180,5 @@ def make_print_sheet(svg, manifest, context, spec, profile):
 <p class="print-credits">USGS 3DEP/GNIS/3DHP · Annual NLCD · PAD-US · © OpenStreetMap contributors, ODbL.</p>
 <p class="print-notice">Schematic reference, not for navigation. Use official trail guides and current conditions for planning.</p>
 </footer>'''
-    source_evidence={'records':sources,'inventory':context['catalog'].get('sourceInventory',{}),'issues':context['catalog'].get('sourceIssues',{})}
+    source_evidence={'records':sources,'inventory':context['catalog'].get('sourceInventory',{}),'issues':{'osm':context['catalog'].get('issues',[]),**context['catalog'].get('sourceIssues',{})}}
     return '<!doctype html><html lang="en" data-theme="light"><meta charset="utf-8"><title>'+escape(spec.title)+' — Print map</title><style>'+css+'</style><main class="print-sheet"><header class="print-title"><div><h1>'+escape(spec.title)+'</h1><p>'+escape(spec.subtitle)+'</p></div><small>TRAILS &amp; TERRAIN · '+date+'</small></header><div class="print-map-frame"><div class="map-wrap">'+ET.tostring(tree,encoding='unicode')+'</div><div class="print-ticks">'+''.join(ticks)+'</div></div>'+collar+'</main>'+manifest.script()+'<script type="application/json" id="print-sources">'+safe_json(source_evidence)+'</script>'+layout_script()+'</html>'

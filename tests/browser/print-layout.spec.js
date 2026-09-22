@@ -6,6 +6,27 @@ import {execFileSync} from 'node:child_process';
 import {finalizeStatic} from '../../scripts/finalize-static.mjs';
 import {fixtureHTML} from '../support/browser-fixture.js';
 
+test('authored print placement survives serialized fractional page dimensions',async({browserName})=>{
+ test.skip(browserName!=='chromium','Finalization audits all three engines with JavaScript disabled');
+ test.setTimeout(240000);
+ const dir=await mkdtemp(join(tmpdir(),'map-authored-print-')),python=resolve('.venv/bin/python');
+ execFileSync(python,['tests/support/build-fixture.py',dir]);
+ execFileSync(python,['-c',`import sys,json
+from pathlib import Path
+sys.path.insert(0,sys.argv[1])
+from map_spec import MapSpec
+from features import catalog_from_osm
+from sources.catalog import atomic_json,record_source
+spec=MapSpec.load('grand_canyon');path=Path('cache/grand_canyon/features.json')
+atomic_json(path,catalog_from_osm(json.loads(Path('osm.json').read_text())['elements'],spec))
+record_source(path,provider='Synthetic OSM fixture',url='synthetic:test-fixture',retrieved_at='2026-01-01T00:00:00Z',dataset_version='synthetic-test-only',bbox=spec.bbox)`,resolve('pipeline')],{cwd:dir});
+ const input=join(dir,'print.html'),output=join(dir,'frozen.html');
+ execFileSync(python,[resolve('pipeline/build_static.py'),'--print','--paper','36x24in','--output',input],{cwd:dir});
+ const report=await finalizeStatic({input,output,reportDir:join(dir,'layout')});
+ expect(report.audits).toHaveLength(6);
+ expect(report.audits.every(a=>a.status==='pass')).toBe(true);
+});
+
 test('print protected trail footprints match ink while the physical sheet is resized',async({page})=>{
  let html=await fixtureHTML();
  html=html.replace('</svg>','<g class="trails"><path id="print-trail" data-layout-obstacle="trail" d="M100,100 L200,100" stroke="black" style="stroke-width:calc(2.6px * var(--s))"/></g></svg>');
@@ -49,13 +70,19 @@ test('print freezing preserves physical typography, scale and collar across page
    const p=JSON.parse(document.querySelector('#map-label-manifest').textContent).map.print;
    const map=document.querySelector('#mapsvg').getBoundingClientRect();
    const text=[...document.querySelectorAll('#mapsvg [data-layout-id] text')].find(e=>e.textContent==='Synthetic Camp');
+   const trail=[...document.querySelectorAll('#mapsvg [data-layout-id] text')].find(e=>e.textContent==='Synthetic Trail'&&getComputedStyle(e).visibility==='visible');
+   const water=document.querySelector('.print-legend [data-print-match^=".water-line"] path'),stream=document.querySelector('#mapsvg .water-line');
    const scale=Math.hypot(text.getScreenCTM().a,text.getScreenCTM().b);
    return {layout:p.layout,mapWidth:map.width,points:parseFloat(getComputedStyle(text).fontSize)*scale*72/96,
+    pathPoints:trail&&parseFloat(getComputedStyle(trail).fontSize)*Math.hypot(trail.getScreenCTM().a,trail.getScreenCTM().b)*72/96,
+    waterWidth:parseFloat(getComputedStyle(water).strokeWidth),streamWidth:parseFloat(getComputedStyle(stream).strokeWidth)*Math.hypot(stream.getScreenCTM().a,stream.getScreenCTM().b),
     calibration:document.querySelector('#print-calibration').getBoundingClientRect().width,
     runtime:!!document.querySelector('#map-layout-runtime'),bodyWidth:document.body.scrollWidth,
     pageWidth:document.querySelector('.print-sheet').getBoundingClientRect().width};
   });
   expect(evidence.points).toBeCloseTo(10,1);
+  expect(evidence.pathPoints).toBeCloseTo(9,1);
+  expect(evidence.waterWidth).toBeCloseTo(evidence.streamWidth,3);
   expect(evidence.mapWidth).toBeCloseTo(evidence.layout.mapWidthMm*96/25.4,0);
   expect(evidence.calibration).toBeCloseTo(100*96/25.4,0);
   expect(evidence.runtime).toBe(false);

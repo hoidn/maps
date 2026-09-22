@@ -10,15 +10,21 @@ def scale_distance(meters_per_pixel,max_pixels=120):
  target=meters_per_pixel*max_pixels;power=10**math.floor(math.log10(target));meters=max(n*power for n in (1,2,5,10) if n*power<=target)
  return meters,meters/meters_per_pixel
 
-def grid(spec):
- w,s,e,n=spec.bbox;step=10**math.floor(math.log10(max(e-w,n-s)/4));precision=max(0,-math.floor(math.log10(step)));out=[]
+def coordinate_ticks(spec):
+ w,s,e,n=spec.bbox;step=10**math.floor(math.log10(max(e-w,n-s)/4));precision=max(0,-math.floor(math.log10(step)))
  for axis,lo,hi in (('lon',w,e),('lat',s,n)):
   for i in range(math.ceil(lo/step),math.floor(hi/step)+1):
    value=i*step
-   if axis=='lon':x,_=spec.project(n,value);d=f'M{x:.3f},0 V{spec.height}';tx,ty=x+3,spec.height-8
-   else:_,y=spec.project(value,w);d=f'M0,{y:.3f} H{spec.width}';tx,ty=5,y-4
-   tx=min(spec.width-5,max(5,tx));ty=min(spec.height-5,max(12,ty));anchor='end' if tx>spec.width-80 else 'start'
-   out.append(f'<path d="{d}"/><text x="{tx:.3f}" y="{ty:.3f}" text-anchor="{anchor}">{abs(value):.{precision}f}° {("E" if value>=0 else "W") if axis=="lon" else ("N" if value>=0 else "S")}</text>')
+   label=f'{abs(value):.{precision}f}° {("E" if value>=0 else "W") if axis=="lon" else ("N" if value>=0 else "S")}'
+   yield axis,value,label
+
+def grid(spec):
+ w,s,e,n=spec.bbox;out=[]
+ for axis,value,label in coordinate_ticks(spec):
+  if axis=='lon':x,_=spec.project(n,value);d=f'M{x:.3f},0 V{spec.height}';tx,ty=x+3,spec.height-8
+  else:_,y=spec.project(value,w);d=f'M0,{y:.3f} H{spec.width}';tx,ty=5,y-4
+  tx=min(spec.width-5,max(5,tx));ty=min(spec.height-5,max(12,ty));anchor='end' if tx>spec.width-80 else 'start'
+  out.append(f'<path d="{d}"/><text x="{tx:.3f}" y="{ty:.3f}" text-anchor="{anchor}">{label}</text>')
  return '<g class="coordinate-grid">'+''.join(out)+'</g>'
 
 def detail_inset(features,spec):

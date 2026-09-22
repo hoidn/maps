@@ -21,6 +21,9 @@ class RegionBuilderTests(unittest.TestCase):
      self.assertAlmostEqual(peak['anchor'][0],160,6);self.assertAlmostEqual(peak['anchor'][1],80,6)
      self.assertTrue('Synthetic Regional Fixture' in html,'Synthetic Regional Fixture');self.assertTrue('synthetic-test-only' in html,'synthetic-test-only')
      self.assertTrue('data:font/ttf;base64,' in html,'data:font/ttf;base64,');self.assertTrue('data:image/jpeg;base64,' in html,'data:image/jpeg;base64,')
+     terrain_images=re.findall(r'<image\b[^>]*class="terrain [^"]*"[^>]*>',html)
+     self.assertEqual(len(terrain_images),2)
+     self.assertTrue(all('preserveAspectRatio="none"' in image for image in terrain_images),'Registered relief must fill the geographic frame, even when grid and ground aspects differ')
      self.assertTrue('id="map-layout-runtime"' in html,'id="map-layout-runtime"')
      self.assertTrue('not for navigation' in html,'not for navigation')
      if mode=='static':

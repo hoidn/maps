@@ -43,6 +43,8 @@ async function staticMeasurementEnvelope(page, viewport, referenceSize) {
     const {width,height}=controller.manifest.map;
     const reference=referenceSize||{width,height};
     svg.style.width=reference.width+'px';svg.style.height=reference.height+'px';svg.style.maxWidth='none';svg.style.minWidth=reference.width+'px';
+    // Measure the same CSS precision that serialized HTML will reopen with.
+    if(controller.manifest.map.print)svg.style.cssText=svg.style.cssText;
     controller.requestView({x:0,y:0,w:width,h:height});await controller.whenSettled();
     const probes=new Map(),annotations=new Map(controller.manifest.annotations.map(a=>[a.id,a])),directional=new Map();
     for(const text of svg.querySelectorAll('[data-layout-id] text,[data-layout-id] tspan')){
@@ -203,6 +205,7 @@ export async function finalizeStatic({
         svg.style.height = reference.height + "px";
         svg.style.maxWidth = "none";
         svg.style.minWidth = reference.width + "px";
+        if(manifest.map.print)svg.style.cssText=svg.style.cssText;
         await controller.requestView({ x: 0, y: 0, w: width, h: height });
         await controller.whenSettled();
         const r = svg.getBoundingClientRect();
@@ -254,7 +257,8 @@ export async function finalizeStatic({
               "stroke-linecap",
               "paint-order",
             ])
-              styles[key] = computed.getPropertyValue(key);
+              // CSSOM matrices round away the inverse physical font scale.
+              if(key !== "transform" || !manifest.map.print) styles[key] = computed.getPropertyValue(key);
             baked.push({ e, styles });
           }
         for (const { e, styles } of baked)

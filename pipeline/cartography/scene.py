@@ -292,7 +292,7 @@ def render_scene(features,routes,spec,M,existing=(),distances=()):
  display_matches=match_display_repeats(M,features,spec)
  text_selection=apply_text_importance(M,features)
  result={k:('<defs>'+''.join(v)+'</defs>' if k=='defs' else f'<g class="{k}">'+''.join(v)+'</g>') for k,v in groups.items()}
- return result,{'textSelection':text_selection,'displayRepeatMatches':display_matches,'selected':dict(selected),'omitted':omitted,'styles':list(styles.values()),'boundaryStyles':[boundary_styles[k] for k in sorted(boundary_styles)],'facilitySymbols':dict(Counter(a['symbolKind'] for a in M.annotations if a['kind']=='symbol')),'distanceLabels':{'generated':distance_count,'omitted':distance_omissions,'method':'Font advance lower bound at native sheet width; supported maximum 14x interactive or 1x static; final browser placement remains authoritative'}}
+ return result,{'textSelection':text_selection,'displayRepeatMatches':display_matches,'selected':dict(selected),'omitted':omitted,'styles':list(styles.values()),'boundaryStyles':[boundary_styles[k] for k in sorted(boundary_styles)],'facilitySymbols':dict(Counter(a['symbolKind'] for a in M.annotations if a['kind']=='symbol')),'distanceLabels':{'generated':distance_count,'omitted':distance_omissions,'method':'Physical print size and final browser placement' if getattr(M,'print_profile',None) else 'Font advance lower bound at native sheet width; supported maximum 14x interactive or 1x static; final browser placement remains authoritative'}}
 
 def augment_svg(svg,M,spec,catalog):
  root=ET.fromstring(svg);replace={'hydro','roads','trails','hits','hydro-labels','trail-labels'};discard=set()

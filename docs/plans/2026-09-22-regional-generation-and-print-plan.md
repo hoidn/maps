@@ -68,8 +68,8 @@ including 10.47 seconds in native matrix/point allocations for command bounds.
 Scalar corner calculations preserve 304 native cases and 21,672 culling decisions
 per engine; 12 focused checks pass and captured-path benchmarks improve in all
 three engines. A same-camera viewBox guard removes redundant layout events;
-40 startup/static/print checks pass. The actual interaction preflight now uses
-these committed changes; a full public rebuild and coverage matrix remain pending.
+40 startup/static/print checks pass. The subsequent preflights below use these
+committed changes.
 The first DPR-2 interaction preflight exhausted the harness's combined 120-second
 initialization watchdog before any action or screenshot. That watchdog was an
 operating bound, not a promised startup-performance threshold. Initialization now
@@ -100,9 +100,9 @@ and the nearby Mount Wilson settlement is not counted as the summit. The report
 writer now saves each full scene before advancing and always closes
 browser/server resources, including on report-write failure. Twelve focused checks
 pass. Schema version 2 keeps summary/paint evidence and each scene's `reportPath`
-in the index; full outcomes remain on disk. The fresh public interactive SHA is
+in the index; full outcomes remain on disk. The complete coverage audit used interactive SHA
 `1408f4196d083a38d6d15bc52f1f0843f1f8ddfd65c5a9e2ba9a46c9c73efc95`.
-Its coverage run is saving full scene evidence. Mount Wilson's summit symbol
+Its coverage run saved full scene evidence. Mount Wilson's summit symbol
 loses collision checks at 32/12/6 m/pixel, so those source-marker expectations fail;
 the summit name itself is placed at 6 m/pixel. These are preserved coverage gaps,
 not missing source data or a substitute settlement counted as the summit.
@@ -132,8 +132,34 @@ from frozen print SHA
 All six static audits and independent PDF checks pass. The current whole poster
 is reviewed; all six new 300 DPI crops exactly match the earlier accepted crops.
 `san-gabriel/pdf-36-current-visual/review.json` records the unchanged raster and
-label-coverage limits, with current annotation evidence. The selected nine-case
-matrix is now running on the rebuilt interactive SHA above.
+label-coverage limits, with current annotation evidence.
+
+The selected nine-case matrix started on interactive SHA `5da66938…`. Its first
+Chromium/SVG case (seed 779321071) passed initialization in 85.645 seconds and five
+actions, with zero independent paint findings in all six completed captures.
+The layer action (step 6) exceeded the unchanged 120-second watchdog; its cause
+is undetermined. Selection and URL restoration were not reached. Separately,
+ENOSPC interrupted the failed-input copy before failure status/state were saved. The
+original report is preserved; the partial copy is archived and the full input
+is recovered through a verified immutable copy, independent of the mutable
+pipeline candidate. `san-gabriel/fuzz-public-5da66938/first-case-result.json`,
+`first-case-comparison.json` and `first-case-visual-review.json` record the failure,
+comparison and limited six-frame review. `scheduler-pause.json` records the
+paused matrix parent; remaining cases have not run while the isolated 1:50,000
+print retry owns the browser window. Commit `cf1519d` now records the primary
+failure before copying evidence, reports copy errors separately and closes
+browser/server resources even if report or contact-sheet writes fail. Three
+actual CLI write-failure regressions and seven initialization/pan checks pass;
+this fixes evidence handling without establishing a pass for the failed action.
+
+Inactive audit inventories and earlier failed-input HTML are preserved as
+hash-indexed gzip archives. Under `artifacts/regional-print/`,
+`archived-inactive-print-audits.json`,
+`archived-inactive-print-audits-disk-recovery.json` and
+`archived-inactive-evidence-separate-volume.json` map original paths to archives,
+uncompressed hashes and restoration commands. The archives are retained in
+ignored workspace paths; their recorded temporary-volume paths are recovery
+provenance, not the only copies.
 Shared comparison scales are 32, 12 and
 6 m/pixel, because the existing 14× zoom cap cannot reach 3 m/pixel in this frame;
 the audit rejects clamped requested scales.
@@ -228,8 +254,14 @@ checks now use measured inward edge constraints for point distance, preserving
 annotation IDs through lazy fallback replay. The exact five-source regression
 passes across all three engines for ordinary and wrapped candidates; 197 Node
 checks and 15 focused browser checks pass (18 intentional duplicate skips).
-A runtime-only derivative of the original 1:50,000 staging file is ready for
-another full solve and six-audit retry; every byte outside its runtime is unchanged.
+The active 1:50,000 full-solve and six-audit retry uses a runtime-only derivative
+of the original staging file under commit `befc274`; every byte outside its
+runtime is unchanged. Provenance is recorded in
+`san-gabriel/50k-native-crash/point-envelope-50k/provenance.json`.
+The later `b6a3bfc` correction makes font probes use the immutable original name
+after an initial wrapped placement; three focused differential checks pass.
+That correction is absent from the active run, which does not validate it and
+may require a new finalization. No result is inferred before the audits finish.
 WebKit/dark and PDF export have not run for the failed candidate.
 No PDF has been accepted for this scale.
 A shared

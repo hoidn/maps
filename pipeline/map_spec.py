@@ -35,7 +35,9 @@ class MapSpec:
   d={'id':map_id,'title':title.strip(),'bbox':bbox,'sources':['osm','3dep','3dhp','gnis','nlcd','padus']}
   spec=cls.from_dict(d);lat,lon=spec.center;w,s,e,n=spec.bbox;geod=Geod(ellps='WGS84')
   d['height']=max(1,round(spec.width*geod.inv(lon,s,lon,n)[2]/geod.inv(w,lat,e,lat)[2]))
-  return cls.from_dict(d)
+  result=cls.from_dict(d);preset=MAPS/(map_id+'.json')
+  if preset.exists() and result.frame!=cls.load(preset).frame:raise ValueError('This configured map ID has a different frame; omit --id or choose a new ID')
+  return result
  def to_dict(self):
   return {'id':self.id,'title':self.title,'subtitle':self.subtitle,'bbox':list(self.bbox),'width':self.width,'height':self.height,
           'contourIntervalsFeet':list(self.contour_intervals),'bufferDegrees':self.buffer_degrees,'requiredNames':list(self.required_names),

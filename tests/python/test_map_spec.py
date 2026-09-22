@@ -54,3 +54,6 @@ class MapSpecTests(unittest.TestCase):
   with tempfile.TemporaryDirectory() as tmp:
    p=Path(tmp)/'different-name.json';p.write_text(json.dumps({'id':'custom','title':'Custom','bbox':[0,0,1,1]}))
    self.assertEqual(MapSpec.load(p).id,'custom')
+ def test_generated_bounds_cannot_replace_a_configured_regions_frame(self):
+  with self.assertRaisesRegex(ValueError,'configured.*different frame'):
+   MapSpec.for_extent('Other area',[-120,35,-119.9,35.05],map_id='grand_canyon')

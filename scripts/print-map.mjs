@@ -1,7 +1,8 @@
 import {execFile} from 'node:child_process';
 import {promisify,parseArgs} from 'node:util';
 import {readFile,writeFile,mkdir,mkdtemp,rename,unlink} from 'node:fs/promises';
-import {resolve,dirname,join,extname} from 'node:path';
+import {realpathSync} from 'node:fs';
+import {resolve,dirname,basename,join,extname} from 'node:path';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 import {createHash,randomUUID} from 'node:crypto';
 import {chromium} from '@playwright/test';
@@ -9,15 +10,28 @@ import {finalizeStatic} from './finalize-static.mjs';
 
 const run=promisify(execFile),root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
+function canonicalPath(path){
+ path=resolve(path);
+ try{return realpathSync(path);}catch(error){
+  if(error.code!=='ENOENT')throw error;
+  return join(canonicalPath(dirname(path)),basename(path));
+ }
+}
+function printDestination(output,inputs=[]){
+ output=resolve(output);
+ if(extname(output).toLowerCase()!=='.pdf')throw Error('--output must have a .pdf extension');
+ const destinations=[output,output.replace(/\.pdf$/i,'.print.json')].map(canonicalPath);
+ if(destinations.some(path=>['output','pipeline'].some(dir=>path.startsWith(canonicalPath(join(root,dir))+'/'))))throw Error('Print artifacts belong outside pipeline/ and output/');
+ if(inputs.some(input=>destinations.includes(canonicalPath(input))))throw Error('PDF and report destinations must differ from every input');
+ return output;
+}
 export function parsePrintArgs(args){
  const {values:v}=parseArgs({args,options:{map:{type:'string'},paper:{type:'string'},scale:{type:'string'},output:{type:'string'}},allowPositionals:false});
  if(!v.map||(!v.map.endsWith('.json')&&!/^[a-z][a-z0-9_-]*$/.test(v.map)))throw Error('--map requires a configured map ID or JSON specification');
  if(v.scale!==undefined&&!(Number.isFinite(Number(v.scale))&&Number(v.scale)>0))throw Error('--scale must be finite and positive');
  if(v.paper){const m=v.paper.match(/^(\d+(?:\.\d+)?)x(\d+(?:\.\d+)?)(in|mm)$/);if(!m||![m[1],m[2]].every(n=>Number(n)*(m[3]==='in'?25.4:1)>=100&&Number(n)*(m[3]==='in'?25.4:1)<=2438.4))throw Error('--paper must be WIDTHxHEIGHTin or WIDTHxHEIGHTmm, 100 mm to 96 inches');}
- const output=resolve(v.output||join(root,'artifacts','print',v.map+'.pdf'));
- if(extname(output).toLowerCase()!=='.pdf')throw Error('--output must have a .pdf extension');
- if(output.startsWith(join(root,'output')+'/')||output.startsWith(join(root,'pipeline')+'/'))throw Error('Print artifacts belong outside pipeline/ and output/');
- return {map:v.map.endsWith('.json')?resolve(v.map):v.map,paper:v.paper,scale:v.scale===undefined?undefined:Number(v.scale),output:v.output?output:undefined};
+ const output=v.output?printDestination(v.output,v.map.endsWith('.json')?[v.map]:[]):undefined;
+ return {map:v.map.endsWith('.json')?resolve(v.map):v.map,paper:v.paper,scale:v.scale===undefined?undefined:Number(v.scale),output};
 }
 
 async function pdfTools(){
@@ -26,8 +40,7 @@ async function pdfTools(){
 
 /** Export already audited bytes; commit the destination only after independent PDF checks. */
 export async function exportPdf({input,output,finalization,python=join(root,'.venv/bin/python')}){
- input=resolve(input);output=resolve(output);
- if(input===output||extname(output).toLowerCase()!=='.pdf')throw Error('PDF destination must differ from HTML input');
+ input=resolve(input);output=printDestination(output,[input]);
  const bytes=await readFile(input),frozenSha256=sha(bytes);
  if(finalization?.artifactSha256!==frozenSha256||finalization.audits.length!==6||finalization.audits.some(a=>a.status!=='pass'||a.artifactSha256!==frozenSha256))throw Error('PDF requires the exact frozen HTML with all six passing audits');
  await pdfTools();await mkdir(dirname(output),{recursive:true});
@@ -111,10 +124,10 @@ print(json.dumps({'calibrationMm':longest*25.4/72,'rasterStddev':ImageStat.Stat(
 }
 
 export async function printMap(request){
- const {map,paper,scale}=request;
+ const {paper,scale}=request,map=request.map.endsWith('.json')?resolve(request.map):request.map;
  const python=process.env.MAP_PYTHON||join(root,'.venv/bin/python');
  const {stdout}=await run(python,['-c','import sys;from map_spec import MapSpec;print(MapSpec.load(sys.argv[1]).id)',map],{cwd:join(root,'pipeline')});
- const id=stdout.trim(),output=request.output||join(root,'artifacts/print',id+'.pdf');
+ const id=stdout.trim(),output=printDestination(request.output||join(root,'artifacts/print',id+'.pdf'),map.endsWith('.json')?[map]:[]);
  const args=['--map',map,'--mode','static','--print'];
  if(map==='grand_canyon')args.splice(0,4);
  if(paper)args.push('--paper',paper);if(scale!==undefined)args.push('--scale',String(scale));

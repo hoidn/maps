@@ -152,7 +152,8 @@ def make_print_sheet(svg, manifest, context, spec, profile):
         if 'lg-title' in item.get('class',''):
             siblings=list(legend); index=siblings.index(item)
             if index+1==len(siblings) or 'lg-title' in siblings[index+1].get('class',''):legend.remove(item)
-    key = ''.join(ET.tostring(item,encoding='unicode') for item in legend)
+    # HTML swatches need closing tags; XML's <i/> reopens formatting elements.
+    key = ''.join(ET.tostring(item,encoding='unicode',method='html') for item in legend)
 
     ticks = []
     west,south,east,north = spec.bbox

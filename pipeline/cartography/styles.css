@@ -11,6 +11,8 @@
 .l-road,.l-road-major,.l-road-ref{font-family:var(--sans);font-weight:600;font-size:12px;fill:var(--ink);stroke:var(--paper);paint-order:stroke;stroke-width:3px}
 .l-road-ref{font-weight:700;stroke-width:5px}.live-scale{position:absolute;right:15px;bottom:40px;z-index:4;background:var(--paper);color:var(--ink);padding:5px 8px;font:12px var(--sans);pointer-events:none}.live-scale span{display:block;border-bottom:3px solid currentColor;border-left:1px solid;border-right:1px solid;text-align:center;white-space:nowrap}
 .coordinate-grid{fill:none;stroke:var(--muted);stroke-width:.35;opacity:.5;pointer-events:none}.coordinate-grid text{font:10px var(--sans);fill:var(--ink);stroke:none}.cartographic-context details{padding:10px 0;border-bottom:1px solid var(--rule)}.cartographic-context table{font-size:13px;width:100%;border-collapse:collapse}.cartographic-context td,.cartographic-context th{padding:5px;text-align:left}.detail-inset{width:100%;max-width:540px;background:var(--paper);border:1px solid var(--rule)}
+/* Keep dense inset geometry out of unrelated page repaints. */
+.cartographic-context > figure { contain: paint; }
 
 /* Semantic label ownership matches the manifest in SVG and Canvas. */
 .map.no-boundaries .boundary-labels,.map.no-water .hydro-labels{display:none}

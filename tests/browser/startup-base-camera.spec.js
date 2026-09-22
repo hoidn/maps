@@ -11,13 +11,14 @@ async function mountHeldPlacement(page,backend,{cooperativeProbe=false}={}){
    return send.call(this,message,...rest);
   };
   if(cooperativeProbe){
-   const now=performance.now.bind(performance),query=Element.prototype.querySelector;let offset=0,scheduled=false;
+   const now=performance.now.bind(performance),query=Element.prototype.querySelector;let offset=0,scheduled=false,privateMeasurements=0;
    performance.now=()=>now()+offset;
    Element.prototype.querySelector=function(selector){
     const value=query.call(this,selector);
     if(window.mapLayout?.starting&&selector==='text'&&this.matches('[data-layout-id],[data-layout-measurement]')){
+     if(this.matches('[data-layout-measurement]')&&this.isConnected&&!mapLayout.svg.contains(this))privateMeasurements++;
      offset+=20;
-     if(!scheduled){scheduled=true;setTimeout(()=>{window.preparationYield={workerMessages:heldPlacements.length,measurementNodes:mapLayout.svg.querySelectorAll('[data-layout-measurement]').length};Element.prototype.querySelector=query;},0);}
+     if(!scheduled){scheduled=true;setTimeout(()=>{window.preparationYield={workerMessages:heldPlacements.length,privateMeasurements,measurementNodes:document.querySelectorAll('[data-layout-measurement]').length};Element.prototype.querySelector=query;},0);}
     }
     return value;
    };
@@ -46,12 +47,12 @@ for(const backend of ['canvas','webgl'])test(`${backend} paints complete base an
  expect(final.ready).toBe(true);expect(final.idle).toBe(true);expect(final.status).toBe('ready');expect(final.visible).toBeGreaterThanOrEqual(2);expect(final.painted).toBe(final.visible);expect(final.view).toEqual(final.current);expect(final.measurements).toBe(0);
 });
 
-test('initial measurement yields with private nodes before dispatching the placement worker',async({page})=>{
+test('initial measurement yields after private measurements before dispatching the placement worker',async({page})=>{
  await mountHeldPlacement(page,'canvas',{cooperativeProbe:true});
  const state=await page.evaluate(()=>preparationYield);
- expect(state.workerMessages).toBe(0);expect(state.measurementNodes).toBeGreaterThan(0);
+ expect(state.workerMessages).toBe(0);expect(state.privateMeasurements).toBeGreaterThan(0);expect(state.measurementNodes).toBe(0);
  await page.evaluate(async()=>{holdPlacement=false;for(const send of heldPlacements.splice(0))send();await mapLayout.whenSettled();});
- expect(await page.evaluate(()=>mapLayout.svg.querySelectorAll('[data-layout-measurement]').length)).toBe(0);
+ expect(await page.evaluate(()=>document.querySelectorAll('[data-layout-measurement],[data-layout-measurement-host]').length)).toBe(0);
 });
 
 test('early input retains every source background while scene image decoding is pending',async({page})=>{

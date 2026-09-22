@@ -566,7 +566,9 @@ For point displacement, finalization also supplies measured
 `pointPaintInsets[id]` as `{left, top, right, bottom}` inward edge differences.
 Removing these insets from reference paint bounds gives a conservative maximum
 anchor distance across engines; outward collision reserves remain separate.
-Insets include declared wrap probes, are rounded outward to 1/64 CSS px, and
+Probes retain the immutable main name with its primary text style even when the
+initial solve selected a wrap. Insets include those original and declared wrap
+probes, are rounded outward to 1/64 CSS px, and
 use the measured axis-difference vector length uniformly for transformed points.
 Ordinary, required and lazy fallback candidates retain annotation identity and
 apply the same insets in candidate filtering and solver distance checks.

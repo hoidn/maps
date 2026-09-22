@@ -25,6 +25,23 @@ function fixture(){
  return prefix+`<div class="map-wrap" style="width:7165.38px;max-width:none"><svg xmlns="http://www.w3.org/2000/svg" id="mapsvg" class="map" viewBox="0 0 1300 685" style="width:7165.38px;height:3775.6px;max-width:none;min-width:7165.38px"><g class="labels">${cases.map(c=>`<g id="${c.id}" data-layout-id="${c.id}" data-feature-id="${c.sourceId}"><text class="${c.style}" x="0" y="0" style="font-weight:${c.weight};transform:translate(${c.position[0]}px,${c.position[1]}px) scale(var(--k)) translate(8px,-6px)">${c.text}</text></g>`).join('')}</g></svg></div><script id="map-label-manifest" type="application/json">${JSON.stringify(manifest)}</script>`;
 }
 
+test('font probes retain the original name when the initial solve selects a wrap',async({page,browserName})=>{
+ test.skip(browserName!=='chromium','The envelope probes all three engines.');
+ await page.setViewportSize(viewport);await page.setContent(fixture());await page.addScriptTag({content:bundle});
+ const selected=await page.evaluate(async()=>{
+  const id='label-1e5f6e355866df23',svg=document.getElementById('mapsvg'),node=document.getElementById('map-label-manifest'),manifest=JSON.parse(node.textContent);
+  for(const e of svg.querySelectorAll('[data-layout-id]'))if(e.id!==id)e.remove();
+  manifest.map.width=8.6;manifest.map.height=30;manifest.annotations=manifest.annotations.filter(a=>a.id===id);manifest.annotations[0].anchor=[4.3,15];
+  node.textContent=JSON.stringify(manifest);svg.setAttribute('viewBox','0 0 8.6 30');svg.style.cssText='width:47.4075px;height:165.375px;min-width:47.4075px;max-width:none';
+  document.getElementById(id).querySelector('text').style.transform='translate(4.3px,15px) scale(var(--k)) translate(8px,-6px)';
+  window.mapLayout=new pointFont.LayoutController(svg,manifest,pointFont.policy);await mapLayout.ready;await mapLayout.whenSettled();mapLayout.observer.disconnect();
+  return {candidate:mapLayout.result.placements[0]?.candidateId,text:document.getElementById(id).textContent,original:manifest.annotations[0].text};
+ });
+ expect(selected.candidate).toMatch(/^wrap-/);expect(selected.text).not.toBe(selected.original);
+ const envelope=await staticMeasurementEnvelope(page,viewport,{width:47.4075,height:165.375});
+ expect(envelope.pointPaintInsets['label-1e5f6e355866df23'].right).toBeGreaterThan(2.7);
+});
+
 test('physical point candidates retain painted proximity in every font engine, including lazy wraps',async({browserName})=>{
  test.skip(browserName!=='chromium','One differential test applies identical prepared candidates in all engines.');
  const reference=await chromium.launch();let envelope,prepared;

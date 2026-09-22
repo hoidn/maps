@@ -52,13 +52,15 @@ export async function staticMeasurementEnvelope(page, viewport, referenceSize) {
     for(const text of svg.querySelectorAll('[data-layout-id] text,[data-layout-id] tspan')){
       const computed=getComputedStyle(text),style={};
       for(const key of ['font-family','font-size','font-weight','font-style','font-stretch','font-variant','letter-spacing','word-spacing','text-anchor','dominant-baseline'])style[key]=computed.getPropertyValue(key);
-      const owner=text.closest('[data-layout-id]')?.dataset.layoutId,a=annotations.get(owner);
+      const wrapper=text.closest('[data-layout-id]'),owner=wrapper?.dataset.layoutId,a=annotations.get(owner);
       // Probe boxes remain local units. Preserve directional differences
       // only when every text component has that same orientation and scale.
       // Rotated/scaled/curved labels retain the previous uniform envelope.
       const m=text.getScreenCTM(),aligned=a?.kind==='point-label'&&m&&Math.abs(m.a-1)<1e-7&&Math.abs(m.d-1)<1e-7&&Math.abs(m.b)<1e-7&&Math.abs(m.c)<1e-7;
       if(owner)directional.set(owner,(directional.get(owner)??true)&&!!aligned);
-      const values=new Set([text.textContent,...(text.tagName.toLowerCase()==='text'?(a?.variants||[]).flatMap(v=>v.lines):[])]);
+      // Settled wraps concatenate tspans without spaces. Probe the immutable
+      // primary name too; a later reserved solve may choose it again.
+      const values=new Set([text.textContent,...(text===wrapper?.querySelector('text')?[a?.text,...(a?.variants||[]).flatMap(v=>v.lines)].filter(value=>typeof value==='string'):[])]);
       const scale=controller.manifest.map.print&&m?Math.hypot(m.a,m.b):1;
       for(const value of values){const key=JSON.stringify({text:value,style,scale});let probe=probes.get(key);if(!probe){probe={text:value,style,scale,owners:[]};probes.set(key,probe);}if(owner&&!probe.owners.includes(owner))probe.owners.push(owner);}
     }

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {selectProfiles,checkProfileEvidence,coverageStatus} from '../../scripts/audit-cartography.mjs';
+import {selectProfiles,findProfileFeature,checkProfileEvidence,coverageStatus} from '../../scripts/audit-cartography.mjs';
 import {selectCases,summarizeBackend,parseArguments} from '../../scripts/fuzz-cartography-matrix.mjs';
 const profile={name:'A real place',expectedKinds:['trail','poi']};
 const profiles={groundScalesMetersPerPixel:[32,12,3],regions:{example:[profile],empty:[]}};
@@ -12,6 +12,12 @@ test('unknown regions, empty profiles and empty ground scales fail selection',()
  assert.throws(()=>selectProfiles({...profiles,groundScalesMetersPerPixel:[]},'example'),/ground scales/);
  assert.throws(()=>selectProfiles({...profiles,regions:{example:[{name:'Empty expectations',expectedKinds:[]}]}},'example'),/expected kinds/);
  assert.deepEqual(selectProfiles(profiles,'example'),[profile]);
+});
+test('source-backed profiles cannot select another feature with the same name',()=>{
+ const features=[{id:'village',name:'Mount Wilson',sourceId:'gnis:1661072'},{id:'summit',name:'Mount Wilson',sourceId:'gnis:251702'}];
+ assert.equal(findProfileFeature({name:'Mount Wilson',sourceId:'gnis:251702'},features).id,'summit');
+ assert.equal(findProfileFeature({name:'Mount Wilson',sourceId:'gnis:missing'},features),undefined);
+ assert.equal(findProfileFeature({name:'Mount Wilson'},features).id,'village');
 });
 test('missing expected feature, geometry and empty runs are mechanical failures',()=>{
  const good=checkProfileEvidence(profile,evidence);

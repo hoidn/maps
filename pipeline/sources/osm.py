@@ -4,7 +4,7 @@ from pathlib import Path
 from datetime import datetime
 import requests
 from .catalog import atomic_json,record_source,utc_now,verify_source
-ENDPOINTS=('https://overpass-api.de/api/interpreter','https://overpass.private.coffee/api/interpreter')
+ENDPOINTS=('https://overpass-api.de/api/interpreter','https://overpass.private.coffee/api/interpreter','https://maps.mail.ru/osm/tools/overpass/api/interpreter')
 def query_bounds(spec):
  """Cover the buffered frame with bounded requests; members remain complete."""
  south,west,north,east=spec.overpass_bbox
@@ -21,7 +21,7 @@ def overpass_query(spec,*,bbox=None,snapshot=None,exclude_relations=()):
  return '[out:json][timeout:180]'+(f'[date:"{snapshot}"]' if snapshot else '')+';('+''.join(f'nwr{tag}({bbox});' for tag in selectors)+');'+excluded+'(._;>>;);out body qt;'
 def fetch(spec,path):
  path=Path(path);parts=path.with_name(path.stem+'-parts')
- bounds=query_bounds(spec);merged={};requests_used=[];snapshot=None;first=None;preferred=ENDPOINTS[0]
+ bounds=query_bounds(spec);merged={};requests_used=[];snapshot=None;first=None;preferred=ENDPOINTS[0];unavailable=set()
  def download(bbox,name,depth=0):
   nonlocal preferred
   known_relations=sorted(identity for kind,identity in merged if kind=='relation')
@@ -41,7 +41,7 @@ def fetch(spec,path):
     yield data,record,bbox
     return
    errors=[];overloaded=[]
-   for endpoint in sorted(ENDPOINTS,key=lambda endpoint:endpoint!=preferred):
+   for endpoint in sorted((endpoint for endpoint in ENDPOINTS if endpoint not in unavailable),key=lambda endpoint:endpoint!=preferred):
     try:
      for attempt in range(3):
       r=requests.post(endpoint,data={'data':query},headers={'User-Agent':'grand-canyon-trail-maps/1.0 (standalone cartographic map generation)'},timeout=240)
@@ -57,13 +57,15 @@ def fetch(spec,path):
      stamp=data.get('osm3s',{}).get('timestamp_osm_base')
      if not isinstance(stamp,str):raise ValueError('Missing OSM snapshot timestamp')
      server_time=datetime.fromisoformat(stamp.replace('Z','+00:00'))
-     if snapshot and server_time<datetime.fromisoformat(snapshot.replace('Z','+00:00')):raise ValueError('OSM endpoint snapshot '+stamp+' predates requested snapshot '+snapshot)
+     if snapshot and server_time<datetime.fromisoformat(snapshot.replace('Z','+00:00')):
+      unavailable.add(endpoint)
+      raise ValueError('OSM endpoint snapshot '+stamp+' predates requested snapshot '+snapshot)
      break
     except (requests.RequestException,ValueError) as error:
      errors.append(endpoint+': '+str(error));print(errors[-1],flush=True)
-     overloaded.append(isinstance(error,requests.Timeout) or getattr(getattr(error,'response',None),'status_code',None) in (429,502,503,504) or 'timed out' in str(error).lower() or 'out of memory' in str(error).lower())
+     if endpoint not in unavailable:overloaded.append(isinstance(error,requests.Timeout) or getattr(getattr(error,'response',None),'status_code',None) in (429,502,503,504) or 'timed out' in str(error).lower() or 'out of memory' in str(error).lower())
    else:
-    if depth>=2 or not all(overloaded):raise RuntimeError('OSM acquisition failed in partition '+name+': '+'; '.join(errors))
+    if depth>=2 or not overloaded or not all(overloaded):raise RuntimeError('OSM acquisition failed in partition '+name+': '+'; '.join(errors))
     atomic_json(split,{'query':query,'fullBbox':list(spec.overpass_bbox),'errors':errors});divided=True
    if not divided:
     atomic_json(part,data)

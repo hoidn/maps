@@ -121,3 +121,23 @@ class PartitionedFetchTests(unittest.TestCase):
    fetch(spec,Path(tmp)/'osm.json')
    sleep.assert_called_once_with(2)
    self.assertEqual(post.call_args_list[0].args[0],post.call_args_list[1].args[0])
+
+ def test_stale_fallback_does_not_block_subdivision_or_get_retried(self):
+  from sources.osm import fetch,ENDPOINTS
+  from unittest.mock import patch
+  from collections import Counter
+  import tempfile,requests,re
+  spec=MapSpec.from_dict({'id':'mixed_servers','title':'Mixed servers','bbox':[0,0,.11,.06],'bufferDegrees':0})
+  counts=Counter()
+  def server(endpoint,**kwargs):
+   counts[endpoint]+=1
+   bounds=list(map(float,re.search(r'nwr\["highway"\]\(([^)]+)\)',kwargs['data']['data'])[1].split(',')))
+   south,west,north,east=bounds
+   if endpoint!=ENDPOINTS[0]:return self.response([],timestamp='2026-09-21T12:00:00Z')
+   if west>.04 and east-west>.04:raise requests.Timeout('overloaded')
+   return self.response([{'type':'node','id':1,'lat':.01,'lon':.01}])
+  with tempfile.TemporaryDirectory() as tmp,patch('sources.osm.requests.post',side_effect=server):
+   result=fetch(spec,Path(tmp)/'osm.json')
+   self.assertEqual(len(result['acquisition']['requests']),5)
+   self.assertTrue(all(counts[endpoint]==1 for endpoint in ENDPOINTS[1:]))
+   self.assertTrue(all(part['serverSnapshot']=='2026-09-22T12:00:00Z' for part in result['acquisition']['requests']))

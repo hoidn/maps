@@ -2,6 +2,10 @@
 """Draws the Grand Canyon trail sheet: hand-designed SVG cartography over USGS 3DEP terrain
 with trail/river geometry from OpenStreetMap."""
 from pathlib import Path
+import argparse
+from cartography.print_sheet import add_print_arguments, print_profile, make_print_sheet
+parser=argparse.ArgumentParser();parser.add_argument("--output",default="grand_canyon_trails.html");add_print_arguments(parser);args=parser.parse_args()
+if (args.paper or args.scale is not None) and not args.print_map:parser.error("--paper/--scale require --print")
 import json, math, html, numpy as np
 from skimage.measure import approximate_polygon
 from label_manifest import Manifest, embedded_fonts, layout_script
@@ -12,6 +16,9 @@ from osmdata import P, hav, length, LAT0, LAT1, LON0, LON1, W, H
 
 from map_spec import validate_legacy_terrain_frame
 validate_legacy_terrain_frame(o.SPEC)
+if args.print_map:
+    M.print_profile=print_profile(o.SPEC,args.paper,args.scale)
+    M.print_profile["contourIntervalsFeet"]=[250]
 
 T = json.load(open("terrain.json"))
 DEM = np.load("dem.npy") * 3.28084
@@ -428,6 +435,10 @@ svg = f'''<svg class="map" viewBox="0 0 {W} {H}" role="img" aria-label="Hand-dra
 from cartography.integration import improve, catalog_panel, transport_legend
 svg, cartography_context = improve(svg, M, DEM / 3.28084, o.SPEC)
 svg = M.finalize(svg)
+if args.print_map:
+    Path(args.output).write_text(make_print_sheet(svg,M,cartography_context,o.SPEC,M.print_profile))
+    print("wrote",args.output,flush=True)
+    raise SystemExit(0)
 
 # ---------------------------------------------------------------- mileage tables & profile
 def stops_table(chain, stops, title, note):
@@ -771,6 +782,6 @@ page = f'''<meta charset="utf-8">
 {layout_script()}
 <script>{JS}</script>
 '''
-open("grand_canyon_trails.html", "w").write(page)
+open(args.output, "w").write(page)
 print("wrote", len(page) // 1024, "KB; r2r", round(total, 2), "mi; wps", [(n, round(d, 1), round(e)) for n, d, e in wps])
 print("silver", round(silver_d, 2), "hermit camp", round(hermit_camp, 2))

@@ -6,6 +6,7 @@ from html import escape
 import numpy as np
 from PIL import Image
 from map_spec import MapSpec
+from cartography.print_sheet import add_print_arguments, print_profile, make_print_sheet
 from label_manifest import Manifest,embedded_fonts,layout_script,stable_id
 from cartography.contour_payload import pack_contours
 from cartography.terrain import neutral_relief,contours
@@ -25,7 +26,7 @@ def load_dem(spec,root):
  validate_grid(dem,registration['bbox'],spec,meta['shape'],registration.get('nodata'))
  return dem,digest
 
-def build(spec,renderer='webgl',mode='interactive',output=None):
+def build(spec,renderer='webgl',mode='interactive',output=None,print_request=None):
  root=Path('cache')/spec.id
  missing=[str(root/name) for name in ('features.json','dem.npy','dem.json') if not (root/name).is_file()]
  if missing:raise ValueError('Missing cached build inputs: '+', '.join(missing))
@@ -36,13 +37,13 @@ def build(spec,renderer='webgl',mode='interactive',output=None):
  if terrain.get('cacheKey')!=key:
   terrain={**neutral_relief(dem,spec),'contours':contours(dem,spec),'frame':spec.frame,'cacheKey':key};atomic_json(terrain_path,terrain)
  spec.validate_cache(terrain)
- M=Manifest(mode,spec.width,spec.height);M.required=set(spec.required_names);M.required_routes=set(spec.required_routes)
+ M=Manifest(mode,spec.width,spec.height);M.print_profile=print_request;M.required=set(spec.required_names);M.required_routes=set(spec.required_routes)
  defs=[];paint={};labels=[]
  for kind,cls in [('index','cx'),('inter','ci'),('fine','ci cf'),('finest','ci cff')]:
   paint[kind]=[]
   for row in terrain['contours'][kind]:
    for d in row['d']:
-    paint[kind].append(f'<path class="{cls}" d="{d}"/>')
+    paint[kind].append(f'<path class="{cls}" data-elevation="{row["lv"]}" d="{d}"/>')
     if kind=='index' and len(d)>400:
      gid=stable_id('contour-geometry',d);defs.append(f'<path id="{gid}" d="{d}"/>');labels.append(f'<text class="l-contour"><textPath href="#{gid}" startOffset="50%" text-anchor="middle">{row["lv"]:,}</textPath></text>')
  w,h=spec.width,spec.height
@@ -64,6 +65,10 @@ def build(spec,renderer='webgl',mode='interactive',output=None):
  title='Trail Sheet' if mode=='static' else 'Trail Explorer'
  instruction='' if mode=='static' else '<span>Drag to pan · scroll or pinch to zoom · select a trail or find a place</span>'
  page='<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>'+escape(spec.title)+' '+title+'</title><style>'+embedded_fonts()+css+'[data-layout-id]{visibility:hidden}</style><main class="sheet"><header class="mast"><div><p class="eyebrow">Trails and terrain</p><h1>'+escape(spec.title)+'</h1><p class="lede">'+escape(spec.subtitle)+'</p></div></header><figure class="map-fig"><div class="map-wrap">'+svg+controls+'</div><figcaption class="legend">'+transport_legend(context)+instruction+'</figcaption></figure>'+catalog_panel(context)+'<footer><p>Terrain and geographic names: USGS 3DEP and GNIS. Hydrography: USGS 3DHP. Land cover: Annual NLCD. Land boundaries: PAD-US. Roads, trails and facilities: © OpenStreetMap contributors (ODbL). Source versions and retrieval dates are listed above.</p><p>Schematic reference, not for navigation. Use official trail guides and current conditions for planning.</p></footer></main>'+M.script()+contour_payload+layout_script()+interaction+'</html>'
+ if print_request:page=make_print_sheet(svg,M,context,spec,print_request)
  path=Path(output or f'{spec.id}_trails_{mode}.html');path.write_text(page);print('wrote',path,len(page)//1024,'KB',len(M.annotations),'annotations',flush=True)
 if __name__=='__main__':
- p=argparse.ArgumentParser();p.add_argument('--map',default='sequoia');p.add_argument('--renderer',choices=['svg','canvas','webgl'],default='webgl');p.add_argument('--mode',choices=['static','interactive'],default='interactive');p.add_argument('--output');a=p.parse_args();build(MapSpec.load(a.map),a.renderer,a.mode,a.output)
+ p=argparse.ArgumentParser();p.add_argument('--map',default='sequoia');p.add_argument('--renderer',choices=['svg','canvas','webgl'],default='webgl');p.add_argument('--mode',choices=['static','interactive'],default='interactive');p.add_argument('--output');add_print_arguments(p);a=p.parse_args();spec=MapSpec.load(a.map)
+ if (a.paper or a.scale is not None) and not a.print_map:p.error('--paper/--scale require --print')
+ if a.print_map and a.mode!='static':p.error('--print requires --mode static')
+ build(spec,a.renderer,a.mode,a.output,print_profile(spec,a.paper,a.scale) if a.print_map else None)

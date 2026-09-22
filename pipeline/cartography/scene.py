@@ -189,7 +189,8 @@ def render_scene(features,routes,spec,M,existing=(),distances=()):
     latitudes,longitudes=zip(*(spec.unproject(x,y) for x,y in line.coords));length_miles=geod.line_length(longitudes,latitudes)/1609.344
     anchor=line.interpolate(.5,normalized=True)
     d=detail_path(list(line.coords),.025);fid=M._feature((anchor.x,anchor.y),name or '',kind,source_id=f['id'])
-    attrs=common+f' data-route-ids="{escape(json.dumps(sorted(set(f.get("routeIds",[])))))}" data-name="{escape(name or st["class"])}" data-cls="{st["class"]}" data-mi="{length_miles:.4f}" data-info="{escape(info)}" data-max-mpp="{limit}" data-feature-id="{fid}"'
+    print_key=st['kind']+':'+st['color']+':'+(','.join(map(str,st['dash'])) or 'solid')
+    attrs=common+f' data-transport-key="{print_key}" data-route-ids="{escape(json.dumps(sorted(set(f.get("routeIds",[])))))}" data-name="{escape(name or st["class"])}" data-cls="{st["class"]}" data-mi="{length_miles:.4f}" data-info="{escape(info)}" data-max-mpp="{limit}" data-feature-id="{fid}"'
     base=f'fill:none;stroke-linejoin:round;stroke-linecap:round;stroke-width:calc({st["width"]}px * var(--s));stroke:{color};stroke-dasharray:{dash}'
     if f.get('tags',{}).get('tunnel') not in (None,'no'):base+=';opacity:.6'
     if f.get('tags',{}).get('bridge') not in (None,'no'):
@@ -275,7 +276,7 @@ def render_scene(features,routes,spec,M,existing=(),distances=()):
   # Keep its full graph/table record, but do not embed an impossible annotation.
   max_zoom=14 if M.mode=='interactive' else 1;font_size=14 if M.mode=='interactive' else 10.5
   minimum_width=distance_font().getlength(text)*font_size/1000+4
-  if line.length*max_zoom<minimum_width:
+  if not getattr(M,"print_profile",None) and line.length*max_zoom<minimum_width:
    distance_omissions.append({'id':segment['id'],'sourceId':segment['sourceId'],'reason':'distance-window-too-short-at-supported-scale','maxZoom':max_zoom,'minimumTextWidthPixels':round(minimum_width,2),'availablePathPixels':round(line.length*max_zoom,2)});continue
   gid=stable_id('distance-geometry',[segment['id'],list(line.coords)])
   groups['defs'].append(f'<path id="{gid}" d="{detail_path(list(line.coords),.025)}"/>')

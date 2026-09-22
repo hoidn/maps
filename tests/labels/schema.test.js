@@ -8,3 +8,9 @@ test('validates references, unique IDs and finite geometry',()=>{
   const m=valid();alter(m);assert.throws(()=>validateManifest(m));
  }
 });
+test('print profile is static, finite and physically sized',()=>{
+ for(const print of [{version:1,paperMm:[NaN,200]}, {version:1,paperMm:[100,-2]}, {version:1,paperMm:null,mapWidthMm:Infinity}]){
+  const m=valid();m.map.mode='static';m.map.print=print;
+  assert.throws(()=>validateManifest(m),/print/i);
+ }
+});

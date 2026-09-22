@@ -1,3 +1,4 @@
+import {preparePrint,finishPrint} from './print-layout.mjs';
 import { createServer } from "node:http";
 import { readFile, writeFile, mkdir, rename, unlink } from "node:fs/promises";
 import { resolve, dirname, join } from "node:path";
@@ -34,13 +35,14 @@ async function measureControlProbes(page, probes) {
     }finally{holder.remove();}
   },probes);
 }
-async function staticMeasurementEnvelope(page, viewport) {
-  const {probes,css,directionalOwners,controlProbes}=await page.evaluate(async()=>{
+async function staticMeasurementEnvelope(page, viewport, referenceSize) {
+  const {probes,css,directionalOwners,controlProbes}=await page.evaluate(async(referenceSize)=>{
     const controller=window.mapLayout,svg=document.getElementById('mapsvg');
     if(!controller||!svg)throw new Error('Static layout runtime missing');
     try{await controller.ready;await controller.whenSettled();}catch(error){throw new Error('Static layout/font initialization failed: '+error.message);}
     const {width,height}=controller.manifest.map;
-    svg.style.width=width+'px';svg.style.height=height+'px';svg.style.maxWidth='none';svg.style.minWidth=width+'px';
+    const reference=referenceSize||{width,height};
+    svg.style.width=reference.width+'px';svg.style.height=reference.height+'px';svg.style.maxWidth='none';svg.style.minWidth=reference.width+'px';
     controller.requestView({x:0,y:0,w:width,h:height});await controller.whenSettled();
     const probes=new Map(),annotations=new Map(controller.manifest.annotations.map(a=>[a.id,a])),directional=new Map();
     for(const text of svg.querySelectorAll('[data-layout-id] text,[data-layout-id] tspan')){
@@ -53,7 +55,8 @@ async function staticMeasurementEnvelope(page, viewport) {
       const m=text.getScreenCTM(),aligned=a?.kind==='point-label'&&m&&Math.abs(m.a-1)<1e-7&&Math.abs(m.d-1)<1e-7&&Math.abs(m.b)<1e-7&&Math.abs(m.c)<1e-7;
       if(owner)directional.set(owner,(directional.get(owner)??true)&&!!aligned);
       const values=new Set([text.textContent,...(text.tagName.toLowerCase()==='text'?(a?.variants||[]).flatMap(v=>v.lines):[])]);
-      for(const value of values){const key=JSON.stringify({text:value,style});let probe=probes.get(key);if(!probe){probe={text:value,style,owners:[]};probes.set(key,probe);}if(owner&&!probe.owners.includes(owner))probe.owners.push(owner);}
+      const scale=controller.manifest.map.print&&m?Math.hypot(m.a,m.b):1;
+      for(const value of values){const key=JSON.stringify({text:value,style,scale});let probe=probes.get(key);if(!probe){probe={text:value,style,scale,owners:[]};probes.set(key,probe);}if(owner&&!probe.owners.includes(owner))probe.owners.push(owner);}
     }
     const controlProbes=[...svg.querySelectorAll('.cartouche,.scale')].map(control=>{
       // Preserve ancestry and resolved paint/text styles, including inherited
@@ -67,7 +70,7 @@ async function staticMeasurementEnvelope(page, viewport) {
       root.append(content);return root.outerHTML;
     });
     return {probes:[...probes.values()],css:[...document.querySelectorAll('style')].map(s=>s.textContent).join('\n'),directionalOwners:[...directional].filter(([,aligned])=>aligned).map(([id])=>id),controlProbes};
-  });
+  },referenceSize);
   if(!probes.length)throw new Error('Static typography probes missing');
   const reference=await measureFontProbes(page,probes),profiles=[{browser:'chromium',probeCount:probes.length,maxOutwardPx:0}];
   const controlReference=await measureControlProbes(page,controlProbes),fixedControlReserves=controlReference.map(()=>({left:0,top:0,right:0,bottom:0}));
@@ -88,6 +91,7 @@ async function staticMeasurementEnvelope(page, viewport) {
         const a=reference[i],b=measured[i];
         if(!Object.values(b).every(Number.isFinite))throw new Error('Non-finite static font measurement');
         const edges={left:Math.max(0,a.x-b.x),top:Math.max(0,a.y-b.y),right:Math.max(0,b.x+b.width-a.x-a.width),bottom:Math.max(0,b.y+b.height-a.y-a.height)};
+        for(const edge of Object.keys(edges))edges[edge]*=probes[i].scale;
         const outward=Math.max(...Object.values(edges));
         maxOutwardPx=Math.max(maxOutwardPx,outward);
         for(const id of probes[i].owners){const reserve=byAnnotation[id]??={left:0,top:0,right:0,bottom:0};for(const key of Object.keys(edges))reserve[key]=Math.max(reserve[key],edges[key]);}
@@ -165,10 +169,13 @@ export async function finalizeStatic({
         : r.abort("blockedbyclient"),
     );
     await page.goto(url, { waitUntil: "load" });
-    const measurementEnvelope = await staticMeasurementEnvelope(page, viewport);
+    const print = await preparePrint(page);
+    if(print)viewport=print.viewport;
+    const referenceSize=print?.referenceSize;
+    const measurementEnvelope = await staticMeasurementEnvelope(page, viewport,referenceSize);
     await writeFile(join(reportDir,"measurement-envelope.json"),JSON.stringify(measurementEnvelope,null,2));
-    const frozen = await page.evaluate(
-      async ({ sourceSha256, measurementEnvelope, auditPolicy }) => {
+    let frozen = await page.evaluate(
+      async ({ sourceSha256, measurementEnvelope, auditPolicy, referenceSize }) => {
         const svg = document.getElementById("mapsvg"),
           controller = window.mapLayout;
         if (!svg || !controller)
@@ -190,17 +197,18 @@ export async function finalizeStatic({
         // labels do not inherit the font variance of a long region heading.
         controller.policy={...controller.policy,clearance:Math.max(controller.policy.clearance??2,auditPolicy.clearance??2),edgePadding:Math.max(controller.policy.edgePadding??4,auditPolicy.edgePadding??4),measurementReserves:measurementEnvelope.byAnnotation,fixedControlReserves:measurementEnvelope.fixedControlReserves};
         controller.invalidateLayout();controller.previous=null;controller.cache.invalidate();controller.lineCache.clear();
-        // All placement distances are resolved at the declared natural map size.
-        svg.style.width = width + "px";
-        svg.style.height = height + "px";
+        const reference=referenceSize||{width,height};
+        // Placement uses natural map size or the declared physical print reference.
+        svg.style.width = reference.width + "px";
+        svg.style.height = reference.height + "px";
         svg.style.maxWidth = "none";
-        svg.style.minWidth = width + "px";
+        svg.style.minWidth = reference.width + "px";
         await controller.requestView({ x: 0, y: 0, w: width, h: height });
         await controller.whenSettled();
         const r = svg.getBoundingClientRect();
         if (
-          Math.abs(r.width - width) > 0.5 ||
-          Math.abs(r.height - height) > 0.5
+          Math.abs(r.width - reference.width) > 0.5 ||
+          Math.abs(r.height - reference.height) > 0.5
         )
           throw new Error(
             "Static reference width/height could not be established",
@@ -272,7 +280,8 @@ export async function finalizeStatic({
         metadata.textContent = JSON.stringify({
           schemaVersion: 1,
           sourceSha256,
-          referenceSize: { width, height },
+          referenceSize: reference,
+          print:manifest.map.print??null,
           measurementEnvelope,
           outcomes: report.outcomes,
           missingRequired: report.missingRequired,
@@ -280,8 +289,10 @@ export async function finalizeStatic({
         document.body.append(metadata);
         return "<!doctype html>\n" + document.documentElement.outerHTML;
       },
-      { sourceSha256, measurementEnvelope, auditPolicy:policy },
+      { sourceSha256, measurementEnvelope, auditPolicy:policy, referenceSize },
     );
+    const printEvidence=await finishPrint(page);
+    if(printEvidence)frozen=await page.evaluate(()=>'<!doctype html>\n'+document.documentElement.outerHTML);
     await browser.close();
     browser = null;
     await writeFile(candidate, frozen);
@@ -315,6 +326,7 @@ export async function finalizeStatic({
       artifactSha256,
       viewport,
       measurementEnvelope,
+      print:printEvidence,
       audits,
     };
     await writeFile(
@@ -326,6 +338,7 @@ export async function finalizeStatic({
           artifactSha256,
           viewport,
           measurementEnvelope,
+          print:printEvidence,
           audits: audits.map((a) => ({
             browser: a.browser,
             theme: a.theme,

@@ -131,11 +131,11 @@ export async function runAudit({
     });
     if (mode === "managed" && !javaScriptEnabled)
       await page.evaluate((theme) => {
-        document.documentElement.dataset.theme = theme;
+        document.documentElement.dataset.theme = document.querySelector('[data-print-map]')?'light':theme;
       }, theme);
     if (mode === "managed" && javaScriptEnabled)
       await page.evaluate(async (theme) => {
-        document.documentElement.dataset.theme = theme;
+        document.documentElement.dataset.theme = document.querySelector('[data-print-map]')?'light':theme;
         if (window.mapLayout) {
           await window.mapLayout.ready;
           await window.mapLayout.whenSettled?.();

@@ -11,6 +11,7 @@
     "audit": "PLAYWRIGHT_BROWSERS_PATH=.browser-cache node scripts/audit-map.mjs",
     "build:labels": "node scripts/build-labels.mjs",
     "build:maps": "bash pipeline/build_maps.sh",
+    "print:map": "PLAYWRIGHT_BROWSERS_PATH=.browser-cache node scripts/print-map.mjs",
     "browsers:install": "PLAYWRIGHT_BROWSERS_PATH=.browser-cache playwright install",
     "verify:maps": "PLAYWRIGHT_BROWSERS_PATH=.browser-cache node scripts/verify-maps.mjs",
     "promote:maps": "PLAYWRIGHT_BROWSERS_PATH=.browser-cache node scripts/verify-maps.mjs --promote",

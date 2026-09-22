@@ -12,6 +12,7 @@ from .scene import map_geometry,parts
 COVER={11:'#a9cbd6',12:'#edf0f1',21:'#d9d0c4',22:'#cfc3b6',23:'#c2b2a4',24:'#b09c90',31:'#e1cbaa',41:'#bad09d',42:'#9fbd94',43:'#acc69a',52:'#d4ceaa',71:'#dedaaa',81:'#d0d1a0',82:'#d8c89c',90:'#a6c9b2',95:'#bfd4ad'}
 COVER_DARK={11:'#304d59',12:'#697575',21:'#514b43',22:'#5a4f43',23:'#655344',24:'#705647',31:'#716048',41:'#49603c',42:'#375133',43:'#405a37',52:'#625f40',71:'#696747',81:'#586044',82:'#6a5e3c',90:'#345b49',95:'#4a6547'}
 COVER_KEY=((42,'Forest'),(52,'Shrub / scrub'),(71,'Grassland'),(31,'Barren rock / sand'),(22,'Developed'),(90,'Wetland'),(12,'Ice / snow'))
+COVER_LABELS={11:'Open water',12:'Ice / snow',21:'Developed, open space',22:'Developed, low intensity',23:'Developed, medium intensity',24:'Developed, high intensity',31:'Barren rock / sand',41:'Deciduous forest',42:'Evergreen forest',43:'Mixed forest',52:'Shrub / scrub',71:'Grassland',81:'Pasture / hay',82:'Cultivated crops',90:'Woody wetlands',95:'Herbaceous wetlands'}
 def uri(rgb,fmt='PNG'):
  b=io.BytesIO();Image.fromarray(np.asarray(rgb,dtype=np.uint8)).save(b,format=fmt,optimize=True)
  return 'data:image/'+fmt.lower()+';base64,'+base64.b64encode(b.getvalue()).decode()

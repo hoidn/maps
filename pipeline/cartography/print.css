@@ -1,0 +1,27 @@
+/* Physical page furniture; geographic map coordinates remain unchanged. */
+@page{margin:0}
+html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.print-sheet{display:flex;flex-direction:column;align-items:stretch;box-sizing:border-box;margin:0;padding:6mm;width:914.4mm;max-width:none;overflow:visible;font:9pt var(--sans)}
+.print-title{display:flex;align-items:center;justify-content:space-between;gap:8mm;margin:0 0 5mm;padding:0 0 3mm;border-bottom:.25mm solid var(--ink)}
+.print-title h1{font:32pt var(--display);margin:0}.print-title p{margin:1mm 0 0;font-size:11pt}.print-title small{font-size:8pt;white-space:nowrap}
+.print-map-frame{position:relative;margin:5mm auto;outline:.25mm solid var(--ink)}
+.print-map-frame .map{max-width:none;min-width:0;display:block;cursor:default}
+.print-ticks{position:absolute;inset:0;pointer-events:none;font:7pt var(--sans)}
+.tick{position:absolute;white-space:nowrap;line-height:1}
+.tick.top{top:-4mm;transform:translateX(-50%)}.tick.bottom{bottom:-4mm;transform:translateX(-50%)}
+.tick.left{left:-4mm;transform:translate(-50%,-50%) rotate(-90deg)}.tick.right{right:-4mm;transform:translate(50%,-50%) rotate(90deg)}
+.tick.top:after,.tick.bottom:after{content:'';position:absolute;left:50%;height:1mm;border-left:.2mm solid;top:3mm}
+.tick.bottom:after{top:-1.5mm}
+.print-collar{max-width:none;margin:5mm 0 0;padding:3mm 0 0;border-top:.25mm solid var(--ink);color:var(--ink);font-size:8pt}
+.print-measures{display:flex;align-items:center;justify-content:space-between;gap:4mm;flex-wrap:wrap;margin-bottom:3mm}
+#print-north{font:24pt var(--display);text-align:center}#print-north small{display:block;font:7pt var(--sans)}
+.print-scales{display:flex;gap:6mm;margin-top:2mm}.print-scales span{height:4mm;width:60mm;display:inline-block;border-bottom:.4mm solid;border-left:.2mm solid;border-right:.2mm solid;text-align:center;font-size:8pt}
+#print-calibration{width:100mm;box-sizing:border-box;border-bottom:.3mm solid;border-left:.3mm solid;border-right:.3mm solid;text-align:center;margin-bottom:1mm}
+.print-legend{display:flex;flex-wrap:wrap;align-items:center;gap:2mm 5mm;padding:2mm 0;border:0;font-size:9pt}
+.print-legend .lg-title{flex-basis:auto;font-size:8pt;margin:0;font-weight:700}
+.print-legend svg{width:auto;flex:none;overflow:visible}.print-legend svg[data-legend-symbols]{width:16px;height:16px}
+.print-collar p{margin:1.5mm 0 0;max-width:none}.print-credits,.print-notice{font-size:7pt;line-height:1.25}
+[data-layout-details],[data-layout-directory]{display:none!important}
+[data-layout-id]{visibility:hidden}
+/* Static print selection owns tiers; camera zoom is always the complete frame. */
+[data-print-map] .g-fine,[data-print-map] .g-finest{display:inline}

@@ -224,9 +224,10 @@ export class LayoutController {
     const oldFit=Math.min(width/old.width,height/old.height),newFit=Math.min(width/v.w,height/v.h);
     const s=Math.hypot(before.a,before.b)*newFit/oldFit,z=W/v.w;
     this.svg.setAttribute('viewBox',`${v.x} ${v.y} ${v.w} ${v.h}`);
-    this.fontScaleValue=this.mode==='interactive'?(translating&&Math.abs(Number(this.fontScaleValue)-1/s)<1e-12?this.fontScaleValue:String(1/s)):'1';
+    this.fontScaleValue=(this.mode==='interactive'||this.manifest.map.print)?(translating&&Math.abs(Number(this.fontScaleValue)-1/s)<1e-12?this.fontScaleValue:String(1/s)):'1';
     for(const scope of this.fontScopes)if(scope.style.getPropertyValue('--k')!==this.fontScaleValue)scope.style.setProperty('--k',this.fontScaleValue);
-    for(const scope of this.strokeScopes)if(scope.style.getPropertyValue('--s')!==String(1/z))scope.style.setProperty('--s',String(1/z));
+    const strokeScale=this.manifest.map.print?1/s:1/z;
+    for(const scope of this.strokeScopes)if(scope.style.getPropertyValue('--s')!==String(strokeScale))scope.style.setProperty('--s',String(strokeScale));
     this.svg.classList.toggle('zoomed',z>1.02);this.svg.classList.toggle('z2',z>=2);this.svg.classList.toggle('z5',z>=4.5);
     for(const [layer,on] of Object.entries(this.layers))this.svg.classList.toggle('no-'+layer,!on);
     this.updateDetail(s);
@@ -247,6 +248,7 @@ export class LayoutController {
     this.cache.invalidate();this.lineCache.clear();this.invalidateLayout();this.schedule();
   }
   textSizes(s){
+    if(this.manifest.map.print)return Object.fromEntries(Object.entries(this.manifest.map.print.points).map(([key,value])=>[key,value*96/72]));
     const typography=this.policy.typography||{},z=this.manifest.map.width/this.view.w;
     const meters=this.manifest.map.metersPerMapUnit;
     const detail=meters?Math.max(1,(typography.referenceMetersPerPixel??32)/(meters/s)):z;
@@ -254,7 +256,7 @@ export class LayoutController {
     return Object.fromEntries(Object.entries(this.policy.sizes).map(([key,value])=>[key,value*growth*this.textScale]));
   }
   normalize(a,e,s){
-    if(this.mode!=='interactive')return;
+    if(this.mode!=='interactive'&&!this.manifest.map.print)return;
     const t=e.querySelector('text');if(!t)return;
     const sizes=this.textSizes(s),size=a.style?.startsWith('l-contour')?sizes.contour:a.kind==='region-label'?sizes.region:a.style?.startsWith('l-trail')?sizes.trail:a.style==='l-settlement'?(sizes.settlement??sizes.place):a.style==='l-road'?(sizes.road??sizes.secondary):a.style==='l-road-major'?(sizes.roadMajor??sizes.trail):a.style==='l-road-ref'?(sizes.roadRef??sizes.trail):a.style==='l-major'?(sizes.major??sizes.region):a.style==='l-minor'||a.style==='l-peak'?sizes.secondary:sizes.place;
     t.style.fontSize=(a.geometryId?size/s:size)+'px';t.style.strokeWidth=(a.geometryId?2.8/s:2.8)+'px';
@@ -287,7 +289,7 @@ export class LayoutController {
       for(const e of this.svg.querySelectorAll('[data-layout-obstacle="trail"]')){
         const d=e.getAttribute('d');if(/[CQAHVSTZcqahvstz]/.test(d))throw new Error('Protected trail must be an absolute polyline');
         const numbers=(d.match(/[-+]?(?:\d*\.\d+|\d+\.?\d*)(?:[eE][-+]?\d+)?/g)||[]).map(Number);
-        const width=parseFloat(getComputedStyle(e).strokeWidth)*(this.mode==='interactive'?z:1);
+        const width=parseFloat(getComputedStyle(e).strokeWidth)*(this.manifest.map.print?s:this.mode==='interactive'?z:1);
         if(!Number.isFinite(width))throw new Error('Invalid protected trail stroke');
         this.maxTrailWidth=Math.max(this.maxTrailWidth,width);
         for(let i=2;i<numbers.length;i+=2){
@@ -299,7 +301,7 @@ export class LayoutController {
       }
     }
     return createTrailQuery({segments:this.trailSegments,index:this.trailIndex,matrix:m,inverse:m.inverse(),
-      strokeScale:this.mode==='interactive'?1/z:1,scale:s,maxWidth:this.maxTrailWidth,metersPerPixel:this.manifest.map.metersPerMapUnit/s});
+      strokeScale:this.manifest.map.print?1/s:this.mode==='interactive'?1/z:1,scale:s,maxWidth:this.maxTrailWidth,metersPerPixel:this.manifest.map.metersPerMapUnit/s});
   }
 
   eligible(a,anchor,viewport,z,pixelsPerMapUnit){

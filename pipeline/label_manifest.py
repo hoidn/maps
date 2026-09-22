@@ -176,7 +176,7 @@ class Manifest:
         return ET.tostring(root,encoding='unicode')
 
     def data(self):
-        return dict(version=1,map=dict(width=self.width,height=self.height,mode=self.mode,coordinateSpace='svg',**getattr(self,'map_metadata',{})),
+        return dict(version=1,map=dict(width=self.width,height=self.height,mode=self.mode,coordinateSpace='svg',**getattr(self,'map_metadata',{}),**({'print':self.print_profile} if getattr(self,'print_profile',None) else {})),
                     features=list(self.features.values()),annotations=self.annotations)
 
     def json(self): return safe_json(self.data())

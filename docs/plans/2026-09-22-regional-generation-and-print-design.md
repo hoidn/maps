@@ -8,10 +8,11 @@ breaks this design into testable changes and real-artifact acceptance checks.
 
 ## Result
 
-Add San Gabriel Mountains as the third geographic configuration alongside Grand
-Canyon and Sequoia. Generate its standalone interactive HTML through the existing
-portable pipeline, and use it to test acquisition, cached generation, rendering
-and print export without place-specific renderer code.
+Generate a new map from a title and selected longitude/latitude bounds, deriving
+its specification and natural dimensions automatically. Use San Gabriel Mountains
+as the third real region alongside Grand Canyon and Sequoia, testing acquisition,
+cached generation, rendering and print export without place-specific renderer code
+or a manually authored specification. Checked-in configurations remain optional presets.
 
 Add single-page large-format PDF export for all three regions. Default to a
 36 × 24 inch landscape sheet, with custom dimensions or a nominal map scale.
@@ -50,7 +51,8 @@ Wilson, Mount San Antonio, Mount Baden-Powell and the San Gabriel River to cover
 developed access, summits, trails and water. Verify source spellings and geometry
 before freezing expected-feature checks; do not substitute remembered coordinates.
 
-Acquisition remains explicit. A cached build must never fetch. Missing essential
+The bounds-driven generation command explicitly acquires sources, builds candidates
+and exports a PDF. Its `--cached` option skips acquisition. A cached build must never fetch. Missing essential
 DEM or OSM caches produce an actionable error; missing supplementary sources
 remain visible in the source inventory. Do not call an incomplete source set a
 fully validated map. Larger-area provider failures must surface rather than
@@ -59,7 +61,8 @@ silently yielding an empty or partial scene.
 ## Build and test generalization
 
 Extend the existing root build entry point with region selection instead of
-adding another build wrapper. Its default retains the Grand Canyon build and
+duplicating its build stages. The bounds-driven command delegates to this entry point
+with its generated specification path. The default build retains the Grand Canyon build and
 discovers other configured regions with available required caches. Selecting a
 region explicitly requires its caches, without requiring unrelated Grand Canyon
 inputs. Keep label bundling and static finalization in the established sequence.
@@ -75,10 +78,11 @@ separate their results from evidence for downloaded geography.
 
 ## Print behavior
 
-Expose one root export command taking a map ID and output PDF path. Planned
-interface examples, not currently installed commands:
+Expose one root export command taking a map ID or explicit specification and an
+output PDF path. Installed interface examples:
 
 ```sh
+npm run generate:map -- --title 'San Gabriel Mountains' --bbox=-118.45,34.10,-117.42,34.55 --id san_gabriel
 npm run build:maps -- --map san_gabriel
 npm run print:map -- --map san_gabriel --paper 36x24in --output artifacts/san-gabriel.pdf
 npm run print:map -- --map san_gabriel --scale 50000 --output artifacts/san-gabriel-50k.pdf

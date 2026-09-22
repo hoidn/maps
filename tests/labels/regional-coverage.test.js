@@ -32,6 +32,12 @@ test('missing expected feature, geometry and empty runs are mechanical failures'
  assert.equal(coverageStatus([good],[],false),'review-required');
  assert.equal(coverageStatus([good],[],true),'passed');
 });
+test('a clamped view cannot pass coverage at an unreachable requested ground scale',()=>{
+ const clamped=checkProfileEvidence(profile,{...evidence,targetMetersPerPixel:3,actualMetersPerPixel:5.2});
+ assert.equal(clamped.mechanicalStatus,'failed');assert.equal(clamped.scaleMismatch,true);
+ assert.equal(checkProfileEvidence(profile,{...evidence,targetMetersPerPixel:12,actualMetersPerPixel:12.0001}).mechanicalStatus,'passed');
+ assert.equal(checkProfileEvidence(profile,{...evidence,targetMetersPerPixel:12}).mechanicalStatus,'failed');
+});
 test('selected configured region covers every browser/backend deterministically',async()=>{
  const names=await Promise.all(['grand_canyon','sequoia','san_gabriel'].map(async id=>JSON.parse(await readFile(`pipeline/maps/${id}.json`,'utf8')).id));
  assert.throws(()=>selectCases('unknown',names),/Unknown map/);

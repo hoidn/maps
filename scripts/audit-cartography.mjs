@@ -16,7 +16,9 @@ export function findProfileFeature(profile,features){
 }
 export function checkProfileEvidence(profile,evidence){
  const missingFeature=!evidence.featureFound,missingKinds=profile.expectedKinds.filter(kind=>!evidence.geometrySourceIds?.[kind]?.length);
- return {missingFeature,missingKinds,mechanicalStatus:missingFeature||missingKinds.length||evidence.status!=='ready'||evidence.error?'failed':'passed'};
+ const target=evidence.targetMetersPerPixel,actual=evidence.actualMetersPerPixel;
+ const scaleMismatch=target!==undefined&&(!Number.isFinite(actual)||Math.abs(actual-target)>target*.01);
+ return {missingFeature,missingKinds,scaleMismatch,mechanicalStatus:missingFeature||missingKinds.length||scaleMismatch||evidence.status!=='ready'||evidence.error?'failed':'passed'};
 }
 export function coverageStatus(scenes,errors=[],reviewed=false){
  return !scenes.length||errors.length||scenes.some(scene=>scene.mechanicalStatus!=='passed')?'failed':reviewed?'passed':'review-required';
@@ -38,7 +40,7 @@ try{
   for(const mpp of profiles.groundScalesMetersPerPixel){
    await page.evaluate(async({anchor,mpp})=>{const l=mapLayout,W=l.manifest.map.width,H=l.manifest.map.height,r=l.svg.getBoundingClientRect(),w=Math.min(W,Math.max(W/14,r.width*mpp/l.manifest.map.metersPerMapUnit)),h=w*H/W;l.requestView({x:Math.max(0,Math.min(W-w,anchor[0]-w/2)),y:Math.max(0,Math.min(H-h,anchor[1]-h/2)),w,h});await Promise.race([l.whenSettled(),new Promise((_,reject)=>setTimeout(()=>reject(Error('Idle completion timeout')),90000))]);},{anchor:f.anchor,mpp});
    const evidence=await page.evaluate(()=>{const l=mapLayout,r=l.getReport(),by=new Map(l.manifest.annotations.map(a=>[a.id,a])),visibleGeometry=(l.renderer?.scene.items||[]).filter(i=>l.renderer.scene.visible(i,l.layers,l.manifest.map.width/l.view.w,l.view)),geometry=visibleGeometry.reduce((o,i)=>{const e=i.element,kind=e.matches('.area-waterbody')?'waterbody':e.matches('.water-line')?'waterway':e.matches('.area-building')?'building':e.matches('.area-boundary')?'boundary':e.matches('.railway-core,.railway-ties')?'railway':e.matches('.barrier-line')?'barrier':i.layer==='roads'?'road':i.layer==='trails'?'trail':i.layer==='landcover'?'landcover':null;if(kind)(o[kind]??=[]).push(e.dataset.sourceId||kind);return o},{}),prepared=new Map(l.prepared.map(a=>[a.id,a]));return{geometrySourceIds:Object.fromEntries(Object.entries(geometry).map(([k,v])=>[k,[...new Set(v)]])),status:r.status,error:r.error,view:r.view,actualMetersPerPixel:l.manifest.map.metersPerMapUnit*l.view.w/l.svg.clientWidth,paintedIds:l.renderer?.painted.map(p=>p.id)||r.placements.map(p=>p.id),outcomes:r.outcomes.map(o=>{const a=by.get(o.id),p=prepared.get(o.id);return{...o,text:a.text,sourceId:a.sourceId,kind:a.kind,style:a.style,candidates:p?.candidates.length??0,preparationReason:p?.eligibleReason}})}});
-   const poiIds=evidence.outcomes.filter(o=>o.kind==='symbol'&&evidence.paintedIds.includes(o.id)).map(o=>o.sourceId||o.id);evidence.geometrySourceIds.poi=poiIds;const scene={profile:profile.name,featureId:f.id,sourceId:f.sourceId,anchor:f.anchor,expectedKinds:profile.expectedKinds,targetMetersPerPixel:mpp,...evidence,...checkProfileEvidence(profile,{...evidence,featureFound:true})};report.scenes.push(scene);
+   const poiIds=evidence.outcomes.filter(o=>o.kind==='symbol'&&evidence.paintedIds.includes(o.id)).map(o=>o.sourceId||o.id);evidence.geometrySourceIds.poi=poiIds;const scene={profile:profile.name,featureId:f.id,sourceId:f.sourceId,anchor:f.anchor,expectedKinds:profile.expectedKinds,targetMetersPerPixel:mpp,...evidence,...checkProfileEvidence(profile,{...evidence,featureFound:true,targetMetersPerPixel:mpp})};report.scenes.push(scene);
    await mkdir(dirname(output),{recursive:true});await page.screenshot({path:output.replace(/\.json$/,`-${report.scenes.length}.png`),fullPage:false});
   }
  }

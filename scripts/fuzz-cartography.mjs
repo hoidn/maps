@@ -207,19 +207,28 @@ try{
  }
  report.status='passed';
 }catch(e){
- await writeFile(join(dir,'failed-input.html'),bytes);report.status='failed';report.failure={step:report.actions.length,...(report.initialization?.failedPhase?{initializationPhase:report.initialization.failedPhase}:{}),message:e.message};
+ report.status='failed';report.failure={step:report.actions.length,...(report.initialization?.failedPhase?{initializationPhase:report.initialization.failedPhase}:{}),message:e.message};process.exitCode=1;
+ await writeFile(join(dir,'failed-input.html'),bytes).catch(error=>{report.failure.evidenceErrors=[{file:'failed-input.html',code:error.code,message:error.message}];});
  // Preserve pending lifecycle state as well as the last successful frame.
  // A responsive page may be stuck waiting for a gesture/font/job indefinitely.
  report.failure.state=await page.evaluate(()=>({snapshot:JSON.parse(fuzzCaptureState()),gestures:[...mapLayout.gestures],rendering:mapLayout.rendering,starting:mapLayout.starting,roundJob:mapLayout.roundJob?{revision:mapLayout.roundJob.revision,cancelled:mapLayout.roundJob.cancelled}:null,settleJob:mapLayout.settleJob?{revision:mapLayout.settleJob.revision,cancelled:mapLayout.settleJob.cancelled}:null,samples:mapLayout.samples.slice(-5)})).catch(error=>({unavailable:error.message}));
- await page.screenshot({path:join(dir,'failure.png'),fullPage:false}).catch(()=>{});process.exitCode=1;
+ await page.screenshot({path:join(dir,'failure.png'),fullPage:false}).catch(()=>{});
 }
 finally{
  clearTimeout(watchdog);
- report.visualReview={status:'pending',required:true,flaggedFrames:report.checks.filter(c=>c.pointNameCoverage?.reviewRequired).map(c=>c.step)};
- await writeFile(join(dir,'report.json'),JSON.stringify(report,null,2));
- const frames=report.checks.map(c=>`<figure><img loading="lazy" src="frame-${String(c.step).padStart(3,'0')}.png"><figcaption>Step ${c.step}: ${c.step?report.actions[c.step-1].kind:'initial'} · ${c.paintedCount} labels</figcaption></figure>`).join('');
- await writeFile(join(dir,'contact-sheet.html'),`<!doctype html><meta charset="utf-8"><title>Fuzz seed ${report.seed}</title><style>body{font:14px system-ui}main{display:grid;grid-template-columns:repeat(3,1fr)}figure{margin:8px}img{width:100%;border:1px solid #999}</style><h1>${engine} / ${backend} · seed ${report.seed} · automated ${report.status}</h1><p>Visual review pending. Flagged frames: ${report.visualReview.flaggedFrames.join(", ")||"none"}. Every contact sheet still requires review.</p><main>${frames}</main>`);
- console.log(JSON.stringify({status:report.status,visualReview:report.visualReview,seed:report.seed,steps:report.actions.length,errors:report.errors,failure:report.failure,report:join(dir,'report.json')}));await browser.close();await new Promise(r=>server.close(r));
+ try{
+  try{
+   report.visualReview={status:'pending',required:true,flaggedFrames:report.checks.filter(c=>c.pointNameCoverage?.reviewRequired).map(c=>c.step)};
+   await writeFile(join(dir,'report.json'),JSON.stringify(report,null,2));
+   const frames=report.checks.map(c=>`<figure><img loading="lazy" src="frame-${String(c.step).padStart(3,'0')}.png"><figcaption>Step ${c.step}: ${c.step?report.actions[c.step-1].kind:'initial'} · ${c.paintedCount} labels</figcaption></figure>`).join('');
+   await writeFile(join(dir,'contact-sheet.html'),`<!doctype html><meta charset="utf-8"><title>Fuzz seed ${report.seed}</title><style>body{font:14px system-ui}main{display:grid;grid-template-columns:repeat(3,1fr)}figure{margin:8px}img{width:100%;border:1px solid #999}</style><h1>${engine} / ${backend} · seed ${report.seed} · automated ${report.status}</h1><p>Visual review pending. Flagged frames: ${report.visualReview.flaggedFrames.join(", ")||"none"}. Every contact sheet still requires review.</p><main>${frames}</main>`);
+  }finally{
+   // Keep the primary failure available even when its on-disk report cannot be saved.
+   console.log(JSON.stringify({status:report.status,visualReview:report.visualReview,seed:report.seed,steps:report.actions.length,errors:report.errors,failure:report.failure,report:join(dir,'report.json')}));
+  }
+ }finally{
+  try{await browser.close();}finally{await new Promise(r=>server.close(r));}
+ }
 }
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(resolve(process.argv[1])).href)await main();

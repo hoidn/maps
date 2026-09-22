@@ -467,18 +467,11 @@ export class LayoutController {
           for(const child of e.querySelectorAll('[id]'))child.removeAttribute('id');
           e.style.visibility='hidden';e.style.display='inline';e.setAttribute('transform','');
           const text=e.querySelector('text');if(text)text.innerHTML=a.originalTextHTML;
-          (measurementHost??=createMeasurementHost(this.svg)).parentFor(original.parentElement).append(e);this.normalize(a,e,s);measuring.set(a.id,e);return e;
+          (measurementHost??=createMeasurementHost(this.svg)).parentFor(original.parentElement).append(e);measuring.set(a.id,e);this.normalize(a,e,s);return e;
         };
         if(job)job.cleanup=()=>{measurementHost?.remove();measuring.clear();};
         let deadline=performance.now()+8;
-        for(const a of this.starting?[]:this.manifest.annotations){
-          if(cooperative){
-            if(roundEligibility(a,round,fixed?.has(a.id))||roundJob?.failures.has(a.id))continue;
-            const line=a.kind==='line-label'&&(a.geometryId||a.geometryIds?.length);
-            if(!this.eligible(a,project(m,a.anchor),viewport,z,pixelsPerMapUnit)&&!fixed?.has(a.id)&&!(line?this.lineCache:this.cache.entries).has(a.id))measurementElement(a);
-            if(performance.now()>=deadline){await pause();deadline=performance.now()+8;}
-            continue;
-          }
+        for(const a of this.starting||cooperative?[]:this.manifest.annotations){
           const e=this.elements.get(a.id),text=e.querySelector('text');e.style.visibility='hidden';
           if(fixed?.has(a.id))continue;
           if(this.eligible(a,project(m,a.anchor),viewport,z,pixelsPerMapUnit)){e.style.display='none';continue;}
@@ -525,9 +518,8 @@ export class LayoutController {
               if(!this.lineCache.has(a.id)&&!batch?.minimumIds.has(a.id)&&performance.now()>=candidateDeadline){item.eligibleReason='budget-deferred';prepared.push(item);continue;}
               if(!this.lineCache.has(a.id)){
                 e=measurementElement(a);
-                // The setup pass (or startup clone) already normalized this hidden
-                // element. Keep it attached until cleanup/commit so short lines do
-                // not dirty the full SVG before the next label's geometry reads.
+                // Only the current clone is attached to the isolated host. The
+                // static setup pass normalizes its original element in place.
                 item.candidateDiagnostics={};item.candidates=buildLineCandidates({annotation:a,element:e,measurement:{canvasInk:!!this.renderer},diagnostics:item.candidateDiagnostics,policy:{...this.policy,maxLineCandidates:this.mode==='interactive'?Math.min(this.policy.maxLineCandidates??24,4):this.policy.maxLineCandidates}});
               }
               this.lineCache.set(a.id,{candidates:item.candidates,parentMatrix});
@@ -548,6 +540,7 @@ export class LayoutController {
               }
             }
           }catch(error){if(error.name==='AbortError')throw error;item.eligibleReason=error.message.includes('overflow')?'no-valid-candidate':'invalid-metrics';item.metricError=error.message;}
+          finally{if(cooperative){measuring.get(a.id)?.remove();measuring.delete(a.id);}}
           prepared.push(item);
         }
       }

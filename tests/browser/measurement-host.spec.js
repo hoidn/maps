@@ -15,7 +15,7 @@ test('cooperative measurement stays outside source paint and follows resized cam
    const result=append.apply(this,nodes);
    for(const node of nodes)if(node instanceof Element&&node.hasAttribute('data-layout-measurement')){
     const owner=node.ownerSVGElement,m=owner.getScreenCTM(),source=svg.getScreenCTM();
-    measuringContexts.push({inSource:svg.contains(node),sameCamera:['a','b','c','d','e','f'].every(k=>Math.abs(m[k]-source[k])<1e-6),duplicateBindings:owner===svg?0:owner.querySelectorAll('[id],[data-layout-id]').length});
+    measuringContexts.push({liveClones:owner.querySelectorAll('[data-layout-measurement]').length,inSource:svg.contains(node),sameCamera:['a','b','c','d','e','f'].every(k=>Math.abs(m[k]-source[k])<1e-6),duplicateBindings:owner===svg?0:owner.querySelectorAll('[id],[data-layout-id]').length});
    }
    return result;
   };
@@ -24,7 +24,7 @@ test('cooperative measurement stays outside source paint and follows resized cam
  await page.evaluate(async()=>{await mapLayout.ready;await mapLayout.whenSettled();document.querySelector('.map-wrap').style.width='623.375px';mapLayout.requestView({x:12.25,y:7.5,w:300.5,h:240.4});await mapLayout.whenSettled();});
  const result=await page.evaluate(()=>({contexts:measuringContexts,status:mapLayout.status,placements:mapLayout.result.placements.length,leftovers:document.querySelectorAll('[data-layout-measurement],[data-layout-measurement-host]').length}));
  expect(result.contexts.length).toBeGreaterThan(3);expect(result.contexts.filter(c=>c.inSource)).toEqual([]);
- expect(result.contexts.every(c=>c.sameCamera&&!c.duplicateBindings)).toBe(true);expect(result.status).toBe('ready');expect(result.placements).toBeGreaterThan(0);expect(result.leftovers).toBe(0);
+ expect(result.contexts.every(c=>c.sameCamera&&!c.duplicateBindings)).toBe(true);expect(Math.max(...result.contexts.map(c=>c.liveClones))).toBe(1);expect(result.status).toBe('ready');expect(result.placements).toBeGreaterThan(0);expect(result.leftovers).toBe(0);
 });
 
 test('isolated native metrics equal source metrics for variants, path references and physical sizes',async({page})=>{
@@ -68,7 +68,7 @@ for(const interruption of ['camera','error','pagehide'])test(`measurement hosts 
  const result=await page.evaluate(async interruption=>{
   const l=mapLayout;let interrupted=false;
   if(interruption==='error'){
-   l.normalize=()=>{interrupted=true;throw new Error('Intentional measurement error');};
+   const snapshot=l.startupSnapshot.bind(l);l.startupSnapshot=()=>{if(document.querySelector('[data-layout-measurement-host]')){interrupted=true;throw new Error('Intentional measurement error');}return snapshot();};
    l.cache.invalidate();l.lineCache.clear();await l.render(true);
   }else{
    const observer=new MutationObserver(()=>{

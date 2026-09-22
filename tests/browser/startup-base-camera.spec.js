@@ -1,6 +1,28 @@
 import {test,expect} from '@playwright/test';
 import fs from 'node:fs/promises';
 import {fixtureHTML} from '../support/browser-fixture.js';
+
+test('camera preserves an unchanged viewBox and restores externally changed geometry',async({page})=>{
+ await page.setContent(await fixtureHTML());
+ await page.evaluate(()=>{
+  const svg=document.getElementById('mapsvg'),set=svg.setAttribute.bind(svg);window.viewBoxWrites=[];
+  svg.setAttribute=(name,value)=>{if(name==='viewBox')viewBoxWrites.push({before:svg.getAttribute(name),after:value});return set(name,value);};
+ });
+ await page.addScriptTag({content:await fs.readFile('pipeline/labels/dist/browser.js','utf8')});
+ await page.evaluate(()=>mapLayout.whenSettled());
+ expect(await page.evaluate(()=>viewBoxWrites)).toEqual([]);
+ const state=await page.evaluate(()=>{
+  const l=mapLayout,matrix=()=>{const m=l.svg.getScreenCTM();return ['a','b','c','d','e','f'].map(k=>m[k]);};
+  const initial=matrix();l.camera();l.camera();const repeated={matrix:matrix(),writes:viewBoxWrites.splice(0)};
+  l.view={x:30,y:10,w:400,h:320};l.camera();const changed={matrix:matrix(),writes:viewBoxWrites.splice(0)};
+  l.svg.setAttribute('viewBox','1 2 490 392');l.camera();const restored={matrix:matrix(),writes:viewBoxWrites.splice(0),viewBox:l.svg.getAttribute('viewBox')};
+  return {initial,repeated,changed,restored};
+ });
+ expect(state.repeated).toEqual({matrix:state.initial,writes:[]});expect(state.changed.writes).toHaveLength(1);
+ expect(state.changed.matrix).not.toEqual(state.initial);expect(state.restored.matrix).toEqual(state.changed.matrix);
+ expect(state.restored.writes).toHaveLength(2);expect(state.restored.viewBox).toBe('30 10 400 320');
+});
+
 async function mountHeldPlacement(page,backend,{cooperativeProbe=false}={}){
  const html=(await fixtureHTML()).replace('id="mapsvg"',`id="mapsvg" data-renderer="${backend}"`).replace('<defs>','<g class="regions"><rect x="350" y="280" width="80" height="70" fill="rgb(230,120,70)"/></g><defs>');
  await page.setContent(html);

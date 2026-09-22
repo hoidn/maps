@@ -223,7 +223,8 @@ export class LayoutController {
     const width=this.svg.clientWidth,height=this.svg.clientHeight;
     const oldFit=Math.min(width/old.width,height/old.height),newFit=Math.min(width/v.w,height/v.h);
     const s=Math.hypot(before.a,before.b)*newFit/oldFit,z=W/v.w;
-    this.svg.setAttribute('viewBox',`${v.x} ${v.y} ${v.w} ${v.h}`);
+    // An identical viewBox write still invalidates native SVG layout.
+    if(oldX!==v.x||oldY!==v.y||old.width!==v.w||old.height!==v.h)this.svg.setAttribute('viewBox',`${v.x} ${v.y} ${v.w} ${v.h}`);
     this.fontScaleValue=(this.mode==='interactive'||this.manifest.map.print)?(translating&&Math.abs(Number(this.fontScaleValue)-1/s)<1e-12?this.fontScaleValue:String(1/s)):'1';
     for(const scope of this.fontScopes)if(scope.style.getPropertyValue('--k')!==this.fontScaleValue)scope.style.setProperty('--k',this.fontScaleValue);
     const strokeScale=this.manifest.map.print?1/s:1/z;

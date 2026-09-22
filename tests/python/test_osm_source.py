@@ -51,12 +51,12 @@ class PartitionedFetchTests(unittest.TestCase):
  def test_empty_partition_is_valid_but_failed_or_incomplete_refresh_keeps_prior_cache(self):
   from sources.osm import fetch
   from unittest.mock import patch
-  import tempfile,requests
+  import tempfile,requests,itertools
   with tempfile.TemporaryDirectory() as tmp:
    path=Path(tmp)/'osm.json';path.write_text('prior cache')
    for responses in (
-    [self.response([]),requests.Timeout('incomplete tile'),requests.Timeout('incomplete tile')],
-    [self.response([{'type':'way','id':1,'nodes':[1234]}])]*6,
+    itertools.chain([self.response([])],itertools.repeat(requests.Timeout('incomplete tile'))),
+    itertools.repeat(self.response([{'type':'way','id':1,'nodes':[1234]}])),
    ):
     with self.subTest(responses=responses),patch('sources.osm.requests.post',side_effect=responses):
      with self.assertRaisesRegex((RuntimeError,ValueError),'acquisition|Missing OSM'):fetch(self.spec(),path)
@@ -65,16 +65,34 @@ class PartitionedFetchTests(unittest.TestCase):
  def test_interrupted_fetch_resumes_verified_parts_without_repeating_them(self):
   from sources.osm import fetch,query_bounds
   from unittest.mock import patch
-  import tempfile,requests
+  import tempfile,requests,itertools
   elements=[{'type':'node','id':1,'lat':.02,'lon':.02}]
   with tempfile.TemporaryDirectory() as tmp:
    path=Path(tmp)/'osm.json';path.write_text('prior cache')
-   with patch('sources.osm.requests.post',side_effect=[self.response(elements),requests.Timeout('busy'),requests.Timeout('busy')]):
+   with patch('sources.osm.requests.post',side_effect=itertools.chain([self.response(elements)],itertools.repeat(requests.Timeout('busy')))):
     with self.assertRaises(RuntimeError):fetch(self.spec(),path)
    self.assertEqual(path.read_text(),'prior cache')
    self.assertTrue((Path(tmp)/'osm-parts'/'0000.json').is_file())
    with patch('sources.osm.requests.post',return_value=self.response(elements)) as post:
     result=fetch(self.spec(),path)
-    self.assertEqual(post.call_count,len(query_bounds(self.spec()))-1)
-    self.assertEqual(len(result['acquisition']['requests']),len(query_bounds(self.spec())))
+    self.assertEqual(post.call_count,len(result['acquisition']['requests'])-1)
+    self.assertGreaterEqual(len(result['acquisition']['requests']),len(query_bounds(self.spec())))
    self.assertFalse((Path(tmp)/'osm-parts').exists())
+
+ def test_overloaded_partition_subdivides_without_changing_coverage(self):
+  from sources.osm import fetch
+  from unittest.mock import patch
+  from shapely.geometry import box
+  from shapely.ops import unary_union
+  import tempfile,requests,re
+  spec=MapSpec.from_dict({'id':'dense','title':'Dense','bbox':[0,0,.06,.04],'bufferDegrees':0})
+  def server(*args,**kwargs):
+   bounds=list(map(float,re.search(r'nwr\["highway"\]\(([^)]+)\)',kwargs['data']['data'])[1].split(',')))
+   south,west,north,east=bounds
+   if east-west>.04:raise requests.Timeout('dense query')
+   return self.response([{'type':'node','id':1,'lat':.01,'lon':.01}])
+  with tempfile.TemporaryDirectory() as tmp,patch('sources.osm.requests.post',side_effect=server):
+   result=fetch(spec,Path(tmp)/'osm.json')
+   tiles=[box(w,s,e,n) for s,w,n,e in (part['bbox'] for part in result['acquisition']['requests'])]
+   self.assertEqual(len(tiles),4);self.assertTrue(unary_union(tiles).equals(box(*spec.bbox)))
+   self.assertAlmostEqual(sum(tile.area for tile in tiles),box(*spec.bbox).area)

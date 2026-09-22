@@ -21,19 +21,25 @@ def overpass_query(spec,*,bbox=None,snapshot=None,exclude_relations=()):
  return '[out:json][timeout:180]'+(f'[date:"{snapshot}"]' if snapshot else '')+';('+''.join(f'nwr{tag}({bbox});' for tag in selectors)+');'+excluded+'(._;>>;);out body qt;'
 def fetch(spec,path):
  path=Path(path);parts=path.with_name(path.stem+'-parts')
- bounds=query_bounds(spec);merged={};requests_used=[];snapshot=None;first=None
- for index,bbox in enumerate(bounds,1):
+ bounds=query_bounds(spec);merged={};requests_used=[];snapshot=None;first=None;preferred=ENDPOINTS[0]
+ def download(bbox,name,depth=0):
+  nonlocal preferred
   known_relations=sorted(identity for kind,identity in merged if kind=='relation')
-  query=overpass_query(spec,bbox=bbox,snapshot=snapshot,exclude_relations=known_relations);errors=[]
-  print(f'OSM partition {index}/{len(bounds)}: {bbox}',flush=True)
-  part=parts/f'{index-1:04d}.json';metadata=part.with_name(part.name+'.source.json')
-  record=json.loads(metadata.read_text()) if part.exists() and metadata.exists() else {}
-  if record.get('query')==query and record.get('fullBbox')==list(spec.overpass_bbox):
-   if not verify_source(part,record):raise ValueError('OSM checkpoint hash mismatch: '+str(part))
-   data=json.loads(part.read_text());stamp=record['serverSnapshot'];endpoint=record['url']
-   print('Resuming verified OSM partition at snapshot '+record['datasetVersion'],flush=True)
-  else:
-   for endpoint in ENDPOINTS:
+  query=overpass_query(spec,bbox=bbox,snapshot=snapshot,exclude_relations=known_relations)
+  print(f'OSM partition {name}: {bbox}',flush=True)
+  part=parts/(name+'.json');metadata=part.with_name(part.name+'.source.json');split=parts/(name+'.split.json')
+  split_record=json.loads(split.read_text()) if split.exists() else {}
+  divided=split_record.get('query')==query and split_record.get('fullBbox')==list(spec.overpass_bbox)
+  if not divided:
+   record=json.loads(metadata.read_text()) if part.exists() and metadata.exists() else {}
+   if record.get('query')==query and record.get('fullBbox')==list(spec.overpass_bbox):
+    if not verify_source(part,record):raise ValueError('OSM checkpoint hash mismatch: '+str(part))
+    data=json.loads(part.read_text());preferred=record['url']
+    print('Resuming verified OSM partition at snapshot '+record['datasetVersion'],flush=True)
+    yield data,record,bbox
+    return
+   errors=[];overloaded=[]
+   for endpoint in sorted(ENDPOINTS,key=lambda endpoint:endpoint!=preferred):
     try:
      r=requests.post(endpoint,data={'data':query},headers={'User-Agent':'grand-canyon-trail-maps/1.0 (standalone cartographic map generation)'},timeout=240);r.raise_for_status();data=r.json()
      if not isinstance(data,dict) or not isinstance(data.get('elements'),list):raise ValueError('Malformed OSM response')
@@ -45,20 +51,32 @@ def fetch(spec,path):
      break
     except (requests.RequestException,ValueError) as error:
      errors.append(endpoint+': '+str(error));print(errors[-1],flush=True)
-   else:raise RuntimeError(f'OSM acquisition failed in partition {index}/{len(bounds)}: '+'; '.join(errors))
-   atomic_json(part,data)
-   record=record_source(part,provider='OpenStreetMap',url=endpoint,retrieved_at=utc_now(),dataset_version=snapshot or stamp,bbox=(bbox[1],bbox[0],bbox[3],bbox[2]),attribution='© OpenStreetMap contributors, ODbL')
-   record.update(query=query,fullBbox=list(spec.overpass_bbox),serverSnapshot=stamp);atomic_json(metadata,record)
-  if first is None:first=data;snapshot=stamp
-  for element in data['elements']:
-   key=(element['type'],element['id'])
-   if key in merged and merged[key]!=element:raise ValueError('Conflicting OSM object at fixed snapshot: '+str(key))
-   merged[key]=element
-  requests_used.append({'bbox':list(bbox),'url':endpoint,'query':query,'retrievedAt':record['retrievedAt'],'serverSnapshot':stamp,'elements':len(data['elements'])})
-  print(f'OSM partition {index}/{len(bounds)}: {len(data["elements"])} elements, {len(merged)} unique',flush=True)
+     overloaded.append(isinstance(error,requests.Timeout) or getattr(getattr(error,'response',None),'status_code',None) in (429,502,503,504) or 'timed out' in str(error).lower() or 'out of memory' in str(error).lower())
+   else:
+    if depth>=2 or not all(overloaded):raise RuntimeError('OSM acquisition failed in partition '+name+': '+'; '.join(errors))
+    atomic_json(split,{'query':query,'fullBbox':list(spec.overpass_bbox),'errors':errors});divided=True
+   if not divided:
+    atomic_json(part,data)
+    record=record_source(part,provider='OpenStreetMap',url=endpoint,retrieved_at=utc_now(),dataset_version=snapshot or stamp,bbox=(bbox[1],bbox[0],bbox[3],bbox[2]),attribution='© OpenStreetMap contributors, ODbL')
+    record.update(query=query,fullBbox=list(spec.overpass_bbox),serverSnapshot=stamp);atomic_json(metadata,record)
+    preferred=endpoint
+    yield data,record,bbox
+    return
+  south,west,north,east=bbox;latitude=(south+north)/2;longitude=(west+east)/2
+  print('Subdividing overloaded OSM partition '+name,flush=True)
+  for index,child in enumerate(((south,west,latitude,longitude),(south,longitude,latitude,east),(latitude,west,north,longitude),(latitude,longitude,north,east))):
+   yield from download(child,name+'-'+str(index),depth+1)
+ for index,bbox in enumerate(bounds):
+  for data,record,actual_bbox in download(bbox,f'{index:04d}'):
+   if first is None:first=data;snapshot=record['datasetVersion']
+   for element in data['elements']:
+    key=(element['type'],element['id'])
+    if key in merged and merged[key]!=element:raise ValueError('Conflicting OSM object at fixed snapshot: '+str(key))
+    merged[key]=element
+   requests_used.append({'bbox':list(actual_bbox),'url':record['url'],'query':record['query'],'retrievedAt':record['retrievedAt'],'serverSnapshot':record['serverSnapshot'],'elements':len(data['elements'])})
+   print(f'OSM frame partition {index+1}/{len(bounds)}: {len(data["elements"])} elements, {len(merged)} unique',flush=True)
  if not merged:raise ValueError('Empty OSM acquisition')
- # A successful response must include complete ways and recursive relation members.
- # Do not replace a prior cache with a geographically incomplete partial refresh.
+ # Never replace a prior cache with incomplete ways or recursive relation members.
  for element in merged.values():
   refs=[('node',ref) for ref in element.get('nodes',[])] if element['type']=='way' else [(member['type'],member['ref']) for member in element.get('members',[])] if element['type']=='relation' else []
   for ref in refs:

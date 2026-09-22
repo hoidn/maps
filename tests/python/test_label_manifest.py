@@ -2,9 +2,33 @@ import sys, unittest, json, xml.etree.ElementTree as ET
 from pathlib import Path
 from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'pipeline'))
-from label_manifest import Manifest, embedded_fonts
+from label_manifest import Manifest, embedded_fonts, stable_id
 
 class ManifestTests(unittest.TestCase):
+    def test_static_preparation_removes_only_unreferenced_path_definitions(self):
+        svg='''<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><defs>
+        <path id="unused" d="M0,0 L2,2"/>
+        <path id="shared" d="M0,0 L30,0"/>
+        <path id="paint" d="M0,0 L40,0"/>
+        <path id="css" d="M0,0 L50,0"/>
+        <path id="linked" d="M0,0 L60,0"/>
+        <path id="metadata" d="M0,0 L70,0"/>
+        <clipPath id="clip"><rect width="40" height="40"/></clipPath>
+        </defs><style>.sample{clip-path:url('#css')}</style>
+        <use href="#paint"/><use xlink:href="#linked"/><g class="labels"><text><textPath href="#shared">Retained</textPath></text></g></svg>'''
+        # Use content-addressed IDs where the existing normalizer rewrites only
+        # href, so these cases exercise live references rather than old aliases.
+        for name,d in [('css','M0,0 L50,0'),('linked','M0,0 L60,0')]:
+            svg=svg.replace('id="'+name+'"','id="'+stable_id('geometry',d)+'"').replace('#'+name,'#'+stable_id('geometry',d))
+        for mode in ('interactive','static'):
+            m=Manifest(mode)
+            m.symbol('<circle r="1"/>','camp',(1,1));m.annotations[-1]['geometryIds']=[stable_id('geometry','M0,0 L70,0')]
+            root=ET.fromstring(m.finalize(svg));ns={'s':'http://www.w3.org/2000/svg'}
+            paths=root.findall('s:defs/s:path',ns)
+            self.assertEqual({p.get('d') for p in paths}, {'M0,0 L30,0','M0,0 L40,0','M0,0 L50,0','M0,0 L60,0','M0,0 L70,0'} | ({'M0,0 L2,2'} if mode=='interactive' else set()))
+            self.assertIsNotNone(root.find('s:defs/s:clipPath',ns))
+            self.assertIn(m.annotations[-1]['geometryId'],{p.get('id') for p in paths})
+
     def test_static_scale_preparation_keeps_sources_required_labels_and_visible_detail(self):
         for mode,profile,removed in [('interactive',None,False),('static',None,True),('static',{'mapWidthMm':1000,'paperMm':None},True),('static',{'mapWidthMm':2000,'paperMm':None},False),('static',{'mapWidthMm':None,'paperMm':[1022,1600],'marginMm':6,'tickMarginMm':5},True)]:
             with self.subTest(mode=mode,profile=profile):

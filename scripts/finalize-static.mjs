@@ -176,7 +176,7 @@ export async function finalizeStatic({
     const referenceSize=print?.referenceSize;
     const measurementEnvelope = await staticMeasurementEnvelope(page, viewport,referenceSize);
     await writeFile(join(reportDir,"measurement-envelope.json"),JSON.stringify(measurementEnvelope,null,2));
-    let frozen = await page.evaluate(
+    await page.evaluate(
       async ({ sourceSha256, measurementEnvelope, auditPolicy, referenceSize }) => {
         const svg = document.getElementById("mapsvg"),
           controller = window.mapLayout;
@@ -291,12 +291,21 @@ export async function finalizeStatic({
           missingRequired: report.missingRequired,
         }).replaceAll("<", "\\u003c");
         document.body.append(metadata);
-        return "<!doctype html>\n" + document.documentElement.outerHTML;
       },
       { sourceSha256, measurementEnvelope, auditPolicy:policy, referenceSize },
     );
     const printEvidence=await finishPrint(page);
-    if(printEvidence)frozen=await page.evaluate(()=>'<!doctype html>\n'+document.documentElement.outerHTML);
+    const frozen=await page.evaluate(()=>{
+      const svg=document.getElementById('mapsvg'),manifest=JSON.parse(document.getElementById('map-label-manifest').textContent);
+      const outcomes=new Map(JSON.parse(document.getElementById('map-layout-frozen-report').textContent).outcomes.map(o=>[o.id,o.reason]));
+      // Keep the complete audit inventory; only permanently unpainted optional DOM is discarded.
+      for(const a of manifest.annotations){
+        if(a.requiredProfiles?.length||a.requiredGroup||!outcomes.has(a.id)||outcomes.get(a.id)==='placed')continue;
+        const e=document.getElementById(a.elementId);
+        if(e&&svg.contains(e)&&e.dataset.layoutId===a.id&&e.dataset.featureId===a.featureId&&e.style.display==='none'&&!e.querySelector('[data-layout-id]'))e.remove();
+      }
+      return '<!doctype html>\n'+document.documentElement.outerHTML;
+    });
     await browser.close();
     browser = null;
     await writeFile(candidate, frozen);

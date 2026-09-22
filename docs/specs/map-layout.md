@@ -109,6 +109,11 @@ its threshold with `below-text-importance` before measuring it. This interface d
 not gate physical geometry or symbols, and does not replace their existing detail
 limits. Older manifests without these fields retain their original selection.
 Required destinations/routes have no additional text-importance scale threshold.
+Physical print point names also use no additional text threshold: their feature-detail
+limits still apply, and unchanged priorities and collision rules select what fits.
+Contour elevations and junction distances retain their text thresholds even when
+represented by point text. The generation report records this print exception in
+`textSelection.printPointNamesUseFeatureLimit`; it does not infer source prominence.
 The shared generation policy and score tiers live in
 [`text_importance.py`](../../pipeline/cartography/text_importance.py); they derive
 from semantic classes, explicit requirements, mapped linear extent and numeric
@@ -246,6 +251,15 @@ inert `map-layout-frozen-report` metadata, and removes the layout runtime and it
 added directory/details controls. Unrelated existing page interaction can remain;
 map annotation readability must not require JavaScript.
 
+After final placement and any print-collar resolution, the finalizer may remove an
+optional annotation's SVG wrapper only when its recorded outcome is not `placed`
+and its inline `display` is `none`. Wrappers containing other managed wrappers
+remain. Placed annotations and annotations with any required profile or route group
+retain their wrappers. Every manifest annotation
+and feature record, geographic anchor, and original frozen outcome remains intact;
+the independent audit still inventories an omitted wrapper as `missing-element`.
+Base paint and shared definitions are unchanged by this subtraction.
+
 Before replacing the destination, the finalizer independently audits the
 serialized candidate with JavaScript disabled and external networking blocked
 in the supported browser/theme matrix. The exact audited bytes are identified
@@ -269,6 +283,8 @@ collar is measured, with one CSS pixel reserved for dimension rounding. It retai
 feature records and all required annotations. `map.staticPreparation` records the resulting
 minimum metres per pixel and counts of removed geometry elements and optional annotations.
 Thus preparation cannot hide a required-content failure or remove detail that could fit.
+After preparing static annotations, unreferenced direct path definitions may be removed;
+remaining SVG references and annotation geometry references keep their definitions.
 
 Staging SVGs carry `data-layout-pending` to defer layout during HTML parsing. Browser bootstrap
 removes it before constructing the controller or measuring geometry. Frozen output retains

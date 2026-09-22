@@ -48,6 +48,11 @@ def apply_text_importance(manifest,features):
   source_id=a.get('sourceId') or manifest.features[a['featureId']].get('sourceId')
   values=text_importance(a,by_source.get(source_id))
   if values is None:continue
+  # Physical sheets select readable place names by priority and available space.
+  # Keep feature-scale limits, but do not inherit the extra interactive text gate.
+  if (getattr(manifest,'print_profile',None) and a.get('kind')=='point-label'
+      and values['textImportanceReason'] not in ('contour-elevation','junction-distance-detail')):
+   values['textMaxMetersPerPixel']=None
   a.update(values);a['priority']=values['textImportance']
   reason=values['textImportanceReason'];counts[reason]=counts.get(reason,0)+1
- return {'policyVersion':1,'scope':'text-only','tiers':[{'minimumScore':s,'maximumMetersPerPixel':m} for s,m in TIERS],'reasonCounts':counts}
+ return {'policyVersion':1,'scope':'text-only','tiers':[{'minimumScore':s,'maximumMetersPerPixel':m} for s,m in TIERS],'printPointNamesUseFeatureLimit':bool(getattr(manifest,'print_profile',None)),'reasonCounts':counts}

@@ -96,6 +96,47 @@ test("static finalizer preserves destination when required placement is impossib
   ).rejects.toThrow(/required/i);
   expect(await readFile(paths.output, "utf8")).toBe("prior output");
 });
+test("frozen subtraction preserves placed paint and the full audit inventory", async ({browserName,browser}) => {
+  test.skip(browserName !== "chromium", "Finalization audits all three engines and both themes.");
+  const {finalizeStatic}=await import("../../scripts/finalize-static.mjs");
+  const paths=await inputFile(),source=await readFile(paths.input,"utf8");
+  const original=source.match(/<script[^>]*id="map-label-manifest"[^>]*>([\s\S]*?)<\/script>/)[1];
+  const manifest=JSON.parse(original),extra=[];
+  for(const [id,requirements] of [["hidden-optional",{}],["hidden-profile",{requiredProfiles:["another-profile"]}],["hidden-group",{requiredGroup:"Another route"}],["hidden-parent",{}]]){
+    const anchor=[10000,10000],featureId="feature-"+id;
+    manifest.features.push({id:featureId,name:id,anchor,directory:false});
+    manifest.annotations.push({id,elementId:id,featureId,kind:"point-label",layer:"places",anchor,text:id,style:"l-place",priority:100,requiredProfiles:[],...requirements});
+    extra.push(`<g id="${id}" data-layout-id="${id}" data-feature-id="${featureId}"><text class="l-place" x="10000" y="10000">${id}</text></g>`);
+  }
+  extra[3]=extra[3].replace('</g>',extra[1]+'</g>');extra[1]='';
+  await writeFile(paths.input,source.replace(original,JSON.stringify(manifest)).replace('<g class="labels">','<g class="labels">'+extra.join("")));
+  const result=await finalizeStatic({...paths,policy,reportDir:join(paths.dir,"reports")});
+  const page=await browser.newPage({javaScriptEnabled:false});
+  await page.setContent(await readFile(paths.output,"utf8"));
+  const frozen=await page.evaluate(()=>({
+    manifest:JSON.parse(document.getElementById("map-label-manifest").textContent),
+    report:JSON.parse(document.getElementById("map-layout-frozen-report").textContent),
+    wrappers:[...document.querySelectorAll("[data-layout-id]")].map(e=>e.dataset.layoutId),
+  }));
+  await page.close();
+  expect(frozen.manifest).toEqual(manifest);
+  expect(frozen.wrappers).not.toContain("hidden-optional");
+  expect(frozen.wrappers).toEqual(expect.arrayContaining(["label-0","label-1","hidden-profile","hidden-group","hidden-parent"]));
+  const placed=frozen.report.outcomes.filter(o=>o.reason==="placed").map(o=>o.id);
+  expect(placed).toEqual(expect.arrayContaining(["label-0","label-1"]));
+  expect(frozen.wrappers).toEqual(expect.arrayContaining(placed));
+  const ids=manifest.annotations.map(a=>a.id).sort();
+  expect(frozen.report.outcomes.map(o=>o.id).sort()).toEqual(ids);
+  expect(frozen.report.outcomes.find(o=>o.id==="hidden-optional").reason).toBe("outside-view");
+  expect(result.audits).toHaveLength(6);
+  for(const audit of result.audits){
+    expect(audit.status).toBe("pass");
+    expect(audit.views[0].manifest).toEqual(manifest);
+    expect(audit.views[0].outcomes.map(o=>o.id).sort()).toEqual(ids);
+    expect(audit.views[0].outcomes.find(o=>o.id==="hidden-optional").reason).toBe("missing-element");
+    expect(audit.views[0].visible).toEqual(expect.arrayContaining(placed));
+  }
+});
 test("serialization-only collision prevents output replacement", async ({
   browserName,
 }) => {

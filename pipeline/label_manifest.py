@@ -201,6 +201,23 @@ class Manifest:
 
             if a['kind']=='line-label' and not a.get('geometryId'):
                 a['geometryIds']=paths_by_feature.get(a['featureId'],[])
+        if self.mode=='static':
+            # Scale preparation can discard thousands of labels while leaving
+            # their private path definitions behind. Retain every live reference.
+            referenced=set()
+            for element in root.iter():
+                for key,value in element.attrib.items():
+                    if key in ('href','{http://www.w3.org/1999/xlink}href') and value.startswith('#'):
+                        referenced.add(value[1:])
+                    referenced.update(re.findall(r'''url\(\s*['"]?#([^\s)'";]+)''',value))
+                if element.tag==f'{{{NS}}}style':
+                    referenced.update(re.findall(r'''url\(\s*['"]?#([^\s)'";]+)''',''.join(element.itertext())))
+            referenced={remap.get(ref,ref) for ref in referenced}
+            for annotation in self.annotations:
+                referenced.update(annotation.get('geometryIds',[]))
+                if annotation.get('geometryId'):referenced.add(annotation['geometryId'])
+            for defs in root.findall(f'{{{NS}}}defs'):
+                defs[:]=[element for element in defs if element.tag!=f'{{{NS}}}path' or not element.get('id') or element.get('id') in referenced]
         return ET.tostring(root,encoding='unicode')
 
     def data(self):

@@ -6,6 +6,27 @@ from cartography.text_importance import text_importance,apply_text_importance
 from label_manifest import Manifest
 
 class TextImportanceTests(unittest.TestCase):
+ def test_print_place_names_keep_feature_limits_and_priorities_without_extra_text_gate(self):
+  for profile in (None,{'version':1,'mapWidthMm':1300*25.4/96}):
+   m=Manifest('static');m.print_profile=profile;wrappers=[]
+   for name,style,kind in [('Unknown Summit','l-peak','point-label'),('Camp','l-place','point-label'),('Contour','l-contour','point-label'),('Distance','l-place','point-label'),('Trail','l-trail','line-label')]:
+    wrappers.append(m.label('<text>'+name+'</text>',name,style,[10,len(m.annotations)*20],kind=kind,source_id=name))
+    m.annotations[-1]['maxMetersPerPixel']=32
+    if name=='Distance':m.annotations[-1]['distanceSegmentId']='segment'
+   expected=[text_importance(a) for a in m.annotations];before=deepcopy(m.annotations)
+   apply_text_importance(m,[])
+   for index,a in enumerate(m.annotations):
+    self.assertEqual(a['textMaxMetersPerPixel'],None if profile and index<2 else expected[index]['textMaxMetersPerPixel'])
+    self.assertEqual(a['priority'],expected[index]['textImportance'])
+    self.assertEqual(a['textImportanceReason'],expected[index]['textImportanceReason'])
+    for key in ('id','featureId','anchor','maxMetersPerPixel'):self.assertEqual(a[key],before[index][key])
+   if profile:
+    for mpp in (20,40):
+     prepared=deepcopy(m);prepared.map_metadata={'metersPerMapUnit':mpp}
+     prepared.finalize('<svg xmlns="http://www.w3.org/2000/svg">'+''.join(wrappers)+'</svg>')
+     self.assertEqual(any(a['text']=='Unknown Summit' for a in prepared.annotations),mpp<32)
+     self.assertEqual(prepared.features,m.features)
+
  def test_semantic_zoom_hierarchy_is_name_and_location_independent(self):
   cases=[({'kind':'point-label','priority':830,'priorityReason':'trailhead'},48),({'kind':'point-label','style':'l-peak'},12),({'kind':'line-label','style':'l-hydro','featureLengthMeters':6000},48),({'kind':'line-label','style':'l-hydro','featureLengthMeters':800},32),({'kind':'line-label','style':'l-trail','distanceSegmentId':'segment'},3)]
   for a,limit in cases:

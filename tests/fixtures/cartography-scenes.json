@@ -26,22 +26,6 @@
       "artifactSha256": "1408f4196d083a38d6d15bc52f1f0843f1f8ddfd65c5a9e2ba9a46c9c73efc95",
       "reviewedAt": "2026-09-22",
       "coverageStatus": "failed",
-      "scope": "Reviewed source identities and 12 matched-scale visuals for this exact artifact. Review completion does not waive missing painted source features.",
-      "browser": "chromium",
-      "browserVersion": "140.0.7339.186",
-      "requestedBackend": "webgl",
-      "activeBackend": "webgl",
-      "viewport": {
-        "width": 1440,
-        "height": 1200
-      },
-      "deviceScaleFactor": 1,
-      "theme": "light",
-      "groundScalesMetersPerPixel": [
-        32,
-        12,
-        6
-      ],
       "evidence": {
         "coverage": {
           "path": "artifacts/regional-print/san-gabriel/coverage.json",
@@ -49,7 +33,7 @@
         },
         "visualReview": {
           "path": "artifacts/regional-print/san-gabriel/coverage-visual-review.json",
-          "sha256": "20f96df7bca8f9c6acd12c8fd505e27a95f8047323f4c3d2c5f8c1aa1fe7716e"
+          "sha256": "297e52161b29a2a8ab76dbcf8e95f66cfa8d302c13f9d41a303eae39eb45d93c"
         },
         "sourceReview": {
           "path": "artifacts/regional-print/san-gabriel/source-checks.json",
@@ -62,50 +46,18 @@
       },
       "sceneCount": 12,
       "passedScenes": 9,
-      "failedScenes": [
+      "failedScenes": 3,
+      "coverageFailures": [
         {
-          "scene": 1,
           "profile": "Mount Wilson",
           "sourceId": "osm:node:358794822",
-          "metersPerPixel": 32,
-          "missingPaintedSource": true,
-          "reason": "summit symbol omitted by collision",
-          "blockerSourceId": "osm:node:150979270",
-          "blockerKind": "settlement name"
-        },
-        {
-          "scene": 2,
-          "profile": "Mount Wilson",
-          "sourceId": "osm:node:358794822",
-          "metersPerPixel": 12,
-          "missingPaintedSource": true,
-          "reason": "summit symbol omitted by collision",
-          "blockerSourceId": "osm:node:3659656141",
-          "blockerKind": "drinking-water symbol"
-        },
-        {
-          "scene": 3,
-          "profile": "Mount Wilson",
-          "sourceId": "osm:node:358794822",
-          "metersPerPixel": 6,
-          "missingPaintedSource": true,
-          "reason": "summit symbol omitted by collision",
-          "blockerSourceId": "osm:node:3659656141",
-          "blockerKind": "drinking-water symbol"
+          "metersPerPixel": [
+            32,
+            12,
+            6
+          ],
+          "missingPaintedSource": true
         }
-      ],
-      "visualFindings": [
-        "All four profile areas show continuous relief, hydrography, roads/trails and populated matching legend at 32, 12 and 6 metres per pixel.",
-        "Mount San Antonio summit label and elevation are legible at all three reviewed scales; nearby West Baldy remains separately identified.",
-        "Mount Baden-Powell summit name/elevation are legible in the 12 and 6 m/pixel views; its name is absent at 32 m/pixel.",
-        "Mount Wilson summit name/elevation is legible at 6 m/pixel. Bold Mount Wilson text at wider scales identifies the nearby settlement and cannot establish summit coverage.",
-        "West Fork San Gabriel River and adjoining East/North Fork areas, trailheads and roads are visible; the river label drops out of the 6 m/pixel view under ordinary placement rules."
-      ],
-      "limits": [
-        "All 12 screenshot hashes were verified against the recorded review and the previously reviewed images. This review is not transferred to later HTML hashes.",
-        "Mount Wilson summit osm:node:358794822 is distinct from the nearby same-name settlement osm:node:150979270; the settlement cannot satisfy summit coverage.",
-        "No all-engine/backend/theme interaction acceptance, promotion approval, independent survey accuracy or current-access claim.",
-        "The approved rectangle omits western portions of the San Gabriel Mountains National Monument; it is not complete monument coverage."
       ]
     }
   }

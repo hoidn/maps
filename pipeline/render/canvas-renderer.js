@@ -85,7 +85,7 @@ export class CanvasMapRenderer{
    if(!this.packedFallback){this.refreshPending++;this.packedFallback=packed.hydrateAll().then(()=>{this.refreshPending--;this.fallback(error);},failure=>{this.refreshPending--;this.controller.status='error';this.controller.error=failure.message;this.controller.details.textContent='Map geometry unavailable: '+failure.message;this.clearLabels();this.controller.visibleIds.clear();packed.close();this.controller.resolveWaiters();});}
    return;
   }
-  this.error=error?.message||String(error);this.destroy();this.controller.renderer=null;this.controller.invalidateLayout();this.controller.schedule();}
+  this.error=error?.message||String(error);this.controller.rendererError=this.error;this.destroy();this.controller.renderer=null;this.controller.invalidateLayout();this.controller.schedule();}
  destroy(){if(this.controller.renderer===this)this.controller.renderer=null;window.removeEventListener('pagehide',this.pageHidden);this.gpu?.destroy();this.active=false;this.generation++;this.refreshGeneration++;this.canvases.forEach(c=>{c.remove();c.width=c.height=1;});this.labels.clear();this.painted=[];this.paintedGeometry=[];this.pointerStyle?.remove();this.svg.style.opacity=this.originalOpacity||'';delete this.svg.dataset.mapRenderer;this.themeObserver?.disconnect();this.media?.removeEventListener('change',this.themeChanged);}
  camera(view){
   const r=this.svg.getBoundingClientRect(),m=viewMatrix(view,r),z=this.controller.manifest.map.width/view.w;

@@ -25,6 +25,17 @@ test('Canvas trail picking preserves feature identity',async({page})=>{
  expect(name).toBe('Fixture Trail');
 });
 
+test('capturing unhighlighted source geometry does not mutate its classes',async({page})=>{
+ await mount(page);
+ const mutations=await page.evaluate(async()=>{
+  const l=mapLayout,records=[],observer=new MutationObserver(changes=>records.push(...changes));
+  observer.observe(l.svg,{subtree:true,attributes:true,attributeFilter:['class']});
+  try{await l.renderer.scene.prepare();records.push(...observer.takeRecords());return records.map(r=>r.target.id);}
+  finally{observer.disconnect();}
+ });
+ expect(mutations).toEqual([]);
+});
+
 test('Canvas zoom frames leave measurement SVG transforms unchanged',async({page})=>{
  await mount(page);
  const data=await page.evaluate(async()=>{const l=mapLayout,before=[...l.elements.values()].map(e=>e.getAttribute('transform'));l.beginGesture('pointer');l.requestView({...l.view,w:300,h:240});await new Promise(requestAnimationFrame);const after=[...l.elements.values()].map(e=>e.getAttribute('transform'));l.endGesture('pointer');await l.whenSettled();return {before,after};});

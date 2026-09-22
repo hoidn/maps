@@ -108,8 +108,8 @@ export class MapScene{
    const nodes=top.matches(SHAPES+',text')?[top]:[...top.querySelectorAll(SHAPES+',text')];
    for(const e of nodes){
     if(e.closest('[data-layout-id]')||e.closest('defs'))continue;
-    const transient=['lit','dim'].filter(c=>e.classList.contains(c));e.classList.remove(...transient);
-    let commands;try{commands=captureCommands(e,this.svg,{world:true});}finally{e.classList.add(...transient);}
+    const transient=['lit','dim'].filter(c=>e.classList.contains(c));if(transient.length)e.classList.remove(...transient);
+    let commands;try{commands=captureCommands(e,this.svg,{world:true});}finally{if(transient.length)e.classList.add(...transient);}
     const z=this.map.width/this.svg.viewBox.baseVal.width,constantStroke=!!e.closest('.roads,.hydro,.trails,.boundaries,.buildings');
     if(constantStroke)for(const c of commands){c.style.width*=z;c.style.dash=c.style.dash.map(n=>n*z);c.style.dashOffset*=z;}
     this.items.push({kind:'commands',element:e,layer,commands,maxMpp:Number(e.dataset.maxMpp)||null,bounds:commandBounds(commands),constantStroke,name:e.dataset.name});

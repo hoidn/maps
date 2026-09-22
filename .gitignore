@@ -25,4 +25,5 @@ water.json.tmp
 
 pipeline/cache/
 
-pipeline/sequoia_trails*.html
+pipeline/*_trails_static*.html
+pipeline/*_trails_interactive.html

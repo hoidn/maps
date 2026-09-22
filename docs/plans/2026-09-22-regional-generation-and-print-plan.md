@@ -117,8 +117,13 @@ trail pins on both directory/programmatic selection. A native captured click use
 the actual hit element when capture retargets it to the SVG root. Eighteen focused
 browser checks pass across all three engines. Bundle SHA
 `3dad47c93266489c561d5f01064bdd75a4764b0811bd9e1174539aa35c3f7645`
-contains both fixes; a public Python interactive rebuild from the same generated
-specification is running. Full selected-matrix acceptance remains pending.
+contains both fixes. The public Python interactive rebuild from the same generated
+specification completed with SHA
+`5da66938564313e3b7711aefb65d8418c111880c127f50c09c005685fa862eb3`.
+Full selected-matrix acceptance remains pending. The bounds-driven cached command
+also completed all six audits of its refreshed native frozen HTML, SHA
+`66b5de5267db2aa379db509facece0344c2d1ce7d71dc8889c764ad4d9c2c8fa`;
+its physical 36-inch export remains in progress.
 Shared comparison scales are 32, 12 and
 6 m/pixel, because the existing 14× zoom cap cannot reach 3 m/pixel in this frame;
 the audit rejects clamped requested scales.
@@ -203,8 +208,14 @@ at physical/native scales; 43 browser checks and all 189 Node checks pass. The n
 1:50,000 run completed normal-heap layout with 3,681 placements; frozen SHA
 `53c60614c77c3988feb060acf03dd95226683c42c6551340a60c5e9d29d5d8cd`
 passed Chromium/light with zero findings. Chromium/dark then exceeded the existing
-120-second navigation bound while remaining alive; an isolated same-byte audit
-retry is pending. No PDF has been accepted for this scale.
+120-second navigation bound while remaining alive. Isolated same-byte audits pass
+Chromium/dark and both Firefox themes; Chromium/dark navigation takes 114.850 seconds.
+WebKit/light finds five optional point names at 16.059–16.916 px from their anchors,
+beyond the unchanged 16 px limit. An exact five-label fixture reproduces all five:
+WebKit's narrower ink bounds are already present in the font probes, but the
+distance check currently uses their outward collision envelope. A shared correction
+is being tested; WebKit/dark and PDF export have not run for this candidate.
+No PDF has been accepted for this scale.
 A shared
 finalizer fix now closes a crashed renderer and records failure promptly instead
 of waiting on DOM diagnostics from the dead page. Its real renderer-crash test

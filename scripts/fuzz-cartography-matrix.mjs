@@ -11,7 +11,7 @@ const defaults=[
 ];
 export function parseArguments(args){
  const result={directory:'artifacts/cartography/fuzz-release',map:null,browserArgs:[]};let directory=false;
- const usage=()=>{throw Error('Usage: fuzz-cartography-matrix.mjs [REPORT_DIR] [--map ID] [--headed|--headless]')};
+ const usage=()=>{throw Error('Usage: fuzz-cartography-matrix.mjs [REPORT_DIR] [--map ID|SPEC.json] [--headed|--headless]')};
  for(let i=0;i<args.length;i++){
   const value=args[i];
   if(value==='--map'){if(result.map||!args[i+1]||args[i+1].startsWith('--'))usage();result.map=args[++i];}
@@ -22,7 +22,9 @@ export function parseArguments(args){
  return result;
 }
 export function selectCases(map,configuredIds){
- if(map&&!configuredIds.includes(map))throw Error('Unknown map: '+map);
+ const explicitSpec=map!==null&&typeof map==='object';
+ if(explicitSpec){map=map.id;if(typeof map!=='string'||!/^[a-z][a-z0-9_-]*$/.test(map))throw Error('Invalid map ID in specification');}
+ if(map&&!explicitSpec&&!configuredIds.includes(map))throw Error('Unknown map: '+map);
  if(!map){for(const [region] of defaults)if(!configuredIds.includes(region))throw Error('Unknown map: '+region);return defaults.map(row=>[...row]);}
  return ['chromium','firefox','webkit'].flatMap(engine=>['svg','canvas','webgl'].map(backend=>{
   const seed=createHash('sha256').update(`${map}:${engine}:${backend}`).digest().readUInt32LE(0);
@@ -37,7 +39,9 @@ export function summarizeBackend(requestedBackend,report){
 async function main(){
  const args=parseArguments(process.argv.slice(2)),dir=resolve(args.directory);
  const configuredIds=await Promise.all((await readdir('pipeline/maps')).filter(file=>file.endsWith('.json')).sort().map(async file=>JSON.parse(await readFile(join('pipeline/maps',file),'utf8')).id));
- const cases=selectCases(args.map,configuredIds),runs=[];await mkdir(dir,{recursive:true});
+ let selected=args.map;
+ if(args.map?.endsWith('.json')){selected=JSON.parse(await readFile(args.map,'utf8'));if(!selected||typeof selected!=='object')throw Error('Invalid map specification: '+args.map);}
+ const cases=selectCases(selected,configuredIds),runs=[];await mkdir(dir,{recursive:true});
  for(const [region,engine,backend,seed] of cases){
   const reportDir=join(dir,`${region}-${engine}-${backend}`),file=`pipeline/${region}_trails_interactive.html`;
   console.log(JSON.stringify({region,engine,backend,seed,status:'start'}));

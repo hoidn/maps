@@ -34,6 +34,13 @@ test('selected configured region covers every browser/backend deterministically'
  for(const browser of ['chromium','firefox','webkit'])assert.deepEqual(cases.filter(row=>row[1]===browser).map(row=>row[2]),['svg','canvas','webgl']);
  const defaults=selectCases(null,names);assert.equal(defaults.length,6);assert.deepEqual(defaults[0],['grand_canyon','chromium','webgl',73191]);
 });
+test('explicit generated map specifications select safe IDs without a preset',()=>{
+ const spec={id:'unregistered-mountains',bbox:[-118.45,34.10,-117.42,34.55]};
+ const cases=selectCases(spec,['grand_canyon']);
+ assert.equal(cases.length,9);assert.ok(cases.every(row=>row[0]===spec.id));
+ assert.deepEqual(cases,selectCases(spec,[]));
+ for(const id of ['../outside','../outside/file','',null])assert.throws(()=>selectCases({id},[]),/Invalid map ID/);
+});
 test('fallback and missing backend evidence cannot pass the requested backend',()=>{
  assert.deepEqual(summarizeBackend('webgl',{status:'passed',checks:[{backend:'canvas'}]}),{requestedBackend:'webgl',activeBackends:['canvas'],status:'fallback'});
  assert.equal(summarizeBackend('webgl',{status:'passed',checks:[]}).status,'failed');

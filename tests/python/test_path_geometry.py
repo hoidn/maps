@@ -5,6 +5,14 @@ sys.path.insert(0,str(Path(__file__).resolve().parents[2]/'pipeline'))
 from path_geometry import detail_path, detail_points
 
 class DetailGeometryTests(unittest.TestCase):
+    def test_closed_degenerate_and_unsimplified_geometry_keeps_its_endpoints(self):
+        ring=np.array([[0,0],[1,0],[1,1],[0,1],[0,0]])
+        np.testing.assert_equal(detail_points(ring,1),ring)
+        repeated=np.array([[2,3],[2,3],[2,3]])
+        np.testing.assert_equal(detail_points(repeated),repeated[[0,-1]])
+        for points in ([],[[1,2]],[[1,2],[3,4]],repeated,ring):
+            np.testing.assert_equal(detail_points(points,0),np.asarray(points,dtype=float))
+
     def test_retains_small_switchbacks_discarded_at_overview_tolerance(self):
         pts=np.array([[0,0],[1,.2],[2,.08],[3,-.2],[4,0]])
         self.assertEqual(len(detail_points(pts)),5)

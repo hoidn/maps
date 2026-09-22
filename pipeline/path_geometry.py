@@ -5,7 +5,7 @@ keeps path error below 0.5 map pixels at 14x at the natural sheet width.
 This preserves source geometry; it does not smooth or add geographic detail.
 """
 import numpy as np
-from skimage.measure import approximate_polygon
+from shapely.geometry import LineString
 
 DETAIL_TOLERANCE = 0.025
 GEOMETRY_VERSION = 1
@@ -13,7 +13,7 @@ GEOMETRY_VERSION = 1
 
 def detail_points(points, tolerance=DETAIL_TOLERANCE):
     points = np.asarray(points, dtype=float)
-    return approximate_polygon(points, min(tolerance, DETAIL_TOLERANCE)) if len(points) > 2 else points
+    return np.asarray(LineString(points).simplify(min(tolerance, DETAIL_TOLERANCE), preserve_topology=False).coords) if len(points) > 2 and tolerance > 0 else points
 
 
 def detail_path(points, tolerance=DETAIL_TOLERANCE):

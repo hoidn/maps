@@ -8,16 +8,18 @@ import { chromium, firefox, webkit } from "@playwright/test";
 import { runAudit } from "./audit-map.mjs";
 const sha = (bytes) => createHash("sha256").update(bytes).digest("hex");
 // Probe the actual embedded typography, not a browser-name fudge factor. Each
-// engine measures identical untransformed SVG text. The largest outward bound
+// engine shapes identical SVG text at its actual screen scale. The outward bound
 // difference is reserved around every frozen annotation; independent serialized
 // audits still decide whether the result is safe to deliver.
-async function measureFontProbes(page, probes) {
+export async function measureFontProbes(page, probes) {
   return page.evaluate(async probes=>{
     const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
     svg.style.cssText='position:absolute;left:-100000px;top:0;width:100000px;height:10000px;visibility:hidden;pointer-events:none';
     document.body.append(svg);
     try{
-      const texts=probes.map(probe=>{const text=document.createElementNS(svg.namespaceURI,'text');text.textContent=probe.text;for(const [key,value] of Object.entries(probe.style))text.style.setProperty(key,value);text.style.setProperty('transform','none');text.setAttribute('x','0');text.setAttribute('y','0');svg.append(text);return text;});
+      // Native SVG glyph shaping depends on effective screen size. Measuring at
+      // scale 1 and scaling the difference afterward loses those font metrics.
+      const texts=probes.map(probe=>{const text=document.createElementNS(svg.namespaceURI,'text');text.textContent=probe.text;for(const [key,value] of Object.entries(probe.style))text.style.setProperty(key,value);text.style.setProperty('transform',`scale(${probe.scale})`);text.setAttribute('x','0');text.setAttribute('y','0');svg.append(text);return text;});
       await Promise.all(texts.map(text=>document.fonts.load(getComputedStyle(text).font,text.textContent)));
       await document.fonts.ready;
       return texts.map(text=>{const b=text.getBBox();return {x:b.x,y:b.y,width:b.width,height:b.height};});
@@ -51,7 +53,7 @@ async function staticMeasurementEnvelope(page, viewport, referenceSize) {
       const computed=getComputedStyle(text),style={};
       for(const key of ['font-family','font-size','font-weight','font-style','font-stretch','font-variant','letter-spacing','word-spacing','text-anchor','dominant-baseline'])style[key]=computed.getPropertyValue(key);
       const owner=text.closest('[data-layout-id]')?.dataset.layoutId,a=annotations.get(owner);
-      // Probe boxes are untransformed CSS units. Preserve directional differences
+      // Probe boxes remain local units. Preserve directional differences
       // only when every text component has that same orientation and scale.
       // Rotated/scaled/curved labels retain the previous uniform envelope.
       const m=text.getScreenCTM(),aligned=a?.kind==='point-label'&&m&&Math.abs(m.a-1)<1e-7&&Math.abs(m.d-1)<1e-7&&Math.abs(m.b)<1e-7&&Math.abs(m.c)<1e-7;
@@ -109,7 +111,7 @@ async function staticMeasurementEnvelope(page, viewport, referenceSize) {
     for(const key of Object.keys(edges))edges[key]=Math.ceil(edges[key]*64)/64;
     if(!directional.has(id))byAnnotation[id]=Math.max(...Object.values(edges));
   }
-  return {method:'per-edge outward SVG text-bound differences for unrotated unit-scale point labels; uniform maxima for other annotations, across embedded-font and declared-wrap probes; per-edge bounds for fixed SVG controls',reservePx,byAnnotation,fixedControlReserves,profiles};
+  return {method:'per-edge outward SVG text-bound differences shaped at actual screen scale for unrotated unit-scale point labels; uniform maxima for other annotations, across embedded-font and declared-wrap probes; per-edge bounds for fixed SVG controls',reservePx,byAnnotation,fixedControlReserves,profiles};
 }
 /** Finalize only after reopening the exact serialized bytes in every audit engine. */
 export async function finalizeStatic({

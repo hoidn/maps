@@ -325,13 +325,13 @@ export class LayoutController {
     const {matrix,placements}=this.panLayout;
     for(const p of result.placements)if(!placements.has(p.id))placements.set(p.id,{...p,footprint:moveShape(p.footprint,matrix.e-m.e,matrix.f-m.f)});
   }
-  fastPrepared(m,viewport,z,fixed=null){
+  fastPrepared(m,viewport,z,fixed=null,pixelsPerMapUnit=this.svg.clientWidth/this.view.w){
     if(this.renderer?.active)return this.renderer.prepareFast(m,viewport,z);
     const previous=new Map((this.previous?.placements||[]).map(p=>[p.id,p]));
     return this.manifest.annotations.map(a=>{
       const anchor=project(m,a.anchor),item={...a,anchor,candidates:[],required:false};
       if(a.kind==='symbol'){item.anchorTrailRadius=6;item.anchorTrailFootprint=true;}
-      item.eligibleReason=this.eligible(a,anchor,viewport,z);if(item.eligibleReason)return item;
+      item.eligibleReason=this.eligible(a,anchor,viewport,z,pixelsPerMapUnit);if(item.eligibleReason)return item;
       item.areaPolygons=projectAreaPolygons(a.areaPolygons,m);
       if(fixed){const p=fixed.get(a.id);if(p)item.candidates=[{...p,id:p.candidateId,shape:p.footprint}];else item.eligibleReason='budget-deferred';if(a.kind==='line-label')item.repeatDistance=this.policy.repeatDistance;return item;}
       const old=previous.get(a.id),retained=this.retained?.get(a.id);
@@ -438,6 +438,8 @@ export class LayoutController {
       // Keep the camera write atomic and defer its layout to normal browser paint.
       const dormant=!settled&&this.previous?.placements.length===0&&!!this.lastViewport&&!this.panLayout?.placements.size;
       const {m,s,z}=this.camera(!dormant),viewport=dormant?this.lastViewport:rectangle(this.svg.getBoundingClientRect()),obstacles=dormant?[]:this.controls();
+      // Label style writes below must not force layout again for every scale gate.
+      const pixelsPerMapUnit=dormant?null:this.svg.clientWidth/this.view.w;
       if(job)job.snapshot=this.startupSnapshot();
       const key=m?this.panKey(m,viewport):null,fixed=m?this.fixedPlacements(m,key,asyncSettled):null;
       // Pure translation preserves prior trail clearance. Only the viewport,
@@ -451,7 +453,7 @@ export class LayoutController {
       if(this.previewDirty){this.previewDirty=false;this.preview?.invalidate();}
       const cameraDone=performance.now();let prepared,batch;
       if(dormant)prepared=this.manifest.annotations.map(a=>({...a,required:false,candidates:[],eligibleReason:this.layers[a.layer]?'budget-deferred':'layer-off'}));
-      else if(!settled)prepared=this.fastPrepared(m,viewport,z,fixed);
+      else if(!settled)prepared=this.fastPrepared(m,viewport,z,fixed,pixelsPerMapUnit);
       else {
         // Fractional zoom can change browser glyph advances despite inverse CSS
         // scaling. Keep only metrics measured at this exact screen scale.
@@ -472,14 +474,14 @@ export class LayoutController {
         for(const a of this.starting?[]:this.manifest.annotations){
           if(cooperative){
             if(roundEligibility(a,round,fixed?.has(a.id))||roundJob?.failures.has(a.id))continue;
-            if(!this.eligible(a,project(m,a.anchor),viewport,z)&&!fixed?.has(a.id)&&a.kind!=='line-label'&&!this.cache.entries.has(a.id))measurementElement(a);
+            if(!this.eligible(a,project(m,a.anchor),viewport,z,pixelsPerMapUnit)&&!fixed?.has(a.id)&&a.kind!=='line-label'&&!this.cache.entries.has(a.id))measurementElement(a);
             if(performance.now()>=deadline){await pause();deadline=performance.now()+8;}
             continue;
           }
           const e=this.elements.get(a.id),text=e.querySelector('text');e.style.visibility='hidden';
           if(fixed?.has(a.id))continue;
           const deferredLine=a.kind==='line-label'&&(a.geometryId||a.geometryIds?.length);
-          if(deferredLine||this.eligible(a,project(m,a.anchor),viewport,z)){e.style.display='none';continue;}
+          if(deferredLine||this.eligible(a,project(m,a.anchor),viewport,z,pixelsPerMapUnit)){e.style.display='none';continue;}
           e.style.display='inline';e.setAttribute('transform','');
           if(text&&text.innerHTML!==a.originalTextHTML)text.innerHTML=a.originalTextHTML;
           this.normalize(a,e,s);
@@ -489,7 +491,7 @@ export class LayoutController {
         // Startup has a small first-paint budget. Idle preparation resumes through
         // the cancellable 8 ms slices above until every eligible label is considered.
         const candidateDeadline=this.mode==='interactive'&&!asyncSettled?performance.now()+(this.policy.interactiveCandidateBudgetMs??24):Infinity;
-        batch=this.starting?initialBatch(this.manifest.annotations,{eligible:a=>!this.eligible(a,project(m,a.anchor),viewport,z,s)}):null;
+        batch=this.starting?initialBatch(this.manifest.annotations,{eligible:a=>!this.eligible(a,project(m,a.anchor),viewport,z,pixelsPerMapUnit)}):null;
         const ordered=batch?.ordered??[...this.manifest.annotations].sort((a,b)=>(b.priority??0)-(a.priority??0)||a.id.localeCompare(b.id));
         for(const a of ordered){
           if(cooperative&&performance.now()>=deadline){await pause();deadline=performance.now()+8;}
@@ -497,7 +499,7 @@ export class LayoutController {
           const anchor=project(m,a.anchor),item={...a,anchor,candidates:[],required:this.mode==='static'&&a.requiredProfiles.includes('static-default')};
           if(a.kind==='symbol'){item.anchorTrailRadius=6;item.anchorTrailFootprint=true;}
           if(a.kind==='line-label')item.repeatDistance=this.policy.repeatDistance;
-          item.eligibleReason=this.eligible(a,anchor,viewport,z)||roundEligibility(a,round,fixed?.has(a.id));
+          item.eligibleReason=this.eligible(a,anchor,viewport,z,pixelsPerMapUnit)||roundEligibility(a,round,fixed?.has(a.id));
           if(item.eligibleReason){prepared.push(item);continue;}
           if(roundJob?.failures.has(a.id)){item.cachedFailure=roundJob.failures.get(a.id);prepared.push(item);continue;}
           item.areaPolygons=projectAreaPolygons(a.areaPolygons,m);

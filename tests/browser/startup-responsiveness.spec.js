@@ -1,6 +1,28 @@
 import {test,expect} from '@playwright/test';
 import {fixtureHTML} from '../support/browser-fixture.js';
 import fs from 'node:fs/promises';
+for(const mode of ['interactive','static'])test(`${mode} eligibility samples viewport width once per preparation`,async({page})=>{
+ await page.setContent(await fixtureHTML(mode));
+ await page.evaluate(()=>{
+  const source=document.getElementById('map-label-manifest'),manifest=JSON.parse(source.textContent),base=manifest.annotations[0],original=document.getElementById(base.elementId);
+  manifest.map.metersPerMapUnit=30;
+  for(let i=0;i<60;i++){
+   const id='detail-'+i,element=original.cloneNode(true);element.id=id;element.dataset.layoutId=id;original.after(element);
+   manifest.annotations.push({...base,id,elementId:id,requiredProfiles:[],geometryBounds:[99,99,101,101],maxMetersPerPixel:20});
+  }
+  source.textContent=JSON.stringify(manifest);
+  const width=Object.getOwnPropertyDescriptor(Element.prototype,'clientWidth').get;
+  window.viewportWidthReads=0;
+  Object.defineProperty(document.getElementById('mapsvg'),'clientWidth',{get(){viewportWidthReads++;return width.call(this);}});
+ });
+ await page.addScriptTag({content:await fs.readFile('pipeline/labels/dist/browser.js','utf8')});await page.evaluate(()=>mapLayout.ready);
+ const initial=await page.evaluate(()=>({reads:viewportWidthReads,reason:mapLayout.prepared.find(a=>a.id==='detail-0').eligibleReason}));
+ expect(initial.reason).toBe('below-detail');expect(initial.reads).toBeLessThan(40);
+ if(mode==='interactive'){
+  await page.evaluate(async()=>{mapLayout.requestView({x:70,y:70,w:100,h:80});await mapLayout.whenSettled();});
+  expect(await page.evaluate(()=>mapLayout.prepared.find(a=>a.id==='detail-0').eligibleReason)).not.toBe('below-detail');
+ }
+});
 for(const mode of ['interactive','static'])test(`${mode} staged SVG is revealed before geometry measurement`,async({page})=>{
  let html=(await fixtureHTML(mode)).replace('id="mapsvg"','id="mapsvg" data-layout-pending=""').replace('"width":500,"height":400,"mode"','"width":500,"height":400,"metersPerMapUnit":30,"mode"');
  html=html.replace('</style>',(await fs.readFile('pipeline/cartography/styles.css','utf8'))+'</style>').replace('<defs>','<g class="roads"><path id="early-road" data-max-mpp="64" d="M10,350 H490" stroke="black"/></g><g class="buildings"><path id="early-building" data-max-mpp="8" d="M200,180 H220 V200 H200 Z" fill="gray"/></g><defs>');

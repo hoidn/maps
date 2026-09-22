@@ -141,3 +141,16 @@ class PartitionedFetchTests(unittest.TestCase):
    self.assertEqual(len(result['acquisition']['requests']),5)
    self.assertTrue(all(counts[endpoint]==1 for endpoint in ENDPOINTS[1:]))
    self.assertTrue(all(part['serverSnapshot']=='2026-09-22T12:00:00Z' for part in result['acquisition']['requests']))
+
+ def test_resuming_preserves_data_without_overriding_current_endpoint_preference(self):
+  from sources.osm import fetch,ENDPOINTS
+  from unittest.mock import patch
+  import tempfile,requests,itertools,json
+  good=self.response([{'type':'node','id':1,'lat':.01,'lon':.01}])
+  with tempfile.TemporaryDirectory() as tmp:
+   path=Path(tmp)/'osm.json'
+   with patch('sources.osm.requests.post',side_effect=itertools.chain([requests.Timeout('busy'),good],itertools.repeat(ValueError('stop after checkpoint')))):
+    with self.assertRaises(RuntimeError):fetch(self.spec(),path)
+   record=json.loads((Path(tmp)/'osm-parts/0000.json.source.json').read_text());self.assertEqual(record['url'],ENDPOINTS[1])
+   with patch('sources.osm.requests.post',return_value=good) as post:fetch(self.spec(),path)
+   self.assertEqual(post.call_args_list[0].args[0],ENDPOINTS[0])

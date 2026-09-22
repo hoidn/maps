@@ -4,7 +4,7 @@ from pathlib import Path
 from datetime import datetime
 import requests
 from .catalog import atomic_json,record_source,utc_now,verify_source
-ENDPOINTS=('https://overpass-api.de/api/interpreter','https://overpass.private.coffee/api/interpreter','https://maps.mail.ru/osm/tools/overpass/api/interpreter')
+ENDPOINTS=('https://maps.mail.ru/osm/tools/overpass/api/interpreter','https://overpass-api.de/api/interpreter','https://overpass.private.coffee/api/interpreter')
 def query_bounds(spec):
  """Cover the buffered frame with bounded requests; members remain complete."""
  south,west,north,east=spec.overpass_bbox
@@ -36,7 +36,6 @@ def fetch(spec,path):
     if not verify_source(part,record):raise ValueError('OSM checkpoint hash mismatch: '+str(part))
     data=json.loads(part.read_text())
     if datetime.fromisoformat(data['osm3s']['timestamp_osm_base'].replace('Z','+00:00'))<datetime.fromisoformat(record['datasetVersion'].replace('Z','+00:00')):raise ValueError('OSM checkpoint predates requested snapshot: '+str(part))
-    preferred=record['url']
     print('Resuming verified OSM partition at snapshot '+record['datasetVersion'],flush=True)
     yield data,record,bbox
     return

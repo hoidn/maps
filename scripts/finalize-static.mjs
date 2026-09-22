@@ -1,6 +1,6 @@
 import {preparePrint,finishPrint} from './print-layout.mjs';
 import { createServer } from "node:http";
-import { readFile, writeFile, mkdir, rename, unlink } from "node:fs/promises";
+import { readFile, writeFile, mkdir, rename, unlink, copyFile } from "node:fs/promises";
 import { resolve, dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { createHash, randomUUID } from "node:crypto";
@@ -359,11 +359,15 @@ export async function finalizeStatic({
     await rename(candidate, destination);
     return result;
   } catch(error) {
+    let candidateEvidence,evidence;
+    const failedCandidate=join(reportDir,"failed-candidate.html");
+    try{await copyFile(candidate,failedCandidate);candidateEvidence=resolve(failedCandidate);}
+    catch(copyError){if(copyError.code!=="ENOENT")throw copyError;}
     if(page&&!page.isClosed()){
-      const evidence=await page.evaluate(()=>({report:window.mapLayout?.getReport(),prepared:window.mapLayout?.prepared.map(a=>({id:a.id,text:a.text,candidateCount:a.candidates.length,eligibleReason:a.eligibleReason,required:a.required}))})).catch(()=>null);
-      await writeFile(join(reportDir,"failure.json"),JSON.stringify({message:error.message,evidence},null,2));
+      evidence=await page.evaluate(()=>({report:window.mapLayout?.getReport(),prepared:window.mapLayout?.prepared.map(a=>({id:a.id,text:a.text,candidateCount:a.candidates.length,eligibleReason:a.eligibleReason,required:a.required}))})).catch(()=>null);
       await page.screenshot({path:join(reportDir,"failure.png"),fullPage:true}).catch(()=>{});
     }
+    await writeFile(join(reportDir,"failure.json"),JSON.stringify({message:error.message,sourceSha256,candidate:candidateEvidence,evidence},null,2));
     throw error;
   } finally {
     await browser?.close();

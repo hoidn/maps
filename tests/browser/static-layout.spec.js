@@ -109,6 +109,9 @@ test("serialization-only collision prevents output replacement", async ({
     finalizeStatic({ ...paths, policy, reportDir: join(paths.dir, "reports") }),
   ).rejects.toThrow(/audit|collision/i);
   expect(await readFile(paths.output, "utf8")).toBe("prior output");
+  const failure=JSON.parse(await readFile(join(paths.dir,"reports/failure.json"),"utf8"));
+  expect(failure.message).toMatch(/audit|collision/i);
+  expect(await readFile(failure.candidate,"utf8")).toContain('data-layout-frozen="true"');
 });
 test("missing embedded font prevents static export", async ({
   browserName,

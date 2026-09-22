@@ -260,21 +260,37 @@ checks now use measured inward edge constraints for point distance, preserving
 annotation IDs through lazy fallback replay. The exact five-source regression
 passes across all three engines for ordinary and wrapped candidates; 197 Node
 checks and 15 focused browser checks pass (18 intentional duplicate skips).
-The active 1:50,000 full-solve and six-audit retry uses a runtime-only derivative
+The completed 1:50,000 full-solve and six-audit retry uses a runtime-only derivative
 of the original staging file under commit `befc274`; every byte outside its
 runtime is unchanged. Provenance is recorded in
 `san-gabriel/50k-native-crash/point-envelope-50k/provenance.json`.
+Normal-heap settlement places 3,676 annotations with no missing required content.
+The five previously failing optional names are omitted by the existing collision
+and frame rules after measured-distance filtering; their source identities,
+anchors and full outcome/blocker records remain. All six browser/theme audits
+pass with zero findings on frozen SHA
+`c959aa4621339e69d8374f4a5327c51ae1c62a4440c3f7635b57d1f677b81456`.
+The inspected PDF is `artifacts/print/san-gabriel-50k.pdf`, SHA
+`65e8197156c4ba0288fd2a997b6c9c1a8cb9773bd9658b655ff7bed965fb8432`.
+Its one 5,436 × 3,136.08 point page passes physical-size checks, embeds all fonts,
+retains 159,140 map-interior vector paths and 16,248 text operations, and preserves
+terrain source pixels/statistics. The 100 mm calibration bar measures 100.189 mm
+after PDF rasterization. Relief is approximately 35 × 29 DPI and land cover
+17 DPI; full-resolution visual review remains pending. The sibling
+`san-gabriel-50k.print.json`, finalization reports, `five-point-outcomes.json` and
+`mechanical-summary.json` record these claims and their limits. Storage was
+redirected before serialization with verified copies and preserved open logs;
+`environment.json` records the logical/physical path mapping.
 The later `b6a3bfc` correction makes font probes use the immutable original name
 after an initial wrapped placement; three focused differential checks pass.
-That correction is absent from the active run, which does not validate it and
-may require a new finalization. No result is inferred before the audits finish.
-WebKit/dark and PDF export have not run for the failed candidate.
-No PDF has been accepted for this scale.
+That correction is absent from this completed run; its exact-byte audits prove
+the delivered layout, while the newer source change has separate focused evidence.
+The earlier failed `53c606…` candidate remains preserved and unaccepted.
 A shared
 finalizer fix now closes a crashed renderer and records failure promptly instead
 of waiting on DOM diagnostics from the dead page. Its real renderer-crash test
 and eight static-workflow checks pass. No heap override or geometric/rendering
-gate relaxation has been applied. Real 1:50,000 PDF acceptance remains pending.
+gate relaxation has been applied. Real 1:50,000 PDF visual acceptance remains pending.
 
 The inert-JSON consumer run passed 62 browser checks with 24 intentional skips.
 One Firefox corrupt-contour teardown reported the fixture's deliberate checksum

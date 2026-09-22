@@ -73,6 +73,24 @@ build entry points establish it before invoking those stages.
 | `build_static.py` | `grand_canyon_trails.html` | Runtime-dependent staging input to `scripts/finalize-static.mjs` at repo root |
 | `scripts/finalize-static.mjs` at repo root | `grand_canyon_trails_final.html` | Frozen candidate for verified promotion to `output/grand_canyon_trail_sheet_static.html` at repo root |
 | `build_interactive.py` | `grand_canyon_trails_interactive.html` | Runtime-embedded candidate for verified promotion to `output/grand_canyon_trail_explorer_interactive.html` at repo root |
+| `build_region.py --map ID` | `ID_trails_interactive.html`, `ID_trails_static.html` | Standalone regional candidate and static staging; selected caches come from the supplied `MapSpec` |
+| `scripts/finalize-static.mjs` at repo root | `ID_trails_static_final.html` | Frozen regional candidate; outside the Grand Canyon promotion pair |
+
+`npm run print:map` writes a PDF and sibling `.print.json` report under the requested
+destination (default `artifacts/print/ID.pdf`, relative to the repository root). Unique
+directories beside it hold print staging, frozen HTML and inspections; these are generated
+artifacts, not source or tracked deliverables. The report binds staging, frozen and PDF
+hashes, physical dimensions, effective raster DPI/sampling, sources/gaps and validation.
+PDF replacement occurs only after successful checks. A failed final replacement restores
+the previous sibling report. Printing does not fetch, replace files under `output/`, or publish.
+
+`npm run generate:map` accepts selected WGS84 bounds and a title. It derives a validated
+specification, including a central-geodesic aspect ratio and current portable source
+defaults, and writes `pipeline/cache/ID/map.json`. A default ID combines a safe title slug
+with a bounds hash; an explicit safe ID can retain an existing cache namespace. This is
+generated configuration, not a new required entry in `pipeline/maps/`. The command fetches,
+builds and prints; `--cached` skips acquisition. Every consumer receives that actual spec,
+and existing frame/hash checks still reject incompatible caches.
 
 Current fetched array shapes are `(1729, 2600)` for static and `(2592, 3900)` for
 interactive, in `(height, width)` order. NPY files carry no geographic metadata;

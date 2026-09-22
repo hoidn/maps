@@ -8,7 +8,7 @@ outcome for every annotation. Hiding optional labels is an explicit outcome; req
 names must remain visible. A symbol does not satisfy a name requirement.
 
 The interactive controller owns camera, layer and label changes. The static finalizer bakes
-positions into HTML at the declared natural map size and checks the serialized file again
+positions into HTML at the declared natural map size (or physical print size) and checks the serialized file again
 with JavaScript disabled. Shared cartography supplies source geometry, independent land cover
 and neutral relief, ground-scale styling, and label candidates to the builders. Area labels
 respect supplied polygon boundaries, including holes; the system does not infer boundaries
@@ -40,10 +40,10 @@ write candidates into `pipeline/`; neither replaces delivered maps.
 
 The cached build emits `grand_canyon_trails_interactive.html` with WebGL contours and Canvas
 relief/foreground, `grand_canyon_trails_canvas.html` for comparison, and the frozen
-`grand_canyon_trails_final.html` after static finalization. If Sequoia feature and DEM caches
-exist, it also builds `sequoia_trails_interactive.html` through the shared regional builder.
+`grand_canyon_trails_final.html` after static finalization. Other configured regions with
+feature and DEM caches also get interactive, static staging and frozen static candidates.
 The standard verify/promote pair covers the Grand Canyon static and interactive candidates;
-it does not promote the Canvas companion or Sequoia candidate.
+it does not promote the Canvas companion, regional candidates or PDFs.
 
 ```bash
 npm run build:maps
@@ -76,6 +76,78 @@ the actual mode/GPU in the report. Direct `scripts/release-scenes.mjs` invocatio
 use `--headed` or `--headless`; `HEADED` does not change scene mode. Frozen static
 checks remain headless with JavaScript disabled. Switching launch mode does not
 relax the 8 ms/33 ms performance limits or establish that any release gate passed.
+
+## Regional builds and large-format PDFs
+
+This route produces an interactive regional candidate, frozen static HTML, and a single-page
+PDF with its legend and map collar. The [data contract](specs/map-data.md#artifacts-and-ownership)
+owns the artifact boundaries; the [print layout contract](specs/map-layout.md#physical-print-profile)
+owns physical dimensions and nominal scale.
+
+1. Use Node 24 and Python 3. Install Poppler (`pdfinfo`, `pdffonts`, `pdftoppm`) and MuPDF
+   (`mutool`) using your system package manager. On Debian/Ubuntu these are `poppler-utils`
+   and `mupdf-tools`. Playwright also needs its browser system libraries; its install command
+   below installs the browser binaries, and `npx playwright install-deps` installs Linux
+   system dependencies where permitted.
+2. Run this sequence from the repository root. Fetching contacts USGS and Overpass;
+   source caches can exceed hundreds of megabytes and large-area queries can take many
+   minutes. The fetcher retains completed provider caches and verified OSM partitions.
+   A retry resumes those partitions. For a provider-only retry, run `fetch_region.py` from
+   `pipeline/` with the generated spec path and its `--source` name; its `--help` lists choices.
+3. Open the PDF and its sibling `.print.json` report. Inspect the complete sheet, dense
+   trails and collar at actual size. Print at 100%, with fit-to-page disabled, and measure
+   the calibration bar before relying on the nominal scale.
+
+```bash
+set -e
+MAP_ID=san_gabriel
+TITLE="San Gabriel Mountains"
+BBOX=-118.45,34.10,-117.42,34.55
+PAPER=36x24in
+PRINT_DIR=artifacts/print
+
+npm ci
+npm run browsers:install
+python3 -m venv .venv
+.venv/bin/pip install -r pipeline/requirements.txt
+npm run generate:map -- --title "$TITLE" --bbox="$BBOX" --id "$MAP_ID" --paper "$PAPER" --output "$PRINT_DIR/$MAP_ID.pdf"
+pdfinfo "$PRINT_DIR/$MAP_ID.pdf"
+```
+
+- Generation derives a region specification and its geodesic aspect ratio from the title
+  and bounds, then stores it under `pipeline/cache/MAP_ID/map.json`. No checked-in spec is
+  needed. Omit `--id` to derive a safe ID from title/bounds; add `--cached` to reuse inputs.
+- Acquisition registers and hashes inputs under `pipeline/cache/`. Individual build/print
+  commands reuse inputs without fetching and accept either a preset ID or an explicit
+  generated JSON path. The authored Grand Canyon preset additionally needs the legacy
+  inputs produced by `pipeline/run_all.sh`.
+- The cached regional build writes `pipeline/MAP_ID_trails_interactive.html`, static staging
+  HTML and `pipeline/MAP_ID_trails_static_final.html`. Its explicit map selection does not
+  require another region's caches.
+- Printing stages and freezes HTML in a unique directory beside the requested PDF. Its
+  report links that HTML and the inspection directory. Six browser/theme audits reopen
+  the exact frozen bytes without JavaScript; print paint stays light in dark environments.
+- PDF checks require one correctly sized page, embedded fonts, vector paths and text inside
+  the map, retained relief pixels, and a rasterized 100 mm bar. Failed checks preserve an
+  existing PDF. An ordinary browser print dialog does not run these checks.
+
+The default is 36 × 24 inches. `--paper` accepts inches or millimetres, such as `914.4x609.6mm`.
+Replace it with `--scale 50000` for a derived nominal 1:50,000 sheet. Supplying both requires
+the map and measured collar to fit; the exporter rejects overflow instead of shrinking.
+The tested page cap is 96 inches per side; the fixture checks include 96 × 60 inches.
+Home-printer tiling is not implemented.
+
+Scale is nominal east–west at the frame's centre latitude. The geographic affine frame is
+preserved; the report gives north/south and north–south variation. Regional contour detail
+comes from its available tiers; authored Grand Canyon printing retains 250 ft contours.
+The report separates embedded raster DPI, normalized sample spacing and known native
+resolution. Low DPI terrain is not converted into high-resolution terrain by enlarging
+the page. Source retrieval dates do not establish survey currency or current access.
+
+Regional coverage uses `scripts/audit-cartography.mjs` and
+`scripts/fuzz-cartography-matrix.mjs --map san_gabriel`. Coverage marked pending requires
+visual review; an unavailable requested backend is reported as incomplete. Printing never
+promotes tracked HTML or publishes hosted pages.
 
 ## What the gates establish
 
@@ -163,7 +235,7 @@ missing destinations in a scene with declared expectations.
 ## Additional cartography and startup evidence
 
 The [ground-scale audit](../scripts/audit-cartography.mjs) records source/catalog/scene/paint
-coverage for Grand Canyon or Sequoia and produces screenshots for review. Its
+coverage for configured scene profiles and produces screenshots for review; unknown or empty profiles fail. Its
 `review-required` status is not a release pass. The [seeded interaction fuzzer](../scripts/fuzz-cartography.mjs)
 exercises camera gestures, text size, layers, themes and resizing, checks eventual completion
 and painted-camera agreement, and writes a replayable report plus a contact sheet. These
@@ -188,10 +260,10 @@ runtime validity check enforces the supported geometric rules for displayed stat
 and transition tests look for implementation defects. Browser font shaping, glyph bounds and
 sampled curved paths require conservative envelopes and cross-engine verification.
 
-Static validity applies at the declared natural map size and uniform scaling of the frozen
-scene. Arbitrary responsive print reflow, new fonts, third-party CSS, different projections or
-new annotation classes require new validation. Exact print/PDF glyph outlines are a separate
-export feature. Human review remains useful for composition and geographic meaning; collision
+Static validity applies at the declared natural map size, or at the resolved physical
+rectangle for a print profile, and uniform scaling of the frozen scene. Arbitrary responsive print reflow, new fonts, third-party CSS, different projections or
+new annotation classes require new validation. The physical PDF path additionally inspects page dimensions, embedded fonts, map-interior
+vectors/text, terrain pixels and a calibration bar; it does not certify every glyph outline. Human review remains useful for composition and geographic meaning; collision
 checks cannot verify OSM positions, water availability, closures, route continuity or safety.
 
 

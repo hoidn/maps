@@ -1,8 +1,8 @@
 # Grand Canyon trail maps
 
-Two hand-designed maps of the central Grand Canyon, rendered as self-contained HTML pages from
-USGS elevation data and OpenStreetMap vector data, plus the pipeline that produced them so the
-process can be repeated for another area or another interval.
+Two authored Grand Canyon deliverables, plus a shared regional generator configured for
+Grand Canyon, Sequoia and the San Gabriel Mountains. It produces standalone HTML from USGS
+terrain and OpenStreetMap geometry, and large-format PDFs with a printed map collar.
 
 | Output | What it is | Size |
 |---|---|---|
@@ -30,19 +30,40 @@ npm run promote:maps           # revalidate and replace both local output files
 
 See [layout validation](docs/LAYOUT_VALIDATION.md) for checks, reports, required coverage and
 supported layout limits. The cached build selects WebGL contours with Canvas relief and
-foreground cartography, emits a Canvas companion, and builds a standalone Sequoia candidate
-when its source and DEM caches exist. The [backend guide](docs/RENDERING_BACKENDS.md)
+foreground cartography, emits a Canvas companion, and discovers other configured regions
+whose essential source and DEM caches exist. Select one with `npm run build:maps -- --map san_gabriel`.
+The [backend guide](docs/RENDERING_BACKENDS.md)
 describes renderer selection, fallback and fidelity limits. Builds write candidates into
 `pipeline/`; promotion preserves the existing outputs if a check fails. Intermediates and
 browser caches are Git-ignored.
 
 Portable source providers, region-specific `MapSpec` data and shared cartography are installed
-for Grand Canyon and Sequoia: geographic names, hydrography, protected areas, land cover,
+for all three regions: geographic names, hydrography, protected areas, land cover,
 transport and facilities feed the same rendering and label preparation. Candidate validation
 and promotion remain pending; the delivered files and previews above represent the earlier
 edition. The [portable cartography plan](docs/plans/2026-09-09-portable-cartography.md)
 tracks implementation and validation, while the [startup investigation](docs/STARTUP_INVESTIGATION.md)
 tracks the still-unproven 3× initial-responsiveness target.
+
+Generate any selected area without editing a region file:
+
+```bash
+npm run generate:map -- --title "San Gabriel Mountains" --bbox=-118.45,34.10,-117.42,34.55 --id san_gabriel
+```
+
+This derives the specification, fetches sources, builds HTML and exports the PDF. Use
+`--cached` for subsequent runs without fetching. The optional ID names its cache; otherwise
+the command derives one from the title and bounds. The three checked-in specs are presets.
+
+Print an existing cache with `npm run print:map -- --map san_gabriel --paper 36x24in`.
+Use `--scale 50000` to derive a sheet at nominal 1:50,000, or combine paper and scale to
+require a fit. The PDF includes its matching legend, coordinates, north arrow, dual scale
+bars, contour interval, source dates and a 100 mm calibration bar. Fonts and linework remain
+vector; terrain quality depends on source sampling. Follow the complete
+[regional build and print workflow](docs/LAYOUT_VALIDATION.md#regional-builds-and-large-format-pdfs)
+for acquisition, prerequisites and inspection. The
+[execution record](docs/plans/2026-09-22-regional-generation-and-print-plan.md)
+distinguishes tested fixtures from real-map acceptance.
 
 ## Read next
 

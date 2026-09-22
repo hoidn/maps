@@ -1,7 +1,7 @@
 # Regional generation and large-format printing
 
-**Status:** Proposed design for the San Gabriel Mountains request; not an
-implementation or release record.
+**Status:** Accepted for implementation by the user on 2026-09-22. The linked
+execution plan records implementation and validation; this design is not release evidence.
 
 The [implementation plan](2026-09-22-regional-generation-and-print-plan.md)
 breaks this design into testable changes and real-artifact acceptance checks.

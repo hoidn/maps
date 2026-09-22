@@ -1,119 +1,42 @@
 # Adapting the pipeline to another area
 
-**Role:** Guide to changing the current region-specific scripts, not an
-implemented general map generator. Preserve the [data contract](specs/map-data.md)
-and use the [validation guide](VALIDATION.md) for the affected outputs.
+The shared regional builder generates standalone interactive and static maps from a
+configured frame and registered source caches. Grand Canyon, Sequoia and San Gabriel
+are examples. Follow the [complete fetch/build/print workflow](LAYOUT_VALIDATION.md#regional-builds-and-large-format-pdfs);
+the [data contract](specs/map-data.md#portable-region-catalogs-2026-09-09) owns source formats,
+coordinates, units and cache registration.
 
-The scripts are specific to the Grand Canyon frame in three places: the frame constants, the
-OSM trail names, and the hand-placed labels. Work through this list in order.
+Start `npm run generate:map` with a title and selected longitude/latitude bounds, as shown
+in the linked workflow. It derives the dimensions from central geodesic distances and
+writes the generated specification into the ignored region cache. No source-code or
+checked-in JSON edit is required. The checked-in specifications are presets; explicit
+JSON-file inputs remain available for editorial requirements. Cached selection fails for
+missing essential inputs rather than building another region. Reusing a configured ID with a
+different frame is rejected; omit `--id` to derive a fresh cache ID from the title and bounds.
 
-Before releasing another area, update required names/routes in `label_manifest.py` and
-`pipeline/labels/policy.json`, register every new annotation class and provide real source
-geometry for path labels. Declare allowed line breaks rather than inventing abbreviations.
-Re-evaluate and freeze scene coverage minima; do not inherit Grand Canyon thresholds blindly.
-Run the full [layout validation](LAYOUT_VALIDATION.md), including frozen static output and
-actual-map performance. Automated placement does not validate the new area's source data.
+Use source-backed coordinates and required names/routes in that specification. An empty
+required-route list is intentional and does not inherit Grand Canyon's trail requirements.
+Do not compensate for missing coverage by moving labels or feature anchors. USGS providers
+cover their supported US areas; another country needs suitable provider data before this
+workflow can claim coverage there.
 
-## 1. Frame
+Acquisition is explicit. Review source dates, rejected features, missing providers, DEM
+registration and terrain sampling before assessing the map. Check recognizable summits,
+river junctions and access areas at matched ground scales. A successful build does not
+establish current trail access or geographic accuracy.
 
-Set `LON0, LAT0, LON1, LAT1` identically in `osmdata.py`, `fetch_dem.py` and `fetch_dem_hi.py`.
-The processors do not declare those bounds: `process_dem.py` and `process_dem_hi.py`
-hard-code `0.364`/`0.242` for geographic spans, `36.111` for latitude, and `1300`/`1070`
-for SVG dimensions. Update those consistently with the new frame. Recompute:
+Add source-backed scenes to `tests/fixtures/cartography-scenes.json`, with expected names
+and painted geometry classes. The cartography audit rejects unknown maps, empty scenes
+and missing expected content; unreviewed scenes remain pending. Run the selected region's
+browser/backend fuzz matrix as described in the layout guide. Requested WebGL falling back
+to Canvas does not count as a WebGL pass.
 
-- `H = W * ((LAT1-LAT0) / cos(mid latitude)) / (LON1-LON0)` for the SVG frame.
-- DEM `size`: pick a width, then `height = width * (LAT1-LAT0) / (LON1-LON0)` so pixels are
-  square in degrees. Confirm with `f=json` that the returned extent matches.
-- The `MI` scale constant in the builders uses `0.017888°` per mile at 36.1° N; replace with
-  `1 / (69.172 * cos(mid latitude))`.
+The authored Grand Canyon builders remain separate adapters for its historic trail
+selections, stop tables, elevation profile and explanatory page. They receive their actual
+specification through the shared cartography integration. Do not copy those builders or
+change their geographic constants to add a region. The print composer reuses their SVG
+while supplying physical typography and the shared collar; their available static contour
+detail remains 250 ft.
 
-Outside the US the 3DEP service has no coverage; swap in Copernicus GLO-30 (30 m, worldwide) or
-a national lidar product and read it with `rasterio`. The rest of `process_dem.py` only needs a
-2-D array in metres and the frame.
-
-## 2. Vector pull
-
-Edit the bounding boxes and region-specific relation filters in both Overpass queries.
-Run `fetch_osm.py` and `fetch_osm2.py`; `python3 osmdata.py` also requires `dem.npy` for
-its endpoint-elevation diagnostic. Read the chain summary. For each trail you want:
-
-- Is it one chain of the right length? If not, look for a route relation and add its name to
-  the regex in `fetch_osm2.py`, or check for odd tags (`construction`, `abandoned`, unnamed).
-- Does the summary show sensible elevations at both ends? Wrong ends mean a misaligned DEM.
-
-## 3. Builder data selection
-
-In `build_static.py` / `build_interactive.py`, the block after `# data selections` names every
-chain (`BA`, `SK`, `NK`, `TONTO_W` …) and orients it with a start coordinate. Replace these
-with your trails. The class lists under `trails_svg` decide line style; the `tonto_class`
-splitter shows how to vary class along one chain.
-
-## 4. Hypsometric ramp
-
-The ramps in `process_dem*.py` are in feet and tuned to canyon geology. For alpine terrain
-use a conventional green → tan → grey → white ramp; for lowlands compress the range. Keep the
-dark-theme ramp darker than the light one rather than inverting it.
-
-## 5. Labels
-
-Delete the `place()`, `L(...)`, `REG` and `TL` entries and start again. Order of work that
-proved efficient:
-
-1. Trailheads and the biggest destinations.
-2. Campgrounds and water.
-3. Trail names on straight stretches (`trail_label(chain, mile_from, mile_to, …)`).
-4. Peaks from OSM (`natural=peak` with `ele`), with a `PEAK_LEFT` set for those that collide.
-5. Region names last, at low opacity.
-
-Render, screenshot, crop into quadrants, fix collisions, render again. Two passes were enough
-here.
-
-## 6. Tables and profile
-
-`stops_table` takes `(name, target, note)` where target is `"start"`, `"end"`, a mile as
-float, a coordinate (nearest vertex), or `("fixed", miles, coordinate)` for stops off the
-measured chain. The profile concatenates chains; make sure each is oriented so its start
-touches the previous chain's end, and choose `WP` waypoints near the line.
-
-## 7. Contour intervals
-
-`process_dem_hi.py` builds ladders from `range(2300, 8600, 50)`. Change the bounds to your
-elevation range and the step to the finest interval you want; the modulo tests decide which
-ladder each level joins. Adjust the zoom thresholds (`z>=2`, `z>=4.5`) in the builder's
-`apply()` to taste. Expect roughly 0.6 MB of path data per 250 ft ladder over a 1300×1070
-frame with canyon-scale relief; gentler terrain is far cheaper.
-
-## 8. Going finer than 50 ft
-
-Check `pipeline/fetch_dem_1m.py` (edit its frame first) for 1 m lidar coverage. If it exists,
-`docs/HIGH_RES.md` has the tiled build plan; for a small inset the ImageServer path in
-`fetch_dem_hi.py` with a ~5 km bbox at 2 m pixels is enough and needs no new code.
-
-## 9. Sanity checks before publishing
-
-- Known elevations at two flat points and two narrow ones (ridge, canyon floor).
-- Trail lengths within ~5% of published figures.
-- A zoomed screenshot (`#v=x,y,6`) for the interactive page.
-- Both themes: toggle `data-theme="dark"` on `<html>` in devtools.
-- Attribution for OSM (ODbL) and USGS present in the footer.
-
-## Portable configured builds
-
-The portable path uses `pipeline/maps/REGION.json` rather than editing geographic
-conditions in classifiers. `MapSpec` selects the frame, title, contour intervals,
-source set and expected editorial names/routes. From `pipeline/`:
-
-```sh
-../.venv/bin/python fetch_region.py --map sequoia --source all
-../.venv/bin/python build_region.py --map sequoia --renderer webgl
-```
-
-Fetching is explicit; repeat builds use `cache/sequoia/` without network requests.
-The same scene/style code augments the authored Grand Canyon sheets. Its historical
-profile, stops and explanatory page composition remain a separate editorial
-adapter. Do not substitute label offsets for geographic feature positions.
-
-Use the portable coverage scenes and seeded visual fuzzer in addition to source
-inventory checks. Review equivalent metres per pixel across parks; equal raw zoom
-factors need not represent equal ground resolution. The Grand Canyon release pair
-continues to require its existing full release and promotion commands.
+Printing and candidate generation do not promote delivered maps. The Grand Canyon pair
+still requires the existing [verified promotion gate](LAYOUT_VALIDATION.md#what-the-gates-establish).

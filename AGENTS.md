@@ -1,8 +1,8 @@
 # Working in this repository
 
-This repository generates two designed Grand Canyon maps from USGS terrain and
-OpenStreetMap geometry. Preserve the authored SVG cartography and standalone HTML
-delivery unless the task explicitly changes that design.
+This repository generates an authored Grand Canyon pair and portable regional maps
+from USGS terrain and OpenStreetMap geometry, with standalone HTML and physical PDF
+outputs. Preserve the authored SVG cartography unless the task explicitly changes it.
 
 ## Start here
 
@@ -37,14 +37,17 @@ the task. The index owns task routing; it does not define requirements.
 
 ## Source, build, and delivered artifacts
 
-- Edit the generators in `pipeline/` for durable map changes. Both builders contain
-  shared-looking but separate logic; assess whether a change affects both outputs.
+- Edit the generators in `pipeline/` for durable map changes. The authored builders
+  and portable regional builder share cartography; assess all affected outputs.
 - Python stages use paths relative to `pipeline/` and some load data at import
   time; do not import builders just to inspect helpers. Root npm commands and
   the build shell entry points establish the required directories themselves.
 - `pipeline/run_all.sh` explicitly fetches live data, processes it, and builds
   candidates. `npm run build:maps` reuses caches without fetching. Both include
   static finalization; neither promotes files into `output/`.
+- `npm run generate:map` derives a regional specification from bounds and runs
+  acquisition, builds and PDF export; `--cached` skips acquisition. `print:map`
+  reuses caches. Follow the layout guide for prerequisites and evidence limits.
 - Builders write candidate HTML into `pipeline/`. The two HTML files in `output/`
   are tracked deliverables with different names. Use the
   [artifact mapping](docs/specs/map-data.md#artifacts-and-ownership) when updating them.

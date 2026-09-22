@@ -250,9 +250,40 @@ Before replacing the destination, the finalizer independently audits the
 serialized candidate with JavaScript disabled and external networking blocked
 in the supported browser/theme matrix. The exact audited bytes are identified
 by hash. Failure leaves any prior destination unchanged. The declared natural
-map size is the static layout boundary; arbitrary reflow or export settings are
+map size, or an explicit physical print profile below, is the static layout boundary; arbitrary reflow or export settings are
 not established by that validation. See the owning [artifact mapping](map-data.md#artifacts-and-ownership)
 for staging, finalized, and delivered filenames.
+
+### Physical print profile
+
+Static manifests may carry `map.print` version 1. It declares physical paper dimensions
+in millimetres or a nominal scale denominator, trim/tick margins, the point-size hierarchy,
+available contour intervals and geodesic ground dimensions. The geographic viewBox and
+feature anchors remain unchanged. A print request cannot select interactive mode.
+
+The composer gives authored and portable annotations the same anchor-relative physical
+sizing. The finalizer measures the complete potential collar, resolves the map rectangle,
+then measures fonts and places labels at that reference transform. It compensates text,
+symbols and strokes for CSS pixels per map unit; it does not apply interactive zoom growth.
+Coordinate ticks remain outside the annotation rectangle. Hidden optional entries are
+removed from the legend after placement without moving the map.
+
+Nominal scale is east–west at the frame's centre latitude, calculated with WGS84 geodesic
+distance. The retained longitude/latitude affine frame is not a constant-scale projected
+sheet. Frozen metadata records page/map millimetres, the reference size in CSS pixels,
+centre/north/south east–west ratios, north–south ratio, contour interval and raster evidence.
+Paper-only requests fit the frame around the measured collar. Scale-only requests derive
+paper dimensions. Combined requests reject overflow rather than alter the supplied scale.
+
+Only available contour elevations are printed at a uniform selected interval. The authored
+static adapter has 250 ft detail; portable tiers are filtered numerically. The collar states
+the actual interval, source dates and coordinate model. It includes no unverified magnetic
+declination or vertical datum. Print paint is explicitly light, including dark host environments.
+
+The existing six independent frozen-static audits remain required. The PDF exporter also
+checks collar bounds, page geometry, embedded fonts, map-interior vector/text operations,
+relief preservation and a rasterized calibration bar. Exact operating limits and commands
+belong to [layout operations](../LAYOUT_VALIDATION.md#regional-builds-and-large-format-pdfs).
 
 ## Independent acceptance evidence
 

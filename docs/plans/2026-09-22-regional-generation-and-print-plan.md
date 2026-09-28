@@ -123,7 +123,11 @@ requested WebGL case timed out taking the interrupt capture at action 11. Firefo
 WebGL used Canvas fallback, so it does not establish WebGL coverage. All three
 WebKit cases exceeded the navigation limit before reaching any action. Completed
 paint captures have zero audit findings, but no case completed the interaction
-sequence; these results do not establish interactive acceptance.
+sequence; these results do not establish interactive acceptance. The
+[remaining frame review](../../artifacts/regional-print/san-gabriel/fuzz-public-5da66938/remaining-visual-review.json)
+covers 49 Chromium WebGL/Firefox frames: map paint remains nonempty, the old
+mobile overlap remains visible, and the flagged Sandrocks name/symbol are absent
+near the frame edge. WebKit has no frames to review.
 
 The [Canvas visual review](../../artifacts/regional-print/san-gabriel/fuzz-public-5da66938/san_gabriel-chromium-canvas/visual-review.json)
 found a 430 px control defect: the scale box partly hid Layers. Commit `e4a7105`

@@ -136,9 +136,19 @@ frame. A fresh September 28 [browser run](../../artifacts/regional-print/resume-
 passes 21 checks across the three engines, covering regional/authored aspect
 ratios, SVG/Canvas/WebGL requests, actual backend or fallback, camera/anchor
 preservation, static wrappers and usable Layers controls. The existing open-menu
-popup intentionally overlays noninteractive readouts. The actual candidate still
-needs rebuilding with this CSS; the old matrix did not include it. The shared
-agent guidance is also preserved on the feature branch in `6b015cd`.
+popup intentionally overlays noninteractive readouts. The September 28
+[candidate rebuild](../../artifacts/regional-print/resume-20260928/candidate.json)
+completed with exit 0 in 12m08s ([build log](../../artifacts/regional-print/resume-20260928/build.log)),
+producing `artifacts/regional-print/resume-20260928/san_gabriel_trails_interactive.html`
+at 715,499,365 bytes, SHA
+`0e365051607951f704a39f9bbcd41524028c45fa43d75419f7c267fcc78fbb98`.
+The old matrix did not include the CSS fix. A fresh
+[Chromium WebGL request](../../artifacts/regional-print/resume-20260928/current-chromium-webgl/report.json)
+on the rebuilt candidate passed navigation in 45.49s and readiness in 87.57s,
+then exceeded the unchanged 120-second initial-checks watchdog, with zero actions
+and captures. The harness closed the browser during cleanup without an external
+kill; this result does not isolate the timeout cause or establish acceptance.
+The shared agent guidance is preserved in `6b015cd`.
 
 Execution resumed September 28 with isolated load/interaction diagnosis before
 another real matrix run. Navigation, application settlement, independent audits
@@ -151,8 +161,8 @@ also preserve a separate ENOSPC failure during input copying: primary failure
 status/state were not saved in the original report. The partial copy is archived
 and the complete input recovered from a verified immutable copy. `cf1519d` fixes
 failure ordering, separate copy-error reporting and browser/server cleanup; three
-actual CLI regressions and seven initialization/pan checks pass. Remaining matrix
-children use that fix, without changed actions or gates. Initialization phases
+actual CLI regressions and seven initialization/pan checks pass. Later matrix
+children used that fix, without changed actions or gates. Initialization phases
 and actions retain 120-second limits; settlement retains 90 seconds. The separate
 8 ms/33 ms warm-camera and 3× startup targets remain unproven. Focused selection
 and reload-based URL tests do not substitute for the unfinished real matrix.
@@ -677,3 +687,161 @@ accurately separates implementation, geographic review and release status.
   accuracy or print scale. Use each task's independent evidence.
 - No requirement to modify unrelated performance targets, historic releases or
   existing roadmap statuses to complete this feature.
+
+## Task 10 follow-up: materialize interactive buildings by viewport
+
+**Status (2026-09-28): Implementation in progress; acceptance pending.** This is
+scoped defect correction under task 10, not a completed scalability fix or a new release gate.
+Execute with `superpowers:subagent-driven-development`; retain task 10's limits,
+seeds, actions, backend accounting and independent audits.
+
+**Problem and evidence boundary.** Interactive SHA `5da66938…` above contains
+1,283,802 main-map paths, including 715,543 building paths: approximately 226.2 MB
+of building markup, 79.5 MB of path data and 12.2 MB of source identities. All three
+WebKit requests exceeded 120 seconds in navigation. With JavaScript disabled,
+the same HTML reached load in 88.6 seconds while the main SVG stayed
+`display:none`; that isolates a parsing baseline, not SVG layout cost. An
+instrumented WebKit run entered runtime around 85 seconds, parsed the manifest
+in 0.67 seconds and spent approximately 14 seconds in controller construction,
+without finishing navigation. These observations motivate removing eager building
+DOM/capture work; they do not prove it alone resolves startup. A fresh six-action
+native-SVG replay passed on that old HTML, so its original layer watchdog is not
+established as reproducible. The bounds-driven rebuild SHA
+`0e365051607951f704a39f9bbcd41524028c45fa43d75419f7c267fcc78fbb98`
+contains the mobile CSS fix and a rebuilt runtime, not this building change. The
+[byte comparison](../../artifacts/regional-print/resume-20260928/candidate-css-lineage.json)
+confirms all other bytes are unchanged. The original-name font-probe fix belongs
+to static finalization; it does not explain the interactive runtime difference.
+
+**Chosen boundary.** Keep every exact emitted building `d`, attribute, source
+identity and paint position in inert, bounded JSON chunks; materialize only the
+scale-eligible polygons intersecting the current viewport. Reuse `SpatialIndex`,
+SVG creation and Canvas capture. A controller-owned building helper survives
+renderer fallback. Static/PDF polygons and building-associated facilities and
+annotations remain on their existing paths. Do not add another renderer, worker,
+tile protocol, dependency, geometry simplification or persistent cache format.
+Merely hiding SVG paths or skipping Canvas capture would retain the initial DOM
+cost; a general lazy-geometry framework would expand this bounded change.
+
+### Owners and compatibility
+
+| Files | Change and affected consumers |
+|---|---|
+| `pipeline/cartography/scene.py`, `pipeline/cartography/integration.py` | Shared producer used by both `build_region.py` and `build_interactive.py`; existing `catalog_panel(context)` emits inert chunks. Static callers retain inline geometry. |
+| New `pipeline/render/buildings.js` | Building-only validation/index, cancellable preparation, retained nodes and per-view readiness; reuse `pipeline/labels/spatial-index.js`. |
+| `pipeline/labels/runtime.js` | Own helper lifetime, native-camera transaction, pending/idle state and dynamic eligibility. |
+| `pipeline/render/scene.js`, `pipeline/render/canvas-renderer.js` | Exclude the designated group from full-scene capture; prepare current buildings through existing capture/paint and readiness boundaries. WebGL shares this foreground. |
+| `tests/python/test_cartographic_scene.py`, `tests/python/test_region_builder.py`; new `tests/browser/building-materialization.spec.js` | Exact producer preservation and one small backend-parameterized integration fixture, using existing browser support. |
+| `docs/specs/map-data.md`, `docs/specs/map-layout.md`, `docs/RENDERING_BACKENDS.md` | Payload boundary, per-view readiness/inventory semantics and implemented backend explanation, updated only when installed. |
+
+The source inventory remains complete even when the materialized DOM is partial.
+`audit-cartography.mjs` must still observe actual `.area-building` elements and
+`data-source-id` through native paint or `renderer.paintedGeometry`; indexed
+records never count as painted. Existing annotation identities, connected
+measurement sources and all contour hydration/completion guarantees remain.
+`Manifest.finalize()` does not consume unannotated building polygons in interactive
+mode: its relevant work concerns text references, annotations and trail obstacles.
+Both interactive builders emit `catalog_panel()` before `layout_script()`, so all
+chunks precede controller construction. Preserve these ordering facts in fixtures.
+Legacy HTML without this payload follows its existing inline path. Newly emitted
+HTML bundles its matching runtime; do not silently accept unknown payload versions.
+
+### Implementation sequence (each increment remains buildable)
+
+1. **Add the isolated consumer before changing generated output.**
+   - [ ] Add the small browser fixture with an empty designated `.buildings`
+     group, inert payload, disjoint polygons, a hole, a multipolygon and a polygon
+     just beyond the view whose stroke intersects it. First demonstrate the
+     missing materialization/readiness behavior; do not benchmark this fixture.
+   - [ ] Implement `buildings.js`: parse the existing `json_script` representation
+     and validate version, finite
+     bounds, path strings and permitted original attributes before publishing a
+     ready index. Use native JSON parsing and index cooperatively; malformed/missing data produce an
+     explicit geometry error, never an empty successful view. Release consumed
+     script text; retain the canonical exact path/source records and index.
+   - [ ] Select by existing `data-max-mpp` semantics and effective viewport scale.
+     Query conservatively for `.001` coordinate rounding plus stroke/miter
+     reach, exact-filter candidates, and sort record indices into source paint
+     order. Reuse retained nodes/captures; evict abandoned ones. Keep at most the
+     committed set and current preparation, not every visited view. Cancel stale
+     view/theme work and final-pagehide work; preserve persisted-page behavior.
+
+2. **Wire complete-view transactions while ordinary builds remain inline.**
+   - [ ] Integrate the helper into controller initialization and idle/error state.
+     Native SVG prepares off-paint and commits the building set with its camera,
+     including `paintStartupCamera()`, settled rendering, resize and fallback.
+     Keep the previous complete view until the new set is ready. The helper owns
+     dynamic building eligibility; exclude its nodes from `updateDetail()`'s
+     permanent cached element list. Facilities/annotation handling is unchanged.
+   - [ ] Exclude only the designated building group from `MapScene.prepare()`.
+     Reuse `captureCommands` and the existing constant-stroke normalization for
+     new or theme-invalidated buildings during preparation, outside fast camera
+     frames. Feed ordered records into the existing buildings paint slot and
+     `paintedGeometry`; do not rebuild the full scene for a pan or double-paint.
+   - [ ] Extend `ensureView()`/`isViewReady()` for buildings even when contours are
+     disabled or `geometryComplete` is true. Include `x/y/w/h`, effective viewport
+     scale and invalidating generation in camera preparation identity. Publish
+     `paintedView`/`paintedRevision` only after the complete requested geometry.
+     Tie pending work into `whenSettled()`; contour background completion still
+     means its existing full inventory, not all buildings materialized at once.
+   - [ ] Make theme refresh and renderer destruction invalidate stale captures;
+     retain the controller helper through Canvas-to-native fallback and prepare
+     its current view before exposing SVG. GPU-to-Canvas fallback keeps the same
+     foreground. Delay one preparation deliberately and prove no stale camera,
+     partial set or obsolete theme can commit, including during initial load.
+
+3. **Switch the shared producer once all consumers understand the payload.**
+   - [ ] Extend Python regressions before emission changes: exact path/attribute
+     reconstruction, source paint order, holes/multipolygons, conservative bounds,
+     unsafe JSON text escaping, selected counts, and facility/name preservation.
+     Compare static output with the current inline representation.
+   - [ ] In `scene.py`, attach transient bounds from the same projected polygon
+     only for interactive buildings. In `improve()`'s existing parsed tree,
+     extract the exact paths/attributes in order, remove the transient attribute
+     and building children, and retain the designated group in its original slot.
+     Carry the payload in returned context, not persisted scene reports/catalog
+     metadata. `catalog_panel()` uses existing `json_script` to emit bounded
+     chunks. Validate equality of the existing common class/style/detail/fill-rule
+     attributes explicitly and store them once; each row needs only exact `d`,
+     source identity and bounds, with array order defining paint order. Unexpected
+     attributes or differences fail extraction rather than introducing hypothetical
+     variants/configuration. Keep `render_poi()` running independently for building
+     facilities. No new builder arguments or duplicated authored/regional emission
+     path are needed.
+   - [ ] Extend the regional fixture to assert empty initial interactive building
+     DOM with a complete indexed inventory after startup and unchanged inline
+     static/print geometry. Update the contracts/explanation listed above with
+     the installed schema and distinction between indexed and materialized data.
+
+4. **Verify behavior, then measure the actual regional candidate.**
+   - [ ] Run narrow checks first; run browser workloads sequentially in tmux:
+
+     ```bash
+     .venv/bin/python -m unittest discover -s tests/python -p 'test_cartographic_scene.py'
+     .venv/bin/python -m unittest discover -s tests/python -p 'test_region_builder.py'
+     npm run build:labels
+     npm run test:browser -- tests/browser/building-materialization.spec.js --workers=1
+     npm run test:browser -- tests/browser/canvas-renderer.spec.js tests/browser/webgl-renderer.spec.js tests/browser/regional-generation.spec.js tests/browser/print-layout.spec.js --workers=1
+     git diff --check
+     ```
+
+     The new fixture requests SVG/Canvas/WebGL in all three engines and records
+     actual backend. Check disjoint same-zoom pans, threshold crossings and resize,
+     edge stroke, source/order/attribute equality, theme refresh, retained-node
+     reuse and eviction, delayed readiness, fallback and final-pagehide cleanup.
+     Use independent paint collection, not indexed presence as visibility proof.
+   - [ ] Rebuild through the same selected-bounds cached public route and record
+     new hashes, HTML bytes, indexed/materialized counts and startup phase times.
+     Repeat real WebKit navigation and task 10's unchanged audit/fuzz commands on
+     that exact candidate, then review completed and flagged frames. Preserve old
+     reports; no watchdog, zoom, data or geometry reductions to obtain a pass.
+   - [ ] Record observed benefit and residual costs separately. Parsing/indexing
+     still covers the complete building inventory; other paths, annotations and
+     the detail inset remain eager. If real navigation or interaction still fails,
+     keep acceptance pending and diagnose that measured remainder. Fixture passes
+     alone establish neither regional acceptance nor the separate 3× startup goal.
+
+**Completion evidence:** exact producer preservation, atomic current-view paint in
+all requested backend paths, bounded retained geometry across pans, unchanged
+static/print behavior, and fresh real-candidate navigation/interaction outcomes.
+No output promotion or hosted publication is authorized by this follow-up.

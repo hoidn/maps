@@ -117,8 +117,18 @@ found that Wilson's omissions follow the current optional priorities, rather tha
 an established solver defect. The nearby water source is distinct from the summit;
 their fixed symbols cannot meet the current clearance even at maximum zoom.
 The fixture requires the summit marker at all three scales, while the accepted
-design does not prescribe that precedence. The user has been asked which generic
-editorial priority to use; the existing coverage failures remain unresolved.
+design does not prescribe that precedence. On September 28 the user chose summit
+precedence over nearby water/service symbols. Apply this as a generic summit-symbol
+priority, preserving source anchors, collision checks, required destinations and
+the separate name/prominence policy. The shared symbol producer will assign summit
+markers priority 860; regional enrichment must preserve it. Optional settlement
+names (850) and ordinary water symbols then follow summits, while authored major
+names (900), required destinations and their associated markers retain precedence.
+Keep this change separate from building materialization and verify it with a
+source-to-solver regression before repeating the current-candidate scenes. Because
+the rule also affects static placement, regenerate and audit both real PDF sizes;
+the previously reviewed PDF hashes remain evidence only for the prior policy.
+Implementation and the existing coverage failures remain unresolved.
 
 The nine-case matrix on `5da66938…` completed with nine failures. The
 [completed-case records](../../artifacts/regional-print/san-gabriel/fuzz-public-5da66938/completed-cases.jsonl)

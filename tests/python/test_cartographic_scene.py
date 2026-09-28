@@ -119,6 +119,39 @@ class SceneTests(unittest.TestCase):
   moved=deepcopy(f);moved['name']='Different name';moved['geometry']['coordinates']=[.06,.07];b=Manifest();render_scene([moved],[],self.spec,b)
   for first,second in zip(a.annotations,b.annotations):
    self.assertEqual(first['priority'],second['priority']);self.assertEqual(first['priorityReason'],second['priorityReason'])
+ def test_summit_symbols_win_optional_collisions_across_sources_and_modes(self):
+  import json,subprocess
+  from copy import deepcopy
+  cases=[]
+  for mode in ('interactive','static'):
+   for source in ('osm','gnis','legacy'):
+    for name,xy in [('Arbitrary Summit',[.03,.04]),('Renamed Summit',[.06,.07])]:
+     def feature(identity,title,tags,properties=None):
+      return {'id':identity,'kind':'poi','name':title,'geometry':{'type':'Point','coordinates':xy},'tags':tags,'properties':properties or {}}
+     features=[feature('water',None,{'amenity':'drinking_water'}),feature('settlement','Arbitrary Village',{'place':'village'})]
+     m=Manifest(mode);m.required=set()
+     if source=='legacy':
+      m.symbol('<path/>','peak',self.spec.project(xy[1],xy[0]),source_id='summit')
+      self.assertEqual(m.annotations[-1]['priority'],860)  # No regional enrichment on the legacy path.
+     else:features.append(feature('summit',name,{'natural':'peak'} if source=='osm' else {},{'featureClass':'Summit'} if source=='gnis' else {}))
+     original=deepcopy(features);render_scene(features,[],self.spec,m);self.assertEqual(features,original)
+     summit=next(a for a in m.annotations if a.get('symbolKind')=='peak')
+     names=[a for a in m.annotations if a.get('style')=='l-peak']
+     for a in names:self.assertEqual((a['priority'],a['textMaxMetersPerPixel']),(620,12))
+     cases.append({'name':(mode,source,name),'summit':summit['id'],'annotations':[a for a in m.annotations if a['kind']=='symbol' or a.get('style')=='l-settlement']})
+  script="""
+import assert from 'node:assert/strict';
+import {solveLayout} from './pipeline/labels/place.js';
+let input='';for await(const chunk of process.stdin)input+=chunk;
+for(const c of JSON.parse(input)){
+ const annotations=c.annotations.map(a=>{const [x,y]=a.anchor,b={x:x-5,y:y-5,width:10,height:10};return {...a,candidates:[{id:'anchored',shape:{bounds:b,parts:[b]}}]};});
+ const result=solveLayout({annotations,viewport:{width:1600,height:1600},policy:{clearance:2,repairMaxNeighbors:0}});
+ assert.deepEqual(result.placements.map(p=>p.id),[c.summit],c.name.join(':'));
+ assert.deepEqual(result.missingRequired,[]);
+}
+"""
+  run=subprocess.run(['node','--input-type=module','-e',script],input=json.dumps(cases),text=True,capture_output=True,cwd=Path(__file__).resolve().parents[2])
+  self.assertEqual(run.returncode,0,run.stderr)
  def test_railway_legend_contains_line_and_ties_only_when_present(self):
   from cartography.integration import transport_legend
   context={'spec':self.spec,'report':{'styles':[],'selected':{'railway':1}}}

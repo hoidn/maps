@@ -118,6 +118,7 @@ class Manifest:
                     layer='peaks' if kind=='peak' else 'places',anchor=xy,text='',style=kind,
                     priority=810 if kind in ('th','camp','water','shelter','lodge') else 450,
                     requiredProfiles=[],offset=list(offset))
+        if kind=='peak':record.update(priority=860,importanceClass='primary',priorityReason='summit-symbol')
         return self._wrap(raw,record)
 
     def finalize(self, svg):

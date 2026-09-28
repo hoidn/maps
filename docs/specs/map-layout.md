@@ -606,6 +606,14 @@ destinations receive priority 1000 in both modes; static requiredness remains
 profile-specific. One canonical annotation represents each configured required
 name, so duplicate source representations do not each become required.
 
+Summit symbols have priority 860 across authored, OSM and GNIS paths, in both
+interactive and static output. They precede ordinary water/service symbols and
+optional settlement names (850), while authored major names (900) and required
+destination names retain precedence. Associated-marker ordering is unchanged;
+it does not guarantee that every marker fits. This symbol rule
+does not promote summit names, infer prominence, change detail thresholds, move
+geographic anchors or override collision/containment checks.
+
 Static freezing may set `fixedControlReserves`, ordered by the SVG
 `.cartouche,.scale` query, to directional CSS-pixel reserves measured across the
 release browser engines. Controller control obstacles include those reserves;

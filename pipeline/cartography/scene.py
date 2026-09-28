@@ -157,7 +157,9 @@ def render_scene(features,routes,spec,M,existing=(),distances=()):
   if importance['priorityReason']=='settlement':st={**st,'maxMetersPerPixel':64}
   if st['symbol']!='point':
    raw=f'<g style="transform:translate({p.x:.3f}px,{p.y:.3f}px) scale(var(--k))">{symbol_svg(st["symbol"])}</g>'
-   groups['peaks' if st['symbol']=='peak' else 'symbols'].append(M.symbol(raw,st['symbol'],xy,source_id=f['id']));M.annotations[-1].update(sourceId=f['id'],maxMetersPerPixel=st['maxMetersPerPixel'],**{**importance,'priority':importance['priority']+10})
+   groups['peaks' if st['symbol']=='peak' else 'symbols'].append(M.symbol(raw,st['symbol'],xy,source_id=f['id']))
+   M.annotations[-1].update(sourceId=f['id'],maxMetersPerPixel=st['maxMetersPerPixel'])
+   if st['symbol']!='peak':M.annotations[-1].update({**importance,'priority':importance['priority']+10})
   if st['symbol'] in SYMBOL_ONLY_SERVICES:
    fid=M._feature(xy,name or '',st['symbol'],directory=bool(name),source_id=f['id'])
    M.features[fid]['mapLabelPolicy']='symbol-only-service'

@@ -112,6 +112,14 @@ review applies to those identical data/styles without a fresh 12-scene rerun
 solely for that purpose. Mechanical coverage, its three failures and interactive
 acceptance do not transfer to the new hash.
 
+A September 28 [source and solver review](../../artifacts/regional-print/resume-20260928/wilson-review.json)
+found that Wilson's omissions follow the current optional priorities, rather than
+an established solver defect. The nearby water source is distinct from the summit;
+their fixed symbols cannot meet the current clearance even at maximum zoom.
+The fixture requires the summit marker at all three scales, while the accepted
+design does not prescribe that precedence. The user has been asked which generic
+editorial priority to use; the existing coverage failures remain unresolved.
+
 The nine-case matrix on `5da66938…` completed with nine failures. The
 [completed-case records](../../artifacts/regional-print/san-gabriel/fuzz-public-5da66938/completed-cases.jsonl)
 and [aggregate report](../../artifacts/regional-print/san-gabriel/fuzz-public-5da66938/matrix.json)
@@ -711,7 +719,9 @@ established as reproducible. The bounds-driven rebuild SHA
 contains the mobile CSS fix and a rebuilt runtime, not this building change. The
 [byte comparison](../../artifacts/regional-print/resume-20260928/candidate-css-lineage.json)
 confirms all other bytes are unchanged. The original-name font-probe fix belongs
-to static finalization; it does not explain the interactive runtime difference.
+to static finalization. Recompiling source before `befc274` reproduces the old
+runtime; that commit adds the physical-print point-envelope support in the rebuilt
+bundle. Neither byte comparison transfers mechanical acceptance.
 
 **Chosen boundary.** Keep every exact emitted building `d`, attribute, source
 identity and paint position in inert, bounded JSON chunks; materialize only the

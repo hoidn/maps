@@ -18,8 +18,10 @@ the checked-in Python unittest, Node test and Playwright harnesses.
 
 **Status:** Authorized execution active. Region integration, physical print export and
 bounds-driven generation are implemented. Fixture validation passes; real San Gabriel
-inputs are acquired; both real PDFs pass mechanical checks and have visual reviews.
-Interactive matrix acceptance remains in progress. Nothing has been promoted or published.
+inputs are acquired. Both retained PDFs pass mechanical checks and have visual reviews
+under the previous symbol priorities; regeneration for the approved summit precedence
+is pending. Interactive matrix acceptance remains in progress. Nothing has been promoted
+or published.
 
 **User clarification:** New maps start from a selected area/bounding box. A checked-in
 San Gabriel preset alone does not establish automated region setup. The generic command
@@ -782,9 +784,15 @@ Existing renderer/regional/startup/theme/contour checks pass 178 cases with five
 expected skips (duplicate static finalizations and unavailable Firefox WebGL).
 Chromium/WebKit exercised WebGL; Firefox's WebGL request used the recorded Canvas
 fallback. Commands, exact source hashes and reports are retained under
-`artifacts/regional-print/building-consumer/`. Ordinary builders still emit inline
-buildings; the shared producer and real-candidate acceptance below remain pending.
-The payload is exclusively interactive; static/PDF retains its inline path.
+`artifacts/regional-print/building-consumer/`. The shared producer now emits the
+interactive payload; static/PDF retains its inline path. Producer compliance and
+quality reviews passed. The complete suites pass 202 Python and 197 Node tests.
+Generated regional/print/PDF browser integration passes 37 cases with 14 intentional
+skips for duplicate cross-engine finalization and Chromium-only PDF export. The
+nine generated building cases verify painted-source evidence and viewport eviction;
+Firefox's WebGL request records Canvas fallback. Reports, commands and source hashes
+are retained under `artifacts/regional-print/building-producer/`. These fixture
+checks do not establish real-candidate acceptance, which remains pending below.
 
 1. **Add the isolated consumer before changing generated output.**
    - [x] Add the small browser fixture with an empty designated `.buildings`
@@ -829,11 +837,11 @@ The payload is exclusively interactive; static/PDF retains its inline path.
      partial set or obsolete theme can commit, including during initial load.
 
 3. **Switch the shared producer once all consumers understand the payload.**
-   - [ ] Extend Python regressions before emission changes: exact path/attribute
+   - [x] Extend Python regressions before emission changes: exact path/attribute
      reconstruction, source paint order, holes/multipolygons, conservative bounds,
      unsafe JSON text escaping, selected counts, and facility/name preservation.
      Compare static output with the current inline representation.
-   - [ ] In `scene.py`, attach transient bounds from the same projected polygon
+   - [x] In `scene.py`, attach transient bounds from the same projected polygon
      only for interactive buildings. In `improve()`'s existing parsed tree,
      extract the exact paths/attributes in order, remove the transient attribute
      and building children, and retain the designated group in its original slot.
@@ -846,13 +854,13 @@ The payload is exclusively interactive; static/PDF retains its inline path.
      variants/configuration. Keep `render_poi()` running independently for building
      facilities. No new builder arguments or duplicated authored/regional emission
      path are needed.
-   - [ ] Extend the regional fixture to assert empty initial interactive building
+   - [x] Extend the regional fixture to assert empty initial interactive building
      DOM with a complete indexed inventory after startup and unchanged inline
      static/print geometry. Update the contracts/explanation listed above with
      the installed schema and distinction between indexed and materialized data.
 
 4. **Verify behavior, then measure the actual regional candidate.**
-   - [ ] Run narrow checks first; run browser workloads sequentially in tmux:
+   - [x] Run narrow checks first; run browser workloads sequentially in tmux:
 
      ```bash
      .venv/bin/python -m unittest discover -s tests/python -p 'test_cartographic_scene.py'

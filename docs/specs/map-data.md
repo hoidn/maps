@@ -194,6 +194,38 @@ bytes as base64. Its JavaScript decoder reads that byte order explicitly and use
 the same geographic frame. Change encoder and decoder together. This reduced,
 rounded readout is not the full-resolution bilinear sampler used by the tables.
 
+## Embedded interactive building geometry
+
+The shared interactive cartography producer stores main-map building polygons in
+an inert `map-building-payload`, using the existing
+[ID/text JSON interface](map-layout.md#inert-json-embedding). Its original
+`.buildings` group stays in the same paint slot, initially empty and marked
+`data-building-payload="map-building-payload"`. Empty inventories omit both marker
+and payload. Static/PDF polygons and the separate detail inset remain inline SVG.
+Building-associated facilities and annotations retain their own source geometry
+and manifest records.
+
+Version 1 contains `version: 1`, shared `attributes`, and ordered `paths` rows of
+`[exactD, sourceId, [minX, minY, maxX, maxY]]`. Bounds are finite map-coordinate
+extents of the same projected polygon used to emit `d`. Rows retain source paint
+order, exact path strings, holes, multipart geometry and source identities; this
+representation does not introduce simplification. Shared attributes are exactly
+`class="area-building"`, `data-max-mpp="8"`, `fill-rule="evenodd"` and the existing
+building fill/edge style with `.15px * var(--s)` stroke width. Extraction rejects
+unexpected or differing attributes rather than silently discarding them. Transient
+bounds attributes are removed from emitted SVG. The payload belongs to the HTML
+build context, not persisted scene reports, catalogs or manifest metadata.
+
+The consumer validates ownership, version, shared attributes and row structure
+before publishing its spatial index. It then releases the serialized JSON text,
+retaining every exact source record. Only eligible polygons intersecting the
+current view become SVG elements and Canvas commands; queries include padding for
+coordinate rounding and stroke reach. Invalid or missing payload data produces an
+explicit geometry error. The [controller interface](map-layout.md#interactive-controller)
+owns preparation, atomic camera changes and idle completion. Indexed presence
+alone is not evidence of paint; audits inspect current SVG paint or the renderer's
+painted geometry. Legacy HTML without a payload keeps its inline path.
+
 ## Embedded interactive contour geometry
 
 Interactive builders may replace exactly representable contour `d` attributes

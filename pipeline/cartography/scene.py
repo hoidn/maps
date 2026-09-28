@@ -256,7 +256,7 @@ def render_scene(features,routes,spec,M,existing=(),distances=()):
     layer='boundaries';st=boundary_style(f);boundary_styles[st['key']]=st
     dash=','.join(f'calc({n}px * var(--s))' for n in st['dash'])
     style=f'fill:none;stroke:var({st["color"]});stroke-width:calc({st["width"]}px * var(--s));stroke-linejoin:round;stroke-dasharray:{dash};opacity:{st["opacity"]}'
-   attrs=' data-max-mpp="8"' if kind=='building' else f' data-boundary-kind="{st["key"]}"' if kind=='boundary' else ''
+   attrs=(' data-max-mpp="8"'+(' data-building-bounds="'+json.dumps(list(g.bounds),separators=(',',':'),allow_nan=False)+'"' if M.mode=='interactive' else '')) if kind=='building' else f' data-boundary-kind="{st["key"]}"' if kind=='boundary' else ''
    groups[layer].append(f'<path class="area-{kind}" d="{d}"{common}{attrs} fill-rule="evenodd" style="{style}"/>')
    if f.get('name') and kind!='building':
     p=g.representative_point();raw=annotate(f,f['name'],'l-hydro' if kind=='waterbody' else 'l-region-s',(p.x,p.y),max_mpp=32 if kind=='waterbody' else 64)

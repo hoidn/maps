@@ -36,6 +36,17 @@ neatline are painted on Canvas. Layer order and geographic vertices are retained
 The source SVG stays connected for font measurement, text-path references,
 accessibility and fallback; it has zero paint opacity while Canvas is active.
 
+Main-map building polygons in new interactive files use an
+[embedded geometry payload](specs/map-data.md#embedded-interactive-building-geometry).
+The controller creates SVG paths and Canvas captures only for scale-eligible
+buildings intersecting the current view, preserving their source order, geometry
+and styling. Native SVG fallback uses the same prepared paths. Other geometry,
+including detail-inset buildings, keeps its existing SVG representation; static
+maps and PDFs retain inline building paths. The complete building payload still
+requires parsing and indexing, so bounded DOM/capture work does not establish a
+startup speedup. See the [controller contract](specs/map-layout.md) for cancellation
+and completed-view readiness.
+
 Fast camera frames project the view directly, without changing SVG viewBox,
 font variables or annotation transforms. Accepted labels are captured once as
 screen-resolution sprites. Panning translates them without changing line breaks,

@@ -1,6 +1,6 @@
 """Adapter preserving authored page composition while sharing geographic rendering."""
 from pathlib import Path
-import json,xml.etree.ElementTree as ET
+import json,math,xml.etree.ElementTree as ET
 from .catalog import load_catalog
 from .scene import augment_svg
 from .furniture import grid
@@ -8,11 +8,37 @@ from .terrain import neutral_relief,cover_image,COVER,COVER_DARK,COVER_KEY
 from sources.catalog import atomic_json
 from label_manifest import NS,json_script
 
+BUILDING_ATTRIBUTES={'class':'area-building','data-max-mpp':'8','fill-rule':'evenodd','style':'fill:var(--building-fill);stroke:var(--building-edge);stroke-width:calc(.15px * var(--s))'}
+
+def _extract_building_payload(tree):
+ path_tag='{'+NS+'}path'
+ groups=[e for e in tree.iter() if e.tag=='{'+NS+'}g' and 'buildings' in e.get('class','').split()]
+ if len(groups)>1:raise ValueError('Unexpected multiple buildings groups')
+ if not groups:return None
+ group=groups[0];children=list(group)
+ if not children:return None
+ if any(e.tag!=path_tag for e in children):raise ValueError('Unexpected non-path building geometry')
+ records=[]
+ for element in children:
+  d=element.get('d');source_id=element.get('data-source-id');raw_bounds=element.get('data-building-bounds')
+  common={name:value for name,value in element.attrib.items() if name not in ('d','data-source-id','data-building-bounds')}
+  if common!=BUILDING_ATTRIBUTES:raise ValueError('Unexpected building path attributes')
+  if not d or not d.strip() or not source_id or not source_id.strip() or raw_bounds is None:raise ValueError('Invalid building path identity or bounds')
+  try:bounds=json.loads(raw_bounds)
+  except (TypeError,json.JSONDecodeError) as error:raise ValueError('Invalid building path bounds') from error
+  if not isinstance(bounds,list) or len(bounds)!=4 or any(type(n) not in (int,float) or not math.isfinite(n) for n in bounds) or bounds[0]>bounds[2] or bounds[1]>bounds[3]:raise ValueError('Invalid building path bounds')
+  records.append([d,source_id,bounds])
+  element.attrib.pop('data-building-bounds')
+ group.set('data-building-payload','map-building-payload')
+ group[:]=[child for child in children if child.tag!=path_tag]
+ return {'version':1,'attributes':dict(BUILDING_ATTRIBUTES),'paths':records}
+
 def improve(svg,manifest,dem,spec):
  root=Path('cache')/spec.id
  if not (root/'features.json').exists():return svg,None # deterministic legacy fixture adapter
  catalog=load_catalog(spec);svg,report=augment_svg(svg,manifest,spec,catalog)
  tree=ET.fromstring(svg);shade=neutral_relief(dem,spec)
+ building_payload=_extract_building_payload(tree) if manifest.mode=='interactive' else None
  if manifest.mode=='interactive':
   for parent in tree.iter():
    for element in list(parent):
@@ -29,7 +55,9 @@ def improve(svg,manifest,dem,spec):
  report.update(frame=spec.frame,sources=catalog['sources'],catalogCounts=catalog['counts'],enrichment=catalog['enrichment'],sourceInventory=catalog.get('sourceInventory',{}),sourceIssues=catalog.get('sourceIssues',{}))
  atomic_json(root/('scene-'+manifest.mode+'.json'),report)
  manifest.cartography={'inventory':report['selected'],'omissions':report['omitted'],'sources':report['sources'],'enrichment':report['enrichment']}
- return ET.tostring(tree,encoding='unicode'),{'catalog':catalog,'report':report,'spec':spec,'mode':manifest.mode}
+ context={'catalog':catalog,'report':report,'spec':spec,'mode':manifest.mode}
+ if building_payload is not None:context['buildingPayload']=building_payload
+ return ET.tostring(tree,encoding='unicode'),context
 
 def catalog_panel(context):
  if not context:return ''
@@ -48,7 +76,9 @@ def catalog_panel(context):
  gaps=catalog.get('sourceInventory',{}).get('missing',[])
  source_note='<p>Requested region sources unavailable: '+escape(', '.join(gaps))+'. Retained legacy terrain is separately documented; cached data does not establish current conditions.</p>' if gaps else ''
  sources=''.join('<li>'+escape(str(s['provider']))+' · dataset '+escape(str(s['datasetVersion']))+' · retrieved '+escape(str(s['retrievedAt']))+'</li>' for s in catalog['sources'])
- return '<section class="cartographic-context"><h2>Map detail</h2>'+detail_inset(catalog['features'],spec)+'<details><summary>Road and trail key</summary><ul>'+legend+'</ul><p>Importance sets road width and casing; dashes distinguish surface, access and physical trail attributes. Missing attributes remain unknown.'+interaction+'</p></details><details><summary>Junction distances</summary><p>WGS84 geodesic length along OSM nodes, split at actual junctions and attribute boundaries. Endpoint coordinates distinguish nearby disconnected paths. Segment lengths also appear on the map where scale and space permit; a name has higher priority. Values describe mapped geometry, not current access.</p><table><thead><tr><th>Path</th><th>From → to (latitude, longitude)</th><th>Length</th></tr></thead><tbody>'+distances+'</tbody></table></details><details><summary>Protected areas and management context</summary><table><thead><tr><th>Unit</th><th>Designation</th><th>Manager / source</th></tr></thead><tbody>'+rows+'</tbody></table></details><details><summary>Source inventory and dates</summary>'+source_note+'<ul>'+sources+'</ul></details></section>'+json_script('map-cartography-catalog',{'frame':spec.frame,'counts':catalog['counts'],'sources':catalog['sources'],'omissions':report['omitted'],'distances':catalog['distances'],'sourceInventory':catalog.get('sourceInventory',{}),'sourceIssues':catalog.get('sourceIssues',{}),'sceneCounts':report['selected'],'enrichment':catalog['enrichment']})
+ panel='<section class="cartographic-context"><h2>Map detail</h2>'+detail_inset(catalog['features'],spec)+'<details><summary>Road and trail key</summary><ul>'+legend+'</ul><p>Importance sets road width and casing; dashes distinguish surface, access and physical trail attributes. Missing attributes remain unknown.'+interaction+'</p></details><details><summary>Junction distances</summary><p>WGS84 geodesic length along OSM nodes, split at actual junctions and attribute boundaries. Endpoint coordinates distinguish nearby disconnected paths. Segment lengths also appear on the map where scale and space permit; a name has higher priority. Values describe mapped geometry, not current access.</p><table><thead><tr><th>Path</th><th>From → to (latitude, longitude)</th><th>Length</th></tr></thead><tbody>'+distances+'</tbody></table></details><details><summary>Protected areas and management context</summary><table><thead><tr><th>Unit</th><th>Designation</th><th>Manager / source</th></tr></thead><tbody>'+rows+'</tbody></table></details><details><summary>Source inventory and dates</summary>'+source_note+'<ul>'+sources+'</ul></details></section>'+json_script('map-cartography-catalog',{'frame':spec.frame,'counts':catalog['counts'],'sources':catalog['sources'],'omissions':report['omitted'],'distances':catalog['distances'],'sourceInventory':catalog.get('sourceInventory',{}),'sourceIssues':catalog.get('sourceIssues',{}),'sceneCounts':report['selected'],'enrichment':catalog['enrichment']})
+ if context.get('buildingPayload') is not None:panel+=json_script('map-building-payload',context['buildingPayload'])
+ return panel
 
 def transport_legend(context):
  if not context:return None

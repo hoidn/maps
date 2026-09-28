@@ -49,6 +49,7 @@ def create_region(directory):
         ('trail','trail','Synthetic Trail',{'type':'LineString','coordinates':[[-118.19,34.155],[-118.155,34.15],[-118.11,34.16]]},{'highway':'path'}),
         ('road','road','Synthetic Road',{'type':'LineString','coordinates':[[-118.19,34.12],[-118.11,34.12]]},{'highway':'secondary','surface':'asphalt'}),
         ('water','waterway','Synthetic Creek',{'type':'LineString','coordinates':[[-118.18,34.14],[-118.145,34.13],[-118.12,34.14]]},{'waterway':'stream'}),
+        ('building','building',None,{'type':'Polygon','coordinates':[[[-118.17,34.13],[-118.16,34.13],[-118.16,34.14],[-118.17,34.14],[-118.17,34.13]]]},{'building':'yes'}),
         ('peak','poi','Synthetic Summit',{'type':'Point','coordinates':[-118.18,34.165]},{'natural':'peak','ele':'850'}),
         ('camp','poi','Synthetic Camp',{'type':'Point','coordinates':[-118.12,34.105]},{'tourism':'camp_site'}),
     ]:
@@ -63,4 +64,3 @@ def create_region(directory):
 
 if __name__=='__main__':
     (create_region if '--regional' in sys.argv[2:] else create)(sys.argv[1])
-

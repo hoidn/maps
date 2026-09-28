@@ -1,4 +1,4 @@
-import unittest,tempfile,subprocess,sys,json,re,importlib.util
+import unittest,tempfile,subprocess,sys,json,re,importlib.util,xml.etree.ElementTree as ET
 from pathlib import Path
 from html_json import read_json
 ROOT=Path(__file__).resolve().parents[2]
@@ -19,7 +19,9 @@ build_region.build(spec,mode='static',print_request=build_region.print_profile(s
 """
    run=subprocess.run([sys.executable,'-c',script,str(ROOT/'pipeline'),str(config)],cwd=tmp,capture_output=True,text=True)
    self.assertEqual(run.returncode,0,run.stderr)
-   self.assertIn('print-sheet',(Path(tmp)/'sequoia_trails_static.html').read_text())
+   html=(Path(tmp)/'sequoia_trails_static.html').read_text()
+   self.assertIn('print-sheet',html);self.assertIn('data-source-id="osm:synthetic:building"',html)
+   self.assertNotIn('id="map-building-payload"',html);self.assertNotIn('data-building-payload="map-building-payload"',html)
  def test_custom_region_builds_both_modes_from_its_own_registered_sources(self):
   with tempfile.TemporaryDirectory() as tmp:
    config=fixture.create_region(tmp)
@@ -44,11 +46,23 @@ build_region.build(spec,mode='static',print_request=build_region.print_profile(s
      self.assertTrue('not for navigation' in html,'not for navigation')
      if mode=='static':
       self.assertTrue('data-renderer="svg"' in html,'data-renderer="svg"')
+      self.assertNotIn('id="map-building-payload"',html);self.assertNotIn('data-building-payload="map-building-payload"',html)
       for text in ('class="ctl"','id="readout"','// ---- cursor DEM','Drag to pan','id="map-interaction"','class="hit"','id="map-contour-payload"'):
        self.assertFalse(text in html,text)
       self.assertIsNotNone(re.search(r'<path class="c[ix][^"]*"[^>]* d="M',html),'Static contours must remain inline SVG')
       self.assertTrue('Trail Sheet</title>' in html,'Trail Sheet</title>')
      else:
+      payload=read_json(html,'map-building-payload')
+      self.assertEqual(payload['version'],1);self.assertEqual(payload['attributes'],{'class':'area-building','data-max-mpp':'8','fill-rule':'evenodd','style':'fill:var(--building-fill);stroke:var(--building-edge);stroke-width:calc(.15px * var(--s))'})
+      row=next(record for record in payload['paths'] if record[1]=='osm:synthetic:building')
+      self.assertEqual(len(row[2]),4);self.assertLessEqual(row[2][0],row[2][2]);self.assertLessEqual(row[2][1],row[2][3])
+      svg_text=re.search(r'<svg\b.*?</svg>',html,re.S).group(0);svg=ET.fromstring(svg_text)
+      buildings=svg.find('{http://www.w3.org/2000/svg}g[@class="buildings"]')
+      self.assertIsNotNone(buildings);self.assertEqual(len(buildings),0);self.assertEqual(buildings.get('data-building-payload'),'map-building-payload')
+      self.assertLess(html.index('id="map-building-payload"'),html.index('id="map-layout-runtime"'))
+      scene_report=json.loads((Path(tmp)/'cache'/'sequoia'/'scene-interactive.json').read_text())
+      self.assertEqual(scene_report['selected']['building'],1);self.assertNotIn('buildingPayload',scene_report)
+      self.assertNotIn('cartography',manifest);self.assertNotIn('buildingPayload',manifest)
       for text in ('class="ctl"','id="readout"','// ---- cursor DEM','Drag to pan','id="map-interaction"','class="hit"'):
        self.assertTrue(text in html,text)
  def test_missing_essential_cache_is_reported_before_generation(self):

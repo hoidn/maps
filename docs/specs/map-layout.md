@@ -242,6 +242,28 @@ hydrate the complete authored contour inventory before publishing a settled
 native view. Fallback hydration participates in controller idle; failed decoding
 cannot become successful readiness merely because a pending counter reached
 zero. Final page hide rejects pending decoding and prevents later source writes.
+
+Interactive [building payloads](map-data.md#embedded-interactive-building-geometry)
+use a controller-owned materializer. Initialization indexes the complete source
+inventory; each camera prepares only buildings eligible at its effective CSS
+scale and intersecting its viewport. Preparation validates the full view identity
+and theme generation before committing. SVG camera writes and Canvas/WebGL
+`paintedView`/`paintedRevision` cannot expose a new view with an incomplete building
+set, including during startup, resize or native fallback. The previous complete
+view remains until preparation finishes; superseded work cannot replace it or
+discard the current preparation's nodes.
+
+Retained building nodes and captures are reused. Materialized storage is bounded
+by the committed set plus the current preparation, while exact records and the
+index retain the complete inventory. Canvas captures new or theme-invalidated
+buildings during preparation, outside camera paint, and inserts them into the
+existing buildings paint slot. Readiness includes buildings even with contours
+disabled or their complete inventory already prepared. `whenSettled()` includes
+current building preparation; contour background completion still refers to the
+full contour inventory. Renderer fallback preserves the controller's building
+store, preparing the current native view before exposing SVG. Final page hide
+cancels preparation; persisted page-cache transitions retain it. Static/print
+profiles use inline geometry and do not use this payload.
 Frozen static finalization and its JavaScript-disabled delivery are unchanged.
 
 Interactive pointer drags defer scheduled settled layout until all accepted

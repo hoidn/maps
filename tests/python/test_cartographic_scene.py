@@ -201,6 +201,63 @@ for(const c of JSON.parse(input)){
   self.assertIn('area-building',groups['buildings']);self.assertEqual(report['selected']['building'],1)
   self.assertEqual(report['omitted'][0]['role'],'poi');self.assertEqual(report['omitted'][0]['reason'],'unclassified-unnamed-point')
 
+ def test_building_bounds_are_transient_and_static_polygon_markup_stays_inline(self):
+  import json
+  from cartography.scene import map_geometry,polygon_path
+  geometry={'type':'MultiPolygon','coordinates':[
+   [[[.01,.01],[.05,.01],[.05,.05],[.01,.05],[.01,.01]],[[.02,.02],[.02,.03],[.03,.03],[.03,.02],[.02,.02]]],
+   [[[.06,.06],[.09,.06],[.09,.09],[.06,.09],[.06,.06]]]
+  ]}
+  feature={'id':'osm:way:building-roundtrip','provider':'osm','kind':'building','name':None,'geometry':geometry,'tags':{'building':'yes'}}
+  expected_d=polygon_path(map_geometry(feature,self.spec))
+  expected_bounds=list(map_geometry(feature,self.spec).bounds)
+  interactive,ir=render_scene([feature],[],self.spec,Manifest('interactive'))
+  static,sr=render_scene([feature],[],self.spec,Manifest('static'))
+  ip=ET.fromstring(interactive['buildings']).find('./path')
+  sp=ET.fromstring(static['buildings']).find('./path')
+  self.assertEqual(ip.get('d'),expected_d);self.assertEqual(ip.get('data-source-id'),feature['id'])
+  self.assertEqual(json.loads(ip.get('data-building-bounds')),expected_bounds)
+  self.assertEqual(ip.get('class'),'area-building');self.assertEqual(ip.get('data-max-mpp'),'8')
+  self.assertEqual(ip.get('fill-rule'),'evenodd');self.assertEqual(ip.get('style'),'fill:var(--building-fill);stroke:var(--building-edge);stroke-width:calc(.15px * var(--s))')
+  self.assertEqual(expected_d.count('M'),3);self.assertEqual(ir['selected']['building'],1)
+  self.assertEqual(sp.get('d'),expected_d);self.assertEqual(sp.get('data-source-id'),feature['id'])
+  self.assertEqual(sp.attrib,{'class':'area-building','d':expected_d,'data-source-id':feature['id'],'data-max-mpp':'8','fill-rule':'evenodd','style':'fill:var(--building-fill);stroke:var(--building-edge);stroke-width:calc(.15px * var(--s))'})
+  self.assertEqual(static['buildings'],f'<g class="buildings"><path class="area-building" d="{expected_d}" data-source-id="{feature["id"]}" data-max-mpp="8" fill-rule="evenodd" style="fill:var(--building-fill);stroke:var(--building-edge);stroke-width:calc(.15px * var(--s))"/></g>')
+  self.assertNotIn('data-building-bounds',static['buildings']);self.assertEqual(sr['selected']['building'],1)
+
+ def test_building_payload_extraction_preserves_order_and_json_text_safely(self):
+  import json
+  from html import escape
+  from cartography.integration import _extract_building_payload,catalog_panel
+  from html_json import read_json
+  attributes={'class':'area-building','data-max-mpp':'8','fill-rule':'evenodd','style':'fill:var(--building-fill);stroke:var(--building-edge);stroke-width:calc(.15px * var(--s))'}
+  rows=[('M1,2H3V4H1Z M1.5,2.5H2.5V3.5H1.5Z','osm:way:one',[1,2,3,4]),('M5,6H7V8H5Z','unsafe </script><script>&\u2028',[5,6,7,8])]
+  root=ET.fromstring('<svg xmlns="http://www.w3.org/2000/svg"><g class="terrain"/><g class="buildings">'+''.join(
+   f'<path class="area-building" d="{d}" data-source-id="{escape(identity,quote=True)}" data-max-mpp="8" data-building-bounds="{json.dumps(bounds)}" fill-rule="evenodd" style="{attributes["style"]}"/>'
+   for d,identity,bounds in rows)+'</g><g class="hydro"/></svg>')
+  payload=_extract_building_payload(root)
+  self.assertEqual(payload,{'version':1,'attributes':attributes,'paths':[[d,identity,bounds] for d,identity,bounds in rows]})
+  group=root.findall('{http://www.w3.org/2000/svg}g')[1]
+  self.assertEqual(group.get('class'),'buildings');self.assertEqual(group.get('data-building-payload'),'map-building-payload')
+  self.assertEqual(len(group),0);self.assertEqual([child.get('class') for child in root],['terrain','buildings','hydro'])
+  context={'catalog':{'features':[],'counts':{},'sources':[],'distances':[],'enrichment':{},'sourceInventory':{}},
+   'report':{'styles':[],'omitted':[],'selected':{}},'spec':self.spec,'mode':'interactive','buildingPayload':payload}
+  html=catalog_panel(context)
+  self.assertEqual(read_json(html,'map-building-payload'),payload)
+  self.assertNotIn('</script><script>',html)
+
+ def test_building_payload_rejects_unexpected_path_attributes(self):
+  import json
+  from cartography.integration import _extract_building_payload
+  root=ET.fromstring('<svg xmlns="http://www.w3.org/2000/svg"><g class="buildings"><path class="area-building" d="M0,0H1V1Z" data-source-id="osm:way:bad" data-max-mpp="8" data-building-bounds="[0,0,1,1]" fill-rule="evenodd" style="fill:var(--building-fill);stroke:var(--building-edge);stroke-width:calc(.15px * var(--s))" data-extra="unexpected"/></g></svg>')
+  with self.assertRaisesRegex(ValueError,'(?i)unexpected building path attributes'):_extract_building_payload(root)
+
+ def test_empty_buildings_group_does_not_get_a_payload_marker(self):
+  from cartography.integration import _extract_building_payload
+  root=ET.fromstring('<svg xmlns="http://www.w3.org/2000/svg"><g class="terrain"/><g class="buildings"/><g class="hydro"/></svg>')
+  self.assertIsNone(_extract_building_payload(root))
+  self.assertIsNone(root.find('.//{http://www.w3.org/2000/svg}g[@class="buildings"]').get('data-building-payload'))
+
  def test_authored_point_priorities_follow_shared_symbol_semantics(self):
   m=Manifest();m.required=set();raw=[]
   for i,(symbol,expected) in enumerate([('th',830),('camp',820),('view',650),('wp',550),('water',730),('shelter',690),('lodge',690)]):

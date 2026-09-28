@@ -5,6 +5,7 @@ import {join,resolve} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {execFileSync} from 'node:child_process';
 import {selectPlace,restoreUrl} from '../../scripts/fuzz-cartography.mjs';
+import {collectProfileEvidence} from '../../scripts/audit-cartography.mjs';
 let directory;
 test.beforeAll(async()=>{
  directory=await mkdtemp(join(tmpdir(),'regional-generation-'));
@@ -29,6 +30,25 @@ test('generated regional explorer works offline with its original feature anchor
  await page.locator('#zreset').click();await page.evaluate(()=>mapLayout.whenSettled());
  expect((await page.locator('#mapsvg').getAttribute('viewBox')).split(' ')[2]*1).toBe(800);
  expect(errors).toEqual([]);expect(requests).toEqual([]);
+});
+for(const backend of ['svg','canvas','webgl'])test(`generated regional ${backend} paints payload buildings only in the current view`,async({page})=>{
+ const errors=[];page.on('pageerror',error=>errors.push(error.message));
+ await page.goto(pathToFileURL(join(directory,'sequoia_trails_interactive.html')).href+'?renderer='+backend);
+ await page.evaluate(async()=>{await mapLayout.ready;mapLayout.requestView({x:180,y:220,w:200,h:150});await mapLayout.whenSettled();});
+ const state=await page.evaluate(()=>({
+  records:mapLayout.buildings.records?.map(row=>row[1]),payloadRemoved:!document.getElementById('map-building-payload'),
+  actual:mapLayout.renderer?.backend||'svg',fallback:mapLayout.renderer?.fallbackReason||mapLayout.rendererError||null,
+  paths:[...document.querySelectorAll('#mapsvg .buildings>.area-building')].map(e=>e.dataset.sourceId)
+ }));
+ expect(state.records).toEqual(['osm:synthetic:building']);expect(state.paths).toEqual(state.records);expect(state.payloadRemoved).toBe(true);
+ expect(backend==='webgl'?['canvas','webgl']:[backend]).toContain(state.actual);
+ if(state.actual!==backend)expect(state.fallback).toBeTruthy();
+ test.info().annotations.push({type:'renderer',description:`requested ${backend}; actual ${state.actual}; fallback ${state.fallback||'none'}`});
+ expect((await page.evaluate(collectProfileEvidence)).geometrySourceIds.building).toEqual(state.records);
+ await page.evaluate(async()=>{mapLayout.requestView({x:500,y:400,w:200,h:150});await mapLayout.whenSettled();});
+ await expect(page.locator('#mapsvg .buildings>.area-building')).toHaveCount(0);
+ expect((await page.evaluate(collectProfileEvidence)).geometrySourceIds.building??[]).toEqual([]);
+ expect(await page.evaluate(()=>mapLayout.buildings.records.length)).toBe(1);expect(errors).toEqual([]);
 });
 async function fuzzFixture(page,{brokenRestore=false}={}){
  let html=await readFile(join(directory,'sequoia_trails_interactive.html'),'utf8');

@@ -17,7 +17,17 @@
 /* Semantic label ownership matches the manifest in SVG and Canvas. */
 .map.no-boundaries .boundary-labels,.map.no-water .hydro-labels{display:none}
 
-@media(max-width:700px){.live-scale{bottom:76px}.zlabel{bottom:51px}.hint{max-width:calc(100% - 210px);font-size:10px}}
+@media(max-width:700px){
+ .hint{max-width:calc(100% - 210px);font-size:10px}
+ /* Keep controls clear on short maps without resizing their geographic frame. */
+ .map-wrap:has(>.ctl){display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"map map" "controls controls" "readout scale" "readout zoom"}
+ /* Absolute paint and hints use the SVG row, not the taller control wrapper. */
+ .map-wrap:has(>.ctl)>:is(.map,[data-map-canvas],.hint,.ttip){grid-area:map}
+ .map-wrap:has(>.ctl)>.ctl{grid-area:controls;position:static;flex-direction:row;flex-wrap:wrap;justify-content:flex-end;padding:8px 12px;z-index:5}
+ .map-wrap:has(>.ctl)>.live-scale{grid-area:scale;position:static;justify-self:end;margin-right:12px}
+ .map-wrap:has(>.ctl)>.zlabel{grid-area:zoom;position:static;justify-self:end;margin:4px 12px 8px 0}
+ .map-wrap:has(>.ctl)>.readout{grid-area:readout;position:static;min-width:0;align-self:end;margin:0 8px 8px 12px}
+}
 
 /* Settlement names anchor navigation; local streets remain subordinate. */
 .l-settlement{font-family:var(--sans);font-weight:700;font-size:18px;fill:var(--ink);stroke:var(--paper);paint-order:stroke;stroke-width:3px;stroke-linejoin:round}

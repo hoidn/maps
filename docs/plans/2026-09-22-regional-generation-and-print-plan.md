@@ -27,7 +27,7 @@ or published.
 San Gabriel preset alone does not establish automated region setup. The generic command
 derives its specification and dimensions; the real third-map proof must use this path.
 
-**Current evidence (2026-09-22):** The final full suites pass
+**Initial implementation evidence (2026-09-22):** The full suites passed
 [197 Python tests](../../artifacts/regional-print/final-python-tests.log) and
 [197 Node tests](../../artifacts/regional-print/final-node-tests.log). The print/PDF
 fixture run passes 14 checks (10 intentional duplicate skips), including 36 × 24
@@ -51,7 +51,7 @@ The public selected-bounds workflow derived the San Gabriel specification,
 acquired its sources and built the regional outputs. Its cached continuation
 exited 0, including six audits of native frozen HTML SHA
 `66b5de5267db2aa379db509facece0344c2d1ce7d71dc8889c764ad4d9c2c8fa`
-and the 36-inch PDF. The current public interactive HTML is 715,498,208 bytes,
+and the 36-inch PDF. That public interactive HTML was 715,498,208 bytes,
 SHA `5da66938564313e3b7711aefb65d8418c111880c127f50c09c005685fa862eb3`.
 
 Both real PDFs pass six independent Chromium/Firefox/WebKit light/dark audits
@@ -793,6 +793,58 @@ nine generated building cases verify painted-source evidence and viewport evicti
 Firefox's WebGL request records Canvas fallback. Reports, commands and source hashes
 are retained under `artifacts/regional-print/building-producer/`. These fixture
 checks do not establish real-candidate acceptance, which remains pending below.
+
+The fresh public cached reconstruction runs from commit `badabf5` under
+`artifacts/regional-print/buildings-and-summits-20260928/`. Before its normal static
+finalization can replace the prior reports, the previous reports and canonical
+static HTML were archived with every member hash verified in
+`prior-normal-static.tar.gz` and `prior-normal-static.archive.json`. Five superseded
+failed-run HTML files were separately compressed and verified; their original
+paths/hashes and gzip locations are in `compressed-prior-failures.json` and adjacent
+`.archive.json` files. Accepted PDFs and their frozen HTML were left unchanged.
+The directory's `retention.json` records storage locations; a started rebuild is
+not completed generation or acceptance evidence.
+
+Its interactive stage has emitted 640,188,268 bytes, SHA
+`55db4ba3b2432e3d20d7fb92310893af1d62728bbedabfd95fb97d0fed1c76e2`.
+The [complete building comparison](../../artifacts/regional-print/buildings-and-summits-20260928/building-preservation.json)
+verifies identical ordered paths, source IDs and paint attributes for all 715,543
+buildings against `0e365051…`, plus conservative payload bounds. A fresh unchanged
+[WebKit preflight](../../artifacts/regional-print/buildings-and-summits-20260928/webkit-preflight/report.json)
+still exceeds the 120-second navigation limit, before any checks or captures.
+Separate diagnostic probes with the Python builder suspended measure 80.66 seconds
+for JavaScript-disabled navigation; the instrumented run parses the manifest and
+building JSON in 0.537 and 0.356 seconds respectively, then exceeds the same
+navigation limit before geometry preparation completes. These are isolated
+diagnostic observations, not completed paint or performance acceptance. The
+builder was resumed after the probes; remaining startup work is being isolated.
+The subsequent [180-second diagnostic observation](../../artifacts/regional-print/buildings-and-summits-20260928/interaction-probe-webkit.json)
+reaches navigation at 135.70 seconds and initial WebGL readiness at 190.41 seconds.
+The constructor takes 9.63 seconds; the first live-scale `clientWidth` read takes
+13.49 seconds. Building initialization and scene preparation take 68.82 and 28.54
+seconds elapsed, including asynchronous waits; these are not CPU attributions.
+The first ready sample has zero placements/candidates and does not establish
+completed label settlement. The production navigation limit remains 120 seconds.
+An [isolated first-width-read ablation](../../artifacts/regional-print/buildings-and-summits-20260928/width-ablation-comparison.json)
+uses the baseline's observed 1,298 px width only for that first read and checks it
+against actual width at readiness. Navigation reaches 102.13 seconds, while initial
+readiness takes 205.28 seconds: this pair supports avoiding a redundant synchronous
+read, not an overall startup improvement. The live scale now reuses the existing
+ResizeObserver measurement. Its regression first fails on the original synchronous
+read, then passes all three engines; the combined live-scale/mobile-control run
+passes 21 cases. Three additional passes include a fractional-width case to check
+rounding against actual `clientWidth`. Commands and reports are under
+`artifacts/regional-print/live-scale-observed-width/`; source review passed and
+current real-map acceptance remains pending. This interactive
+script is not read by the active static/physical-print builder; its shared Python,
+runtime bundle and print sources remain unchanged during PDF generation.
+The [emitted-priority review](../../artifacts/regional-print/buildings-and-summits-20260928/summit-emission-review.json)
+confirms priority 860 on all 214 summit markers and no other annotation or anchor
+drift. The normal static stage also completed with
+[six passing exact-byte audits](../../artifacts/regional-print/buildings-and-summits-20260928/normal-static-summary.json),
+frozen SHA `619363edc3a219c28c475a64fb206fa6fce96fc588b4a4a45b2b375a7a984215`.
+Its existing scale filter excludes summit/service annotations; it does not stand
+in for the separate physical-print profiles or their pending visibility reviews.
 
 1. **Add the isolated consumer before changing generated output.**
    - [x] Add the small browser fixture with an empty designated `.buildings`

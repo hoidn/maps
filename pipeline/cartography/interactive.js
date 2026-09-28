@@ -22,19 +22,20 @@
   var svg = document.getElementById('mapsvg'); if(!svg) return;
   var W = +svg.dataset.w, H = +svg.dataset.h, fig = svg.parentNode;
   var scaleBox=document.createElement('div');scaleBox.className='live-scale';fig.appendChild(scaleBox);
-  var frame=window.mapLayout.manifest.map.frame;
+  var frame=window.mapLayout.manifest.map.frame,scaleWidth=0;
   function liveScale(view){
-    if(!frame)return;
+    if(!frame||!scaleWidth)return;
     var b=frame.bbox,lat=b[3]-(view.y+view.h/2)/H*(b[3]-b[1]);
-    var mpp=window.mapLayout.manifest.map.metersPerMapUnit*Math.cos(lat*Math.PI/180)/Math.cos((b[1]+b[3])/2*Math.PI/180)*view.w/svg.clientWidth;
+    var mpp=window.mapLayout.manifest.map.metersPerMapUnit*Math.cos(lat*Math.PI/180)/Math.cos((b[1]+b[3])/2*Math.PI/180)*view.w/scaleWidth;
     function bar(unit,label){var target=mpp*110/unit,p=Math.pow(10,Math.floor(Math.log10(target))),n=[1,2,5,10].filter(n=>n*p<=target).pop()*p;return '<span style="width:'+Math.round(n*unit/mpp)+'px">'+n+' '+label+'</span>';}
     scaleBox.innerHTML=bar(mpp*110>=1000?1000:1,mpp*110>=1000?'km':'m')+bar(mpp*110>=1609.344?1609.344:.3048,mpp*110>=1609.344?'mi':'ft');
   }
   var vb = {x:0,y:0,w:W,h:H}, MAXZ = 14;
   // The scale and map are siblings observed by the label controller. Updating
   // its dimensions inside resize delivery can cause a same-depth observer loop.
+  // Reuse the observed width instead of forcing layout of the SVG on each camera change.
   var scaleFrame=null;
-  new ResizeObserver(function(){if(scaleFrame===null)scaleFrame=requestAnimationFrame(function(){scaleFrame=null;liveScale(vb);});}).observe(svg);
+  new ResizeObserver(function(entries){scaleWidth=Math.round(entries[0].contentRect.width);if(scaleFrame===null)scaleFrame=requestAnimationFrame(function(){scaleFrame=null;liveScale(vb);});}).observe(svg);
   var readout = document.getElementById('readout'), ttip = document.getElementById('ttip');
   // ---- cursor DEM
   var GW = DEM_GW, GH = DEM_GH, bin = atob("DEM_B64"), dem = new Uint16Array(GW*GH);

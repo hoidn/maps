@@ -17,7 +17,7 @@ export class CanvasMapRenderer{
   if(!this.bg||(!this.contourContext&&backend!=='webgl')||!this.fg)throw new Error('Canvas 2D unavailable');
   this.hitContext=document.createElement('canvas').getContext('2d');
   this.geometryPending=1;this.baseReady=this.prepare();
-  this.ready=this.baseReady.then(()=>this.ensureView(controller.view));this.ready.catch(()=>{});
+  this.ready=this.baseReady.then(async()=>{for(;;){try{await this.ensureView(controller.view);return;}catch(error){if(error.name!=='AbortError'||controller.unloaded)throw error;}}});this.ready.catch(()=>{});
   this.complete=Promise.all([this.baseReady,controller.preview.contours.ready]).then(async()=>{if(this.gpu){const gpu=this.gpu;try{await gpu.prepare();}catch(error){if(this.gpu===gpu)this.useCanvas(error);}}this.geometryComplete=true;}).catch(error=>{if(this.controller.renderer===this)this.fallback(error);}).finally(()=>{this.geometryPending=0;this.controller.resolveWaiters();});
   this.baseReady.then(()=>{if(this.controller.renderer===this)this.controller.schedule();},()=>{}); // The initial transaction awaits and reports preparation failure.
   this.themeObserver=new MutationObserver(()=>this.refresh());this.themeObserver.observe(document.documentElement,{attributes:true,attributeFilter:['data-theme','style','class']});
@@ -33,21 +33,24 @@ export class CanvasMapRenderer{
  }
  isViewReady(view){
   if(!this.basePrepared||this.controller.preview.contours.failure)return false;
+  if(!this.controller.buildings?.isPrepared(view,{capture:true}))return false;
   if(!this.controller.layers.contours||this.geometryComplete)return true;
   const z=this.controller.manifest.map.width/view.w;
   return this.controller.preview.contours.isReady(view)&&(!this.gpu||this.gpu.isReadyFor(z));
  }
  async ensureView(view){
   await this.baseReady;
+  const buildingPromise=this.controller.buildings?.prepare(view,{capture:true});
   if(this.controller.layers.contours){
-   await this.controller.preview.contours.readyFor(view);
+   await Promise.all([buildingPromise,this.controller.preview.contours.readyFor(view)]);
    if(this.gpu){const gpu=this.gpu;try{await gpu.prepare(this.controller.manifest.map.width/view.w);}catch(error){if(this.gpu===gpu)this.useCanvas(error);}}
-  }
+  }else await buildingPromise;
  }
  requestCamera(view){
   if(this.isViewReady(view))return true;
-  const key=view.w+':'+this.controller.layers.contours;
-  if(this.pendingCameraKey!==key){this.pendingCameraKey=key;this.ensureView({...view}).then(()=>{if(this.pendingCameraKey===key)this.pendingCameraKey=null;if(this.controller.renderer===this)this.controller.schedule();},error=>{if(this.controller.renderer===this)this.fallback(error);});}
+  const buildings=this.controller.buildings,aware=buildings?.enabled;
+  const key=aware?JSON.stringify([view.x,view.y,view.w,view.h,buildings.viewKey(view),this.controller.layers.contours]):view.w+':'+this.controller.layers.contours;
+  if(this.pendingCameraKey!==key){this.pendingCameraKey=key;this.ensureView({...view}).then(()=>{if(this.pendingCameraKey===key)this.pendingCameraKey=null;if(this.controller.renderer===this)this.controller.schedule();},error=>{if(this.pendingCameraKey!==key)return;this.pendingCameraKey=null;if(error.name==='AbortError'){if(this.controller.renderer===this)this.controller.schedule();return;}if(this.controller.renderer===this)this.fallback(error);});}
   return false;
  }
  useCanvas(error){
@@ -58,6 +61,7 @@ export class CanvasMapRenderer{
  }
  async refresh(){
   // Clearing font-dependent sprites must not cancel pending theme geometry.
+  this.controller.buildings?.invalidateTheme();
   const generation=++this.refreshGeneration;this.generation++;this.refreshPending++;
   try{
    await this.ready;const scene=new MapScene(this.svg,this.controller.manifest.map);await scene.prepare();
@@ -66,7 +70,7 @@ export class CanvasMapRenderer{
    // Theme only changes ink; geometry buffers remain valid and are not uploaded.
    if(this.gpu)this.gpu.refreshStyles();
    this.labels.clear();this.controller.invalidateLayout();this.controller.schedule();
-  }catch(error){if(generation===this.refreshGeneration)this.fallback(error);}
+  }catch(error){if(generation===this.refreshGeneration&&error.name!=='AbortError')this.fallback(error);}
   finally{
    // A refresh can still be decoding resources after the placement queue drains.
    // Count every generation, including superseded work and failed preparations.
@@ -84,12 +88,26 @@ export class CanvasMapRenderer{
   this.pointerStyle=document.createElement('style');this.pointerStyle.textContent='#mapsvg[data-map-renderer] *{pointer-events:none!important}';this.svg.after(this.pointerStyle,...this.canvases);this.active=true;
  }
  fallback(error){
+  if(this.fallbackPending)return;
   const packed=this.controller.packedContours;
   if(packed&&!packed.allHydrated){
    if(!this.packedFallback){this.refreshPending++;this.packedFallback=packed.hydrateAll().then(()=>{this.refreshPending--;this.fallback(error);},failure=>{this.refreshPending--;this.controller.status='error';this.controller.error=failure.message;this.controller.details.textContent='Map geometry unavailable: '+failure.message;this.clearLabels();this.controller.visibleIds.clear();packed.close();this.controller.resolveWaiters();});}
    return;
   }
-  this.error=error?.message||String(error);this.controller.rendererError=this.error;this.destroy();this.controller.renderer=null;this.controller.invalidateLayout();this.controller.schedule();}
+  this.error=error?.message||String(error);this.controller.rendererError=this.error;this.fallbackPending=true;
+  const publish=async()=>{
+   try{
+    while(this.controller.renderer===this){
+     const view={...this.controller.view},revision=this.controller.revision,snapshot=this.controller.startupSnapshot(),prepared=await this.controller.buildings?.prepare(view,{capture:false});
+     if(this.controller.renderer!==this)return;
+     if(revision!==this.controller.revision||snapshot!==this.controller.startupSnapshot()||this.controller.buildings?.enabled&&prepared?.key!==this.controller.buildings.viewKey(view))continue;
+     this.controller.renderer=null;this.controller.transactionKind='settled';this.controller.camera(true);this.controller.buildings?.commit(prepared);
+     this.destroy();this.controller.invalidateLayout();this.controller.schedule();return;
+    }
+   }catch(failure){if(failure.name==='AbortError'&&this.controller.renderer===this){this.fallbackPending=false;this.fallback(error);return;}this.controller.status='error';this.controller.error=failure.message;this.controller.details.textContent='Map geometry unavailable: '+failure.message;this.controller.resolveWaiters();}
+  };
+  publish();
+ }
  destroy(){if(this.controller.renderer===this)this.controller.renderer=null;window.removeEventListener('pagehide',this.pageHidden);this.gpu?.destroy();this.active=false;this.generation++;this.refreshGeneration++;this.canvases.forEach(c=>{c.remove();c.width=c.height=1;});this.labels.clear();this.painted=[];this.paintedGeometry=[];this.inputTarget?.remove();this.pointerStyle?.remove();this.svg.style.opacity=this.originalOpacity||'';delete this.svg.dataset.mapRenderer;this.themeObserver?.disconnect();this.media?.removeEventListener('change',this.themeChanged);}
  camera(view){
   const r=this.svg.getBoundingClientRect(),m=viewMatrix(view,r),z=this.controller.manifest.map.width/view.w;
@@ -145,7 +163,7 @@ export class CanvasMapRenderer{
  draw(result,m,{foregroundOnly=false}={}){
   if(!this.requestCamera(this.controller.view))return;
   if(!this.active)return;
-  const l=this.controller,r=this.svg.getBoundingClientRect(),z=l.manifest.map.width/l.view.w,dpr=Math.min(devicePixelRatio||1,2),width=Math.max(1,Math.ceil(r.width*dpr)),height=Math.max(1,Math.ceil(r.height*dpr));
+  const l=this.controller,buildingItems=l.buildings?.commit()||[],r=this.svg.getBoundingClientRect(),z=l.manifest.map.width/l.view.w,dpr=Math.min(devicePixelRatio||1,2),width=Math.max(1,Math.ceil(r.width*dpr)),height=Math.max(1,Math.ceil(r.height*dpr));
   m=viewMatrix(l.view,r);this.scene.metersPerPixel=(l.manifest.map.metersPerMapUnit||0)/m.a;
   for(const canvas of this.canvases)if(canvas.width!==width||canvas.height!==height){canvas.width=width;canvas.height=height;foregroundOnly=false;}
   const device=new DOMMatrix([dpr,0,0,dpr,-r.x*dpr,-r.y*dpr]),world=device.multiply(m);
@@ -165,7 +183,14 @@ export class CanvasMapRenderer{
   const deviceValues=matrixArray(device),paintState=createPaintState(this.fg);
   const view={x:-world.e/world.a,y:-world.f/world.d,w:width/world.a,h:height/world.d};
   for(const layer of ORDER){
-   for(const item of this.scene.byLayer.get(layer)||[])if(this.scene.visible(item,l.layers,z,view)){
+   for(const item of this.scene.byLayer.get(layer)||[]){
+    if(item.kind==='building-payload'){
+     for(const building of buildingItems)if(this.scene.visible(building,l.layers,z,view)){
+      paintCommands(this.fg,building.commands,world,{state:paintState,strokeFactor:1/z});this.paintedGeometry.push(building);
+     }
+     continue;
+    }
+    if(!this.scene.visible(item,l.layers,z,view))continue;
     paintCommands(this.fg,item.commands,world,{state:paintState,strokeFactor:item.constantStroke?1/z:1,opacity:layer==='trails'&&this.highlighted&&(this.highlighted instanceof Set?!this.highlighted.has(item.element.dataset.sourceId||item.element.dataset.featureId||item.element.id):item.name!==this.highlighted)?0.25:1});
     this.paintedGeometry.push(item);
    }

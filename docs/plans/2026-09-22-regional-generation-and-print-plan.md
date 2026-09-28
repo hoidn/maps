@@ -774,18 +774,30 @@ HTML bundles its matching runtime; do not silently accept unknown payload versio
 
 ### Implementation sequence (each increment remains buildable)
 
+Consumer implementation and both review stages are complete. The original missing-
+materialization case and a cancelled-view blocking defect were reproduced before
+correction. The new fixture passes 36 cases across Chromium, Firefox and WebKit;
+18 affected cases pass after tightening fallback and capture-reuse assertions.
+Existing renderer/regional/startup/theme/contour checks pass 178 cases with five
+expected skips (duplicate static finalizations and unavailable Firefox WebGL).
+Chromium/WebKit exercised WebGL; Firefox's WebGL request used the recorded Canvas
+fallback. Commands, exact source hashes and reports are retained under
+`artifacts/regional-print/building-consumer/`. Ordinary builders still emit inline
+buildings; the shared producer and real-candidate acceptance below remain pending.
+The payload is exclusively interactive; static/PDF retains its inline path.
+
 1. **Add the isolated consumer before changing generated output.**
-   - [ ] Add the small browser fixture with an empty designated `.buildings`
+   - [x] Add the small browser fixture with an empty designated `.buildings`
      group, inert payload, disjoint polygons, a hole, a multipolygon and a polygon
      just beyond the view whose stroke intersects it. First demonstrate the
      missing materialization/readiness behavior; do not benchmark this fixture.
-   - [ ] Implement `buildings.js`: parse the existing `json_script` representation
+   - [x] Implement `buildings.js`: parse the existing `json_script` representation
      and validate version, finite
      bounds, path strings and permitted original attributes before publishing a
      ready index. Use native JSON parsing and index cooperatively; malformed/missing data produce an
      explicit geometry error, never an empty successful view. Release consumed
      script text; retain the canonical exact path/source records and index.
-   - [ ] Select by existing `data-max-mpp` semantics and effective viewport scale.
+   - [x] Select by existing `data-max-mpp` semantics and effective viewport scale.
      Query conservatively for `.001` coordinate rounding plus stroke/miter
      reach, exact-filter candidates, and sort record indices into source paint
      order. Reuse retained nodes/captures; evict abandoned ones. Keep at most the
@@ -793,24 +805,24 @@ HTML bundles its matching runtime; do not silently accept unknown payload versio
      view/theme work and final-pagehide work; preserve persisted-page behavior.
 
 2. **Wire complete-view transactions while ordinary builds remain inline.**
-   - [ ] Integrate the helper into controller initialization and idle/error state.
+   - [x] Integrate the helper into controller initialization and idle/error state.
      Native SVG prepares off-paint and commits the building set with its camera,
      including `paintStartupCamera()`, settled rendering, resize and fallback.
      Keep the previous complete view until the new set is ready. The helper owns
      dynamic building eligibility; exclude its nodes from `updateDetail()`'s
      permanent cached element list. Facilities/annotation handling is unchanged.
-   - [ ] Exclude only the designated building group from `MapScene.prepare()`.
+   - [x] Exclude only the designated building group from `MapScene.prepare()`.
      Reuse `captureCommands` and the existing constant-stroke normalization for
      new or theme-invalidated buildings during preparation, outside fast camera
      frames. Feed ordered records into the existing buildings paint slot and
      `paintedGeometry`; do not rebuild the full scene for a pan or double-paint.
-   - [ ] Extend `ensureView()`/`isViewReady()` for buildings even when contours are
+   - [x] Extend `ensureView()`/`isViewReady()` for buildings even when contours are
      disabled or `geometryComplete` is true. Include `x/y/w/h`, effective viewport
      scale and invalidating generation in camera preparation identity. Publish
      `paintedView`/`paintedRevision` only after the complete requested geometry.
      Tie pending work into `whenSettled()`; contour background completion still
      means its existing full inventory, not all buildings materialized at once.
-   - [ ] Make theme refresh and renderer destruction invalidate stale captures;
+   - [x] Make theme refresh and renderer destruction invalidate stale captures;
      retain the controller helper through Canvas-to-native fallback and prepare
      its current view before exposing SVG. GPU-to-Canvas fallback keeps the same
      foreground. Delay one preparation deliberately and prove no stale camera,

@@ -9,6 +9,7 @@ import {InitialPlacementClient} from './initial-placement-client.js';
 import {pointFallback} from './point-fallback.js';
 import {MotionPreview} from './motion-preview.js';
 import {CanvasMapRenderer} from '../render/canvas-renderer.js';
+import {BuildingMaterializer} from '../render/buildings.js';
 import {validateManifest} from './schema.js';
 import {ensureFonts,measureElement,MetricCache,createMeasurementHost} from './measure.js';
 import {moveShape,intersects,anchorDistance} from './geometry.js';
@@ -26,7 +27,7 @@ const project=(m,[x,y])=>[m.a*x+m.c*y+m.e,m.b*x+m.d*y+m.f];
  * old visibility: every synchronous transaction hides, validates, then commits. */
 export class LayoutController {
   constructor(svg,manifest,policy) {
-    this.svg=svg;this.manifest=validateManifest(manifest);this.policy=policy;
+    this.svg=svg;this.manifest=validateManifest(manifest);this.policy=policy;this.buildings=new BuildingMaterializer(svg,this.manifest.map,this);
     this.textScale=1;try{const value=Number(localStorage.getItem('map-text-scale'));if(value>=1&&value<=1.5)this.textScale=value;}catch{}
     this.mode=manifest.map.mode;this.gestures=new Set();this.revision=0;this.view={x:0,y:0,w:manifest.map.width,h:manifest.map.height};
     this.layers={places:true,peaks:true,names:true,contours:true,water:true,relief:true,landcover:true,boundaries:true,grid:false};
@@ -44,7 +45,7 @@ export class LayoutController {
     if(this.mode==='interactive')this.trackGestures();
     this.createDirectory();
     const textControl=document.getElementById('text-size');if(textControl){textControl.value=String(this.textScale);textControl.addEventListener('change',()=>this.setTextScale(Number(textControl.value)));}
-    this.pageHidden=event=>{if(event.persisted)return;this.unloaded=true;this.packedContours?.close();this.initialPlacer?.close();this.renderer?.destroy();this.cancelSettling();clearTimeout(this.settleTimer);cancelAnimationFrame(this.quietFrame);cancelAnimationFrame(this.frame);cancelAnimationFrame(this.fontWatch);this.frame=null;this.settlePending=false;this.observer?.disconnect();window.removeEventListener('pagehide',this.pageHidden);};
+    this.pageHidden=event=>{if(event.persisted)return;this.unloaded=true;this.buildings.close();this.packedContours?.close();this.initialPlacer?.close();this.renderer?.destroy();this.cancelSettling();clearTimeout(this.settleTimer);cancelAnimationFrame(this.quietFrame);cancelAnimationFrame(this.frame);cancelAnimationFrame(this.fontWatch);this.frame=null;this.settlePending=false;this.observer?.disconnect();window.removeEventListener('pagehide',this.pageHidden);};
     window.addEventListener('pagehide',this.pageHidden);
     this.ready=this.initialize();
   }
@@ -73,7 +74,7 @@ export class LayoutController {
   async initialize(){
     try {
       if(this.mode==='interactive'){this.packedContours=PackedContourStore.from(this.svg,this.manifest.map,packedContourWorker);this.packedContours?.prefetch(this.view);}
-      await ensureFonts(this.policy.fontFamilies);
+      await Promise.all([ensureFonts(this.policy.fontFamilies),this.buildings.ready]);
       if(this.unloaded)throw new DOMException('Map unloaded','AbortError');
       if(this.mode==='interactive'){
         this.starting=true;this.initialPlacer=new InitialPlacementClient();
@@ -92,7 +93,7 @@ export class LayoutController {
       this.observer=new ResizeObserver(()=>{
         if(this.status!=='ready')return;
         const r=this.svg.getBoundingClientRect(),resized=!this.lastViewport||r.width!==this.lastViewport.width||r.height!==this.lastViewport.height;
-        if(resized){this.invalidateLayout();this.cache.invalidate();this.lineCache.clear();this.previous=null;}
+        if(resized){this.buildings.cancelPending();this.invalidateLayout();this.cache.invalidate();this.lineCache.clear();this.previous=null;}
         // Rendering mutates observed controls; doing it in the notification
         // delivery itself can create ResizeObserver loops in WebKit.
         this.schedule();
@@ -143,12 +144,12 @@ export class LayoutController {
       this.status='error';this.error=error.message;this.details.textContent='Map labels unavailable: '+error.message;this.resolveWaiters();
     });
   }
-  requestView(view){if(this.panLayout&&view.w===this.view.w&&view.h===this.view.h&&(view.x!==this.view.x||view.y!==this.view.y))this.panLayout.provisional=false;this.revision++;this.cancelSettling();if(view.w!==this.view.w||view.h!==this.view.h)this.panLayout=null;this.view={...view};this.onCameraChange?.(this.view);this.schedule();}
-  setLayer(layer,visible){if(!(layer in this.layers))throw new Error('Unknown layer');this.invalidateLayout();this.layers[layer]=visible;this.preview?.restore();this.preview?.release();this.previewDirty=true;this.schedule();}
+  requestView(view){this.buildings.cancelPending();if(this.panLayout&&view.w===this.view.w&&view.h===this.view.h&&(view.x!==this.view.x||view.y!==this.view.y))this.panLayout.provisional=false;this.revision++;this.cancelSettling();if(view.w!==this.view.w||view.h!==this.view.h)this.panLayout=null;this.view={...view};this.onCameraChange?.(this.view);this.schedule();}
+  setLayer(layer,visible){if(!(layer in this.layers))throw new Error('Unknown layer');this.buildings.cancelPending();this.invalidateLayout();this.layers[layer]=visible;this.preview?.restore();this.preview?.release();this.previewDirty=true;this.schedule();}
   select(id){const f=this.manifest.features.find(f=>f.id===id);if(!f)throw new Error('Unknown feature');this.details.textContent=f.name;this.selected=id;this.onSelect?.(f);
     if(this.mode==='interactive'){const w=this.manifest.map.width/4.5,h=this.manifest.map.height/4.5;this.requestView({x:Math.max(0,Math.min(this.manifest.map.width-w,f.anchor[0]-w/2)),y:Math.max(0,Math.min(this.manifest.map.height-h,f.anchor[1]-h/2)),w,h});}
   }
-  startupSnapshot(){const r=this.svg.getBoundingClientRect();return JSON.stringify([this.view,this.layers,this.textScale,this.revision,r.x,r.y,r.width,r.height,this.controls()]);}
+  startupSnapshot(){const r=this.svg.getBoundingClientRect();return JSON.stringify([this.view,this.layers,this.textScale,this.revision,this.buildings.themeGeneration,r.x,r.y,r.width,r.height,this.controls()]);}
   paintStartupCamera(){
     const renderer=this.renderer;
     if(renderer&&renderer.basePrepared&&!renderer.refreshPending&&renderer.requestCamera(this.view)){
@@ -158,8 +159,9 @@ export class LayoutController {
     }else if(renderer){
       // Scene preparation walks live SVG sources across asynchronous image work.
       // Keep its backgrounds attached until the persistent surface is ready.
+      if(this.buildings.enabled&&this.buildings.committed?.key!==this.buildings.viewKey(this.view))return;
       this.camera(false);
-    }else{this.preview?.show();this.camera(false);this.preview?.render(this.view,this.svg.getBoundingClientRect());}
+    }else{if(this.buildings.enabled&&this.buildings.committed?.key!==this.buildings.viewKey(this.view))return;this.preview?.show();this.camera(false);this.preview?.render(this.view,this.svg.getBoundingClientRect());}
   }
   schedule(){
     if(this.unloaded)return;
@@ -209,8 +211,8 @@ export class LayoutController {
       });
     },delay);
   }
-  whenSettled(){return this.ready.then(()=>this.fontReady).then(()=>this.frame||this.settlePending||this.settleJob||this.roundJob||this.gestures.size||this.renderer?.refreshPending||this.renderer?.geometryPending?new Promise(resolve=>this.waiters.push(resolve)):this.getReport());}
-  resolveWaiters(){if(this.frame||this.settlePending||this.settleJob||this.roundJob||this.gestures.size||this.renderer?.refreshPending||this.renderer?.geometryPending)return;for(const resolve of this.waiters.splice(0))resolve(this.getReport());}
+  whenSettled(){return this.ready.then(()=>this.fontReady).then(()=>this.frame||this.settlePending||this.settleJob||this.roundJob||this.gestures.size||this.buildings.pending||this.renderer?.refreshPending||this.renderer?.geometryPending?new Promise(resolve=>this.waiters.push(resolve)):this.getReport());}
+  resolveWaiters(){if(this.frame||this.settlePending||this.settleJob||this.roundJob||this.gestures.size||this.buildings.pending||this.renderer?.refreshPending||this.renderer?.geometryPending)return;for(const resolve of this.waiters.splice(0))resolve(this.getReport());}
   getReport(){return {textScale:this.textScale,renderer:{requested:this.renderer?.requestedBackend||'svg',active:this.renderer?.backend||'svg',fallback:this.renderer?.fallbackReason||this.rendererError,rgbaBytes:this.renderer?.rgbaBytes,gpuBufferBytes:this.renderer?.gpu?.bufferBytes},status:this.status,error:this.error,view:{...this.view},diagnostics:this.result?.diagnostics,outcomes:this.result?.outcomes||[],missingRequired:this.result?.missingRequired||[],placements:this.result?.placements||[],timings:this.timings.slice(-200),samples:this.samples.slice(-200),transactionKind:this.transactionKind};}
   camera(readAfter=true){
     if(this.renderer?.active&&this.transactionKind==='fast')return this.renderer.camera(this.view);
@@ -240,7 +242,7 @@ export class LayoutController {
   updateDetail(scale){
     const meters=this.manifest.map.metersPerMapUnit;if(!meters)return;
     const mpp=meters/scale;
-    this.detailElements??=[...this.svg.querySelectorAll('[data-max-mpp]')].map(e=>({e,limit:Number(e.dataset.maxMpp)}));
+    this.detailElements??=[...this.svg.querySelectorAll('[data-max-mpp]')].filter(e=>!this.buildings.enabled||!this.buildings.group.contains(e)).map(e=>({e,limit:Number(e.dataset.maxMpp)}));
     for(const item of this.detailElements){const visible=mpp<=item.limit;if(item.visible!==visible){item.e.style.visibility=visible?'':'hidden';item.visible=visible;}}
   }
   setTextScale(value){
@@ -435,6 +437,13 @@ export class LayoutController {
     try {
       if(this.starting&&settled)this.status='loading';
       if(settled)this.preview?.restore();else if(!this.renderer?.active)this.preview?.show(this.panLayout?.placements);
+      if(this.buildings.enabled){
+        const buildView={...this.view},revision=this.revision,snapshot=this.startupSnapshot();let preparedBuildings;
+        try{preparedBuildings=await this.buildings.prepare(buildView,{capture:!!this.renderer});}
+        catch(error){if(error.name==='AbortError')throw error;if(this.renderer){this.renderer.fallback(error);return false;}throw error;}
+        if(revision!==this.revision||snapshot!==this.startupSnapshot()||preparedBuildings?.key!==this.buildings.viewKey(buildView)){this.schedule();return false;}
+        if(!this.renderer?.active)this.buildings.commit(preparedBuildings);
+      }
       // With no retained labels, no painted annotation needs geometry validation.
       // Keep the camera write atomic and defer its layout to normal browser paint.
       const dormant=!settled&&this.previous?.placements.length===0&&!!this.lastViewport&&!this.panLayout?.placements.size;
@@ -590,7 +599,7 @@ export class LayoutController {
         this.status='loading';this.rendering=false;
         return await this.initialPlacer.solve(payload).then(async result=>{
           // Read the current preparation promise: a layer/theme change can replace it.
-          if(this.renderer){const renderer=this.renderer;try{await renderer.ensureView(this.view);}catch(error){this.rendererError=error.message;if(this.packedContours?.error)throw error;if(this.renderer===renderer)renderer.fallback(error);}}
+          if(this.renderer){const renderer=this.renderer;try{await renderer.ensureView(this.view);}catch(error){if(error.name==='AbortError')return false;this.rendererError=error.message;if(this.packedContours?.error)throw error;if(this.renderer===renderer)renderer.fallback(error);}}
           if(!this.renderer){let ready;do{ready=this.preview.ready;await ready;}while(ready!==this.preview.ready);}
           const current=[...document.fonts];
           if(current.length!==faces.length||current.some((face,i)=>face!==faces[i]?.[0]||face.status!==faces[i]?.[1])){

@@ -99,6 +99,7 @@ export class MapScene{
   this.items=[];this.hits=[];let deadline=performance.now()+8;
   for(const top of this.svg.children){
    const layer=layerName(top);if(top.tagName.toLowerCase()==='defs'||layer==='contours'||top.matches('[data-layout-runtime],[data-layout-preview],[data-layout-contour-preview]'))continue;
+   if(top.matches('.buildings[data-building-payload]')){this.items.push({kind:'building-payload',element:top,layer});continue;}
    if(top.matches('.hits')){for(const e of top.querySelectorAll('path'))this.hits.push({element:e,path:pathFor(e),bounds:bounds(e)});continue;}
    if(top.tagName.toLowerCase()==='image'){
     const image=new Image();image.src=top.getAttribute('href');await image.decode();

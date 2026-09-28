@@ -23,17 +23,17 @@
   "reviews":{
     "san_gabriel": {
       "status": "reviewed",
-      "artifactSha256": "1408f4196d083a38d6d15bc52f1f0843f1f8ddfd65c5a9e2ba9a46c9c73efc95",
-      "reviewedAt": "2026-09-22",
-      "coverageStatus": "failed",
+      "artifactSha256": "30fa10c8700df1a2243b29d5703d35917c70e9b000d1c3bf0a49e8e6e5e1f113",
+      "reviewedAt": "2026-09-28",
+      "coverageStatus": "passed",
       "evidence": {
         "coverage": {
-          "path": "artifacts/regional-print/san-gabriel/coverage.json",
-          "sha256": "79bbc0a60380b719bd63b9ab6e53cd54af54fdeee4f0119cf8e1bdfec1a358a9"
+          "path": "artifacts/regional-print/buildings-and-summits-20260928/observed-width/coverage-current.json",
+          "sha256": "6d12271967e8674917ca92d429b97e37a542b035cb5829ed679c7b457db39b60"
         },
         "visualReview": {
-          "path": "artifacts/regional-print/san-gabriel/coverage-visual-review.json",
-          "sha256": "297e52161b29a2a8ab76dbcf8e95f66cfa8d302c13f9d41a303eae39eb45d93c"
+          "path": "artifacts/regional-print/buildings-and-summits-20260928/observed-width/coverage-current-visual-review.json",
+          "sha256": "8531f32591c1ea45bc57dbb67547769db8f82c1ca0dd56e9d41069099c71d8d7"
         },
         "sourceReview": {
           "path": "artifacts/regional-print/san-gabriel/source-checks.json",
@@ -45,20 +45,9 @@
         }
       },
       "sceneCount": 12,
-      "passedScenes": 9,
-      "failedScenes": 3,
-      "coverageFailures": [
-        {
-          "profile": "Mount Wilson",
-          "sourceId": "osm:node:358794822",
-          "metersPerPixel": [
-            32,
-            12,
-            6
-          ],
-          "missingPaintedSource": true
-        }
-      ]
+      "passedScenes": 12,
+      "failedScenes": 0,
+      "coverageFailures": []
     }
   }
 }

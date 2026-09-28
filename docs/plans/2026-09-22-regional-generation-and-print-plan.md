@@ -69,6 +69,24 @@ rerun of the entire public command. The original failure is retained. Its
 [retention manifest](../../artifacts/regional-print/buildings-and-summits-20260928/print-50-evidence-retention.json)
 records the verified evidence copies and logical symlinks.
 
+**Latest interactive checkpoint (2026-09-28):** The current candidate SHA
+`30fa10c8700df1a2243b29d5703d35917c70e9b000d1c3bf0a49e8e6e5e1f113`
+passes [all twelve Chromium coverage scenes](../../artifacts/regional-print/buildings-and-summits-20260928/observed-width/coverage-current.json)
+with WebGL requested and active; the observed browser process uses SwiftShader.
+All twelve captures have a [completed visual review](../../artifacts/regional-print/buildings-and-summits-20260928/observed-width/coverage-current-visual-review.json)
+with no findings in the requested coverage. Wilson's summit symbol is painted at
+32/12/6 m per pixel. Its summit name appears at 6; the separate settlement name is
+not counted as summit-name coverage. At 12 and 6 the nearby water symbol loses by
+collision. San Antonio, Baden-Powell and the selected West Fork waterway also pass
+at all three scales. Source omissions remain recorded, including 27,140 scene
+omissions; none identifies the four target sources. The original audit's
+`review-required` status is retained because it ran before this visual review.
+The checked-in scene registry now points to the reviewed candidate and both
+evidence hashes. This establishes these twelve scenes, not the complete interactive
+matrix; the current WebKit failures and missing real Grand Canyon/Sequoia checks
+remain open. A further startup-accounting probe is
+[specified but not implemented or executed](../../artifacts/regional-print/startup-accounting/diagnostic-spec.md).
+
 **Initial implementation evidence (2026-09-22):** The full suites passed
 [197 Python tests](../../artifacts/regional-print/final-python-tests.log) and
 [197 Node tests](../../artifacts/regional-print/final-node-tests.log). The print/PDF
@@ -177,8 +195,9 @@ The producer-to-solver regression first reproduced the failure and now passes
 12 synthetic source/mode/translation cases. Focused checks pass: scene 34,
 text-importance 5, manifest 17 and annotation-order 8; logs are retained under
 `artifacts/regional-print/summit-priority/`. Source and specification review passed.
-Current-map coverage and regenerated PDFs remain pending; synthetic footprints do
-not establish their acceptance.
+Both regenerated PDFs now have separate mechanical and digital visual evidence at
+the latest print checkpoint above. Current interactive acceptance remains pending;
+synthetic footprints do not establish it.
 
 The nine-case matrix on `5da66938…` completed with nine failures. The
 [completed-case records](../../artifacts/regional-print/san-gabriel/fuzz-public-5da66938/completed-cases.jsonl)
@@ -758,7 +777,7 @@ accurately separates implementation, geographic review and release status.
 
 ## Task 10 follow-up: materialize interactive buildings by viewport
 
-**Status (2026-09-28): Implementation in progress; acceptance pending.** This is
+**Status (2026-09-28): Implementation installed and fixture-tested; real interactive acceptance pending.** This is
 scoped defect correction under task 10, not a completed scalability fix or a new release gate.
 Execute with `superpowers:subagent-driven-development`; retain task 10's limits,
 seeds, actions, backend accounting and independent audits.

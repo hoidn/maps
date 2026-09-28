@@ -8,7 +8,50 @@ outputs. Preserve the authored SVG cartography unless the task explicitly change
 
 Read [README.md](README.md) for the product and build overview, then use the
 [documentation index](docs/index.md) to select only the references relevant to
-the task. The index owns task routing; it does not define requirements.
+the task before deciding which docs or specs govern a change. The index owns
+task routing; it does not define requirements. Use the linked contracts, designs,
+plans, and evidence to distinguish implemented, partial, proposed, and legacy
+surfaces before copying them. Use this repository's routing rather than paths
+specific to another repository.
+
+## Communication and development
+
+- Respond to the user in Spanish unless they request otherwise.
+- Ask about unclear intent, architecture, or requirements before writing code that
+  depends on the answer. When running unattended, choose the most reasonable
+  interpretation, proceed, and record the assumption rather than blocking.
+- State the implementation approach in one or two sentences before making changes,
+  including what it makes harder down the line.
+- Implement the most direct, maintainable solution. Do not add speculative
+  abstractions for needs that do not exist yet. Suggest a better lasting design
+  when it would improve on a tactical change.
+- Flag uncertainty explicitly. Use a small, local, low-risk experiment when it can
+  test an uncertain hypothesis, and report the hypothesis and result.
+- Keep changes scoped; avoid unrelated refactors and cosmetic edits. Adjacent
+  changes needed to share logic, update an interface, or prevent a regression are
+  in scope. Check that local changes do not silently break adjacent systems.
+- Write plans under `docs/plans/` before large edits. Small fixes do not need a
+  separate plan.
+
+## Execution and subagents
+
+- Run commands from the repository root unless the documented command requires
+  another directory; individual Python pipeline stages are an explicit exception.
+- Use the `tmux` skill for long-running commands and keep long test runs in tmux.
+- When executing plans, use Subagent-Driven execution without asking for another
+  confirmation. Do not delegate trivial changes when the overhead exceeds the
+  value.
+- The primary agent coordinates and integrates the work. Read-only scouts and
+  reviewers may run in parallel. Before finishing, inspect the resulting diff and
+  verification results yourself.
+- For Codex subagents, use these role assignments:
+
+  | Role | Model | Reasoning effort |
+  |---|---|---|
+  | Implementation | GPT-6 Luna | xhigh |
+  | Review | GPT-6 Sol | high |
+  | Design | GPT-6 Astra | xhigh |
+  | Planning | GPT-6 Astra | high |
 
 ## Authority and scope
 
@@ -72,8 +115,41 @@ the task. The index owns task routing; it does not define requirements.
 - For behavior changes, use a small regression case that fails for the defect.
   Python, Node, and Playwright suites are checked in. Select focused tests for a
   local change; the complete release gate is required before map promotion.
+- Treat fresh command output as required verification evidence. Do not assume
+  success from inspection when runnable checks are available, or weaken
+  verification to make a failure disappear.
+- Start with the narrowest relevant test selectors and use this repository's
+  documented runners. The Python suite uses `unittest`; do not introduce pytest
+  just to follow another repository's command. If working in a pytest suite with
+  pytest-xdist available, run broad, slow, or full suites after narrow checks with
+  `pytest -q -n 16 --dist=worksteal`, and run `pytest --collect-only` on added or
+  renamed test modules. With other runners, verify discovery using their native
+  commands.
+- For frontend, runtime, or reusable pipeline changes, include an end-to-end usage
+  or integration check, or explain why isolated checks are sufficient.
+- Do not add or keep tests that assert literal prompt text or phrasing. Prefer
+  behavioral, contract, artifact-lineage, or dataflow assertions that remain valid
+  when prompts are revised.
 - Routine documentation edits need link/source checks, not map regeneration.
   Report what changed, what was checked, and material unchecked behavior.
-- Keep plans proportional. Use `docs/plans/` for work that needs a durable sequence
-  or design decision; small fixes do not require another planning document. Add
-  nested agent guidance only when a subsystem develops distinct working rules.
+- Add nested agent guidance only when a subsystem develops distinct working rules.
+
+## When using agent-orchestration
+
+These rules apply when a task uses the sibling orchestrator, not to ordinary map
+builds or tests:
+
+- Follow that repository's documentation routing and capability status before
+  reusing its surfaces; its documentation paths are not local map documentation.
+- For workflow, prompt, artifact-contract, provisioning, or demo-trial changes,
+  rerun at least one orchestrator/demo smoke check in addition to unit tests. For
+  DSL or reusable workflow changes, include an end-to-end usage or integration
+  check, or explain why isolated checks are sufficient.
+- If a run passed an approval/review gate and then failed downstream, prefer
+  `orchestrator resume <run_id>` over a fresh run unless intentionally redoing the
+  earlier gated stages.
+- Run workflows for EasySpin, `/home/ollie/Documents/PtychoPINN`, or its paper
+  repository `/home/ollie/Documents/ptychopinnpaper2` in the `ptycho311`
+  environment, including workflows launched in tmux. Prefer sourcing conda,
+  activating `ptycho311`, and invoking `python -m orchestrator` directly for live
+  output; if using `conda run`, include `--no-capture-output`.

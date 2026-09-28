@@ -74,7 +74,7 @@ const server=createServer((q,r)=>{r.setHeader('Content-Type','text/html; charset
 let browser;const report={schemaVersion:2,file,sha256:createHash('sha256').update(bytes).digest('hex'),browser:engine,profilesStatus:profiles.status,scenes:[],errors:[]};
 try{
  browser=await({chromium,firefox,webkit}[engine]).launch();report.version=browser.version();
- const page=await browser.newPage({viewport:{width:1440,height:1200}});page.on('pageerror',e=>report.errors.push(e.message));await page.goto(`http://127.0.0.1:${server.address().port}`,{timeout:120000});await page.evaluate(()=>mapLayout.ready);await page.locator('.map-wrap').scrollIntoViewIfNeeded();
+ const page=await browser.newPage({viewport:{width:1440,height:1200}});page.on('pageerror',e=>report.errors.push(e.message));await page.goto(`http://127.0.0.1:${server.address().port}`,{timeout:120000});await page.evaluate(async()=>{await mapLayout.ready;});await page.locator('.map-wrap').scrollIntoViewIfNeeded();
  const info=await page.evaluate(()=>({map:mapLayout.manifest.map,features:mapLayout.manifest.features,catalog:JSON.parse(document.getElementById('map-cartography-catalog').textContent),requestedBackend:mapLayout.svg.dataset.renderer||'svg',renderer:mapLayout.getReport().renderer}));report.map=info.map;report.catalogCounts=info.catalog.counts;report.sources=info.catalog.sources;report.sceneOmissions=info.catalog.omissions;
  report.backend={...info.renderer,requested:info.requestedBackend};
  if(info.requestedBackend!==info.renderer.active)report.errors.push(`Requested ${info.requestedBackend} backend used ${info.renderer.active}: ${info.renderer.fallback||'fallback'}`);

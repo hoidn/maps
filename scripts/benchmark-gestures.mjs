@@ -28,7 +28,7 @@ try{
    await page.evaluate(()=>{gestureTrace.renders=[];});
    await page.mouse.wheel(0,-300);
    await page.waitForFunction(()=>gestureTrace.events>0);
-   await page.evaluate(()=>mapLayout.whenSettled());
+   await page.evaluate(async()=>{await mapLayout.whenSettled();});
    const wheel=await page.evaluate(()=>gestureTrace.renders);
    await page.evaluate(async()=>{const l=mapLayout,W=l.manifest.map.width,H=l.manifest.map.height;l.requestView({x:W/4,y:H/4,w:W/2,h:H/2});await l.whenSettled();});
    await page.waitForTimeout(150);
@@ -36,7 +36,7 @@ try{
    await page.evaluate(()=>{gestureTrace.held=true;gestureTrace.renders=[];});
    for(let i=1;i<=12;i++){await page.mouse.move(700+i*3,500);await page.waitForTimeout(50);}
    await page.evaluate(()=>{gestureTrace.held=false;});
-   await page.mouse.up();await page.evaluate(()=>mapLayout.whenSettled());
+   await page.mouse.up();await page.evaluate(async()=>{await mapLayout.whenSettled();});
    const drag=await page.evaluate(()=>gestureTrace.renders);
    const held=drag.filter(r=>r.held),fast=held.filter(r=>!r.full);
    const summary={heldSettled:held.filter(r=>r.full).length,heldRenderMs:held.reduce((n,r)=>n+r.ms,0),heldMaxMs:Math.max(0,...held.map(r=>r.ms)),fastMaxMs:Math.max(0,...fast.map(r=>r.ms)),wheelFirstFastMs:wheel.find(r=>!r.full)?.ms};

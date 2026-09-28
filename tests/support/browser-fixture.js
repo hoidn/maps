@@ -14,7 +14,7 @@ export async function fixtureHTML(mode='interactive') {
 export async function mountFixture(page,mode='interactive') {
  await page.setContent(await fixtureHTML(mode));
  await page.addScriptTag({content:await fs.readFile('pipeline/labels/dist/browser.js','utf8')});
- await page.evaluate(()=>window.mapLayout.ready);
+ await page.evaluate(async()=>{await window.mapLayout.ready;});
 }
 export async function visibleBoxes(page) {
  return page.evaluate(()=>[...document.querySelectorAll('[data-layout-id]')].filter(e=>getComputedStyle(e).visibility==='visible'&&e.getBoundingClientRect().width>0).map(e=>{const r=e.getBoundingClientRect();return {id:e.id,x:r.x,y:r.y,width:r.width,height:r.height};}));

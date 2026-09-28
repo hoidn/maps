@@ -18,14 +18,56 @@ the checked-in Python unittest, Node test and Playwright harnesses.
 
 **Status:** Authorized execution active. Region integration, physical print export and
 bounds-driven generation are implemented. Fixture validation passes; real San Gabriel
-inputs are acquired. Both retained PDFs pass mechanical checks and have visual reviews
-under the previous symbol priorities; regeneration for the approved summit precedence
-is pending. Interactive matrix acceptance remains in progress. Nothing has been promoted
-or published.
+inputs are acquired. Both regenerated PDFs pass mechanical checks and digital visual
+review with the approved summit precedence; the 1:50,000 export required recovery
+after a navigation timeout. Interactive matrix acceptance remains pending. The two
+previously reviewed PDFs are retained separately. Nothing has been promoted or published.
 
 **User clarification:** New maps start from a selected area/bounding box. A checked-in
 San Gabriel preset alone does not establish automated region setup. The generic command
 derives its specification and dimensions; the real third-map proof must use this path.
+
+**Latest print checkpoint (2026-09-28):** The public cached selected-bounds command
+has completed successfully with the new
+[36 × 24 inch PDF](../../artifacts/regional-print/buildings-and-summits-20260928/prints/san-gabriel-36x24.pdf),
+[print report](../../artifacts/regional-print/buildings-and-summits-20260928/prints/san-gabriel-36x24.print.json)
+and [whole-poster/six-crop review](../../artifacts/regional-print/buildings-and-summits-20260928/visual-36/review.json).
+PDF SHA `be241df516b65aa6bee1f8a00ce3c982beaab7d6191a9e76e797709e6eeffdde`
+comes from frozen SHA `6bfb7763b1a008711ed91853c48b09189e2f3e4434a1d816f097a8af88537d67`.
+All six browser/theme audits have zero findings. The single 2,592 × 1,728 point
+page retains embedded fonts and 156,952 map-interior vector paths; its 100 mm bar
+measures 100.189 mm in the digital check. Wilson's summit marker is now visible;
+its summit name and Baden-Powell's name remain absent in the reviewed crops.
+The [frozen-placement review](../../artifacts/regional-print/buildings-and-summits-20260928/print-36-placement-review.json)
+confirms these outcomes in all six audits, distinguishes Wilson's separate
+settlement name, and counts two visible contour labels from 122 candidates.
+The collar remains readable. Relief is about 74 × 61 DPI and land cover 37 DPI;
+this is a digital review, not a physical printer proof. Completed print evidence
+was moved with verified hashes and retained logical symlinks to preserve working
+space; [the retention manifest](../../artifacts/regional-print/buildings-and-summits-20260928/print-evidence-retention.json)
+records the storage locations. The live-scale follow-up changes no print inputs,
+as recorded in [print source lineage](../../artifacts/regional-print/buildings-and-summits-20260928/print-source-lineage.json).
+
+The regenerated [nominal 1:50,000 PDF](../../artifacts/regional-print/buildings-and-summits-20260928/prints/san-gabriel-50k.pdf)
+also passes its [print checks](../../artifacts/regional-print/buildings-and-summits-20260928/prints/san-gabriel-50k.print.json)
+and [whole-poster/thirteen-crop digital review](../../artifacts/regional-print/buildings-and-summits-20260928/visual-50/review.json).
+PDF SHA `6f0b9b27245c4fe99633445c4635d79693e95bab1ed3caac9a58fd923bc4d521`
+comes from frozen SHA `74e110ba59096df93058e8066b63777c1383115e856d7e8454b73a85ea50e35b`.
+All six browser/theme audits have zero findings. The single 5,436 × 3,136.08 point
+page retains embedded fonts and 159,191 map-interior vector paths, with a measured
+100.189 mm calibration bar. Wilson's summit symbol is visible; its own name remains
+omitted. San Antonio and Baden-Powell symbols and names are visible. The
+[placement review](../../artifacts/regional-print/buildings-and-summits-20260928/print-50-placement-review.json)
+counts 43 visible contour labels from 122 candidates. The collar is legible; relief
+is about 35 × 29 DPI and land cover 17 DPI, visibly coarse at this physical size.
+The public command completed freezing and all six audits, then failed its
+120-second PDF navigation limit. A fresh process using the same `exportPdf()`
+helper, frozen bytes, audits, viewport and limits succeeded with navigation taking
+117.48 seconds. The [retry log](../../artifacts/regional-print/buildings-and-summits-20260928/print-50k-export-retry.log)
+records this export recovery; it does not establish a timeout fix or a successful
+rerun of the entire public command. The original failure is retained. Its
+[retention manifest](../../artifacts/regional-print/buildings-and-summits-20260928/print-50-evidence-retention.json)
+records the verified evidence copies and logical symlinks.
 
 **Initial implementation evidence (2026-09-22):** The full suites passed
 [197 Python tests](../../artifacts/regional-print/final-python-tests.log) and
@@ -838,6 +880,36 @@ rounding against actual `clientWidth`. Commands and reports are under
 current real-map acceptance remains pending. This interactive
 script is not read by the active static/physical-print builder; its shared Python,
 runtime bundle and print sources remain unchanged during PDF generation.
+The subsequent real interactive rebuild from `10fc068` completes in 13 minutes
+52 seconds and produces SHA
+`30fa10c8700df1a2243b29d5703d35917c70e9b000d1c3bf0a49e8e6e5e1f113`.
+Its [byte comparison](../../artifacts/regional-print/buildings-and-summits-20260928/observed-width/byte-lineage.json)
+confirms that only the interaction script differs from `55db4ba3…`.
+The [unchanged WebKit preflight](../../artifacts/regional-print/buildings-and-summits-20260928/observed-width/webkit-preflight/report.json)
+passes navigation in 112.48 seconds but exceeds the separate 120-second readiness
+limit, with no initial checks or action captures. The print builder was suspended
+for that run and resumed afterward. This is a phase-specific failure, not overall
+interactive acceptance. A later isolated diagnostic observed readiness in-page at
+206.75 seconds and full-report return at 210.72 seconds. That 3.97-second interval
+does not establish report transfer as the cause of the earlier timeout.
+The harness now awaits readiness/settlement inside the page at eleven sites
+whose returned reports were discarded. Controller APIs, time limits and audit
+checks are unchanged. Its [behavioral regression](../../artifacts/regional-print/ready-report-transport/red.log)
+first fails on the unwanted return value, then passes; all
+[198 Node tests pass under Node 24.6.0](../../artifacts/regional-print/ready-report-transport/unit-green-node24.log).
+The earlier RED/GREEN runs used Node 20.19.4 and are retained separately. Source
+review passed. Browser integration passes 15 cases with six intentional skips;
+[logs and results](../../artifacts/regional-print/ready-report-transport/integration.log)
+cover regional selection/reload, live scales and CLI failure cleanup.
+New fuzz reports use harness version 4 to distinguish this readiness measurement
+from version 3, which also transferred the unused full report to the host.
+The exact-candidate [harness 4 WebKit preflight](../../artifacts/regional-print/buildings-and-summits-20260928/observed-width/harness-no-report-preflight/report.json)
+passes navigation in 99.15 seconds and readiness in 96.98 seconds, then fails the
+30-second screenshot limit with no accepted captures. A diagnostic-only
+`caret: 'initial'` screenshot probe passes navigation in 104.23 seconds but exceeds
+the readiness limit before reaching a capture; it cannot attribute the screenshot
+failure. Its [report](../../artifacts/regional-print/buildings-and-summits-20260928/observed-width/caret-initial-preflight/report.json)
+is retained, and no screenshot behavior or time limit was changed in production.
 The [emitted-priority review](../../artifacts/regional-print/buildings-and-summits-20260928/summit-emission-review.json)
 confirms priority 860 on all 214 summit markers and no other annotation or anchor
 drift. The normal static stage also completed with

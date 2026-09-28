@@ -90,7 +90,7 @@ export async function selectPlace(page,a){
   if(!f)throw Error('Place selection option is not a directory feature');
   return {featureId:f.id,sourceId:f.sourceId,name:f.name,anchor:f.anchor};
  },a.u);
- await page.selectOption('#goto',feature.featureId);await page.evaluate(()=>mapLayout.whenSettled());
+ await page.selectOption('#goto',feature.featureId);await page.evaluate(async()=>{await mapLayout.whenSettled();});
  a.selection={...feature,...await page.evaluate(()=>({selected:mapLayout.selected,details:mapLayout.details.textContent.trim(),view:{...mapLayout.view}}))};
  const {selected,details,view:v,anchor:[x,y]}=a.selection;
  if(selected!==feature.featureId||details!==feature.name||!await page.locator('[data-layout-details]').isVisible()||!(x>=v.x&&x<=v.x+v.w&&y>=v.y&&y<=v.y+v.h))throw Error('Place selection did not select and show its feature');
@@ -98,13 +98,13 @@ export async function selectPlace(page,a){
 
 export async function restoreUrl(page,a){
  // A real zoom control makes an overview reload insufficient evidence.
- await page.locator('#zin').click();await page.evaluate(()=>mapLayout.whenSettled());
+ await page.locator('#zin').click();await page.evaluate(async()=>{await mapLayout.whenSettled();});
  await page.waitForFunction(()=>{const l=mapLayout,v=l.view;return location.hash===`#v=${v.x.toFixed(0)},${v.y.toFixed(0)},${(l.manifest.map.width/v.w).toFixed(2)}`;});
  a.hashRestore=await page.evaluate(()=>{
   const l=mapLayout,{width:W,height:H}=l.manifest.map,[x,y,zoom]=location.hash.slice(3).split(',').map(Number),z=Math.min(14,Math.max(1,zoom)),w=W/z,h=w*H/W;
   return {before:{hash:location.hash,view:{...l.view}},expected:{x:Math.max(0,Math.min(W-w,x)),y:Math.max(0,Math.min(H-h,y)),w,h}};
  });
- await page.reload({timeout:120000});await page.evaluate(()=>mapLayout.ready);await page.locator('.map-wrap').scrollIntoViewIfNeeded();await page.evaluate(()=>mapLayout.whenSettled());
+ await page.reload({timeout:120000});await page.evaluate(async()=>{await mapLayout.ready;});await page.locator('.map-wrap').scrollIntoViewIfNeeded();await page.evaluate(async()=>{await mapLayout.whenSettled();});
  const after=a.hashRestore.after=await page.evaluate(()=>({...mapLayout.view}));
  if(Object.entries(a.hashRestore.expected).some(([key,value])=>!Number.isFinite(after[key])||Math.abs(value-after[key])>1e-6))throw Error('Hash restore mismatch');
 }
@@ -113,7 +113,7 @@ export async function initializeFuzz(page,url,settled,capture,armWatchdog,report
  const started=performance.now(),initialization=report.initialization={status:'running',phases:[]};
  for(const [phase,run] of [
   ['navigation',()=>page.goto(url,{timeout:120000})],
-  ['readiness',()=>page.evaluate(()=>mapLayout.ready)],
+  ['readiness',()=>page.evaluate(async()=>{await mapLayout.ready;})],
   ['initial-checks',async()=>{await page.locator('.map-wrap').scrollIntoViewIfNeeded();await settled();await capture(0);}],
  ]){
   const phaseStarted=performance.now(),entry={phase,startedMs:phaseStarted-started,status:'running'};initialization.phases.push(entry);armWatchdog(phase);
@@ -132,7 +132,7 @@ let state=Number(seedText)>>>0;const random=()=>{state=(Math.imul(state,1664525)
 const server=createServer((req,res)=>{res.setHeader('Content-Type','text/html; charset=utf-8');res.end(bytes)});await new Promise(r=>server.listen(0,'127.0.0.1',r));
 const headless=parseHeadless(process.argv.slice(8),{});
 const browser=await({chromium,firefox,webkit}[engine]).launch({headless}),graphics=await collectGraphics(browser,engine);
-const report={harnessVersion:3,file:resolve(file),sha256:createHash('sha256').update(bytes).digest('hex'),seed:Number(seedText),engine,browserVersion:browser.version(),headless,graphics,backend,deviceScaleFactor:Number(seedText)%2?1:2,screenshotScope:'visible viewport; no capture-induced scroll or resize',actions:[],errors:[],checks:[]};
+const report={harnessVersion:4,file:resolve(file),sha256:createHash('sha256').update(bytes).digest('hex'),seed:Number(seedText),engine,browserVersion:browser.version(),headless,graphics,backend,deviceScaleFactor:Number(seedText)%2?1:2,screenshotScope:'visible viewport; no capture-induced scroll or resize',actions:[],errors:[],checks:[]};
 const auditBundle=(await build({entryPoints:['scripts/release-browser-audit.js'],bundle:true,format:'iife',globalName:'releaseAudit',write:false})).outputFiles[0].text;
 const page=await browser.newPage({viewport:{width:1440,height:1200},deviceScaleFactor:report.deviceScaleFactor});
 await page.addInitScript({content:auditBundle+';window.releaseAudit=releaseAudit;'});

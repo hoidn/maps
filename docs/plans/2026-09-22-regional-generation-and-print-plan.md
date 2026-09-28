@@ -112,21 +112,33 @@ review applies to those identical data/styles without a fresh 12-scene rerun
 solely for that purpose. Mechanical coverage, its three failures and interactive
 acceptance do not transfer to the new hash.
 
-The nine-case matrix is running on `5da66938…`; the
-[same parent resumed at 21:37:11 UTC](../../artifacts/regional-print/san-gabriel/fuzz-public-5da66938/scheduler-resume.json)
-after isolated print validation. The
+The nine-case matrix on `5da66938…` completed with nine failures. The
 [completed-case records](../../artifacts/regional-print/san-gabriel/fuzz-public-5da66938/completed-cases.jsonl)
-currently show two failures: Chromium/SVG exceeded the 120-second watchdog on
-layer action 6 after six captures; Chromium/Canvas exceeded it on interrupt
-action 11 after eleven captures with Canvas active. All completed paint
-audits have zero findings, but selection and URL restoration were not reached.
+and [aggregate report](../../artifacts/regional-print/san-gabriel/fuzz-public-5da66938/matrix.json)
+preserve the exact actions, candidate hash and backend coverage. Chromium SVG
+exceeded the 120-second watchdog on layer action 6; Canvas on interrupt action 11;
+WebGL on URL restoration action 14 after successful real place selection.
+Firefox SVG timed out taking the selection capture at action 13; Canvas and the
+requested WebGL case timed out taking the interrupt capture at action 11. Firefox
+WebGL used Canvas fallback, so it does not establish WebGL coverage. All three
+WebKit cases exceeded the navigation limit before reaching any action. Completed
+paint captures have zero audit findings, but no case completed the interaction
+sequence; these results do not establish interactive acceptance.
+
 The [Canvas visual review](../../artifacts/regional-print/san-gabriel/fuzz-public-5da66938/san_gabriel-chromium-canvas/visual-review.json)
-finds a real 430 px control defect: the scale box partly hides the Layers control
-in frames 8–10. A shared CSS fix and regression are in progress. Chromium/WebGL
-continues while subsequent scheduling is paused at a
-[recorded maintenance boundary](../../artifacts/regional-print/san-gabriel/fuzz-public-5da66938/scheduler-pause-for-css.json)
-for that focused work. The watchdog causes remain undetermined; these results
-do not establish interactive acceptance.
+found a 430 px control defect: the scale box partly hid Layers. Commit `e4a7105`
+places persistent mobile controls and readouts below the unchanged geographic
+frame. A fresh September 28 [browser run](../../artifacts/regional-print/resume-20260928/responsive-results.json)
+passes 21 checks across the three engines, covering regional/authored aspect
+ratios, SVG/Canvas/WebGL requests, actual backend or fallback, camera/anchor
+preservation, static wrappers and usable Layers controls. The existing open-menu
+popup intentionally overlays noninteractive readouts. The actual candidate still
+needs rebuilding with this CSS; the old matrix did not include it. The shared
+agent guidance is also preserved on the feature branch in `6b015cd`.
+
+Execution resumed September 28 with isolated load/interaction diagnosis before
+another real matrix run. Navigation, application settlement, independent audits
+and screenshots must be measured separately; timeout causes remain unresolved.
 
 The [first-case record](../../artifacts/regional-print/san-gabriel/fuzz-public-5da66938/first-case-result.json),
 [comparison](../../artifacts/regional-print/san-gabriel/fuzz-public-5da66938/first-case-comparison.json)

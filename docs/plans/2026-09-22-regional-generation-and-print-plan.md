@@ -71,7 +71,8 @@ records the verified evidence copies and logical symlinks.
 
 **Latest interactive checkpoint (2026-09-28):** The current candidate SHA
 `30fa10c8700df1a2243b29d5703d35917c70e9b000d1c3bf0a49e8e6e5e1f113`
-passes [all twelve Chromium coverage scenes](../../artifacts/regional-print/buildings-and-summits-20260928/observed-width/coverage-current.json)
+is available as [standalone HTML](../../artifacts/regional-print/buildings-and-summits-20260928/observed-width/san_gabriel_trails_interactive.html)
+and passes [all twelve Chromium coverage scenes](../../artifacts/regional-print/buildings-and-summits-20260928/observed-width/coverage-current.json)
 with WebGL requested and active; the observed browser process uses SwiftShader.
 All twelve captures have a [completed visual review](../../artifacts/regional-print/buildings-and-summits-20260928/observed-width/coverage-current-visual-review.json)
 with no findings in the requested coverage. Wilson's summit symbol is painted at
@@ -86,6 +87,16 @@ evidence hashes. This establishes these twelve scenes, not the complete interact
 matrix; the current WebKit failures and missing real Grand Canyon/Sequoia checks
 remain open. A further startup-accounting probe is
 [specified but not implemented or executed](../../artifacts/regional-print/startup-accounting/diagnostic-spec.md).
+
+**Local integration (2026-09-28):** Source and documentation have been integrated
+into `main`, preserving the four pre-existing local planning/rules files in a
+verified stash. The worktree and its evidence remain available through local
+links; [the integration record](../../artifacts/regional-print/main-integration/integration.json)
+identifies those locations and the preserved files. Post-integration checks pass
+198 Node tests and 202 Python tests. The initial Node attempt found a missing
+repository-local Python environment; linking the existing environment resolved
+all five failures without changing source. `output/` and hosted delivery were not
+updated. The incomplete acceptance checks above remain open.
 
 **Initial implementation evidence (2026-09-22):** The full suites passed
 [197 Python tests](../../artifacts/regional-print/final-python-tests.log) and
@@ -754,7 +765,7 @@ Print operating instructions belong in the existing layout guide.
   verified page limits, nominal-scale meaning, fixed versus available contour
   detail, raster limits, output names and report interpretation. Verify all
   published commands and local links before calling the guide current.
-- [ ] Update plan progress with evidence paths and only completed checks. Report
+- [x] Update plan progress with evidence paths and only completed checks. Report
   interactive HTML, frozen print HTML and PDF locations, checks performed,
   source gaps, remaining real-map validation and whether anything was promoted.
   Do not treat this task as authorization to bypass promotion checks or publish.
